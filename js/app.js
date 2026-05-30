@@ -143,6 +143,7 @@ const App = {
       practice: () => this.renderPractice(),
       grammar: () => this.renderGrammar(),
       trainer: () => this.renderTrainer(),
+      gex: () => this.renderGex(),
       writing: () => this.renderWriting(),
       speaking: () => this.renderSpeaking(),
       reading: () => this.renderReadingList(),
@@ -172,6 +173,7 @@ const App = {
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
       : this.view === "trainer" ? "grammar"
+      : this.view === "gex" ? "grammar"
       : this.view === "exam" ? "exams"
       : this.view === "read" ? "reading" : this.view;
     const menu = items.map(([v, ic, l]) =>
@@ -562,21 +564,24 @@ const App = {
       .join("");
   },
 
-  /* ---------- ГРАММАТИКА (теория + тренажёры) ---------- */
+  /* ---------- ГРАММАТИКА (теория + упражнения у каждой темы) ---------- */
   renderGrammar() {
-    const items = GRAMMAR_LESSONS.map(
-      (g) => `<details class="gram"><summary>${g.title}</summary><div class="gram-body">${g.body}</div></details>`
-    ).join("");
+    const items = GRAMMAR_LESSONS.map((g) => {
+      const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
+      const exBtn = n ? `<button class="big-btn primary slim gex-launch" data-gex="${g.id}">▶ Упражнения (${n})</button>` : "";
+      return `<details class="gram"><summary><span class="gram-ic">${GrammarEx.icon(g.id)}</span> ${g.title}</summary>
+        <div class="gram-body">${g.body}${exBtn}</div></details>`;
+    }).join("");
     return `
       <header class="page-head"><h2>📖 Грамматика A1</h2></header>
-      <p class="muted">Полная теория для A1 + упражнения. Сначала прочитай урок, потом закрепи в тренажёре.</p>
+      <p class="muted">У каждой темы — теория и набор упражнений (от простого к сложному). Раскрой урок и жми «▶ Упражнения».</p>
 
       <div class="train-row">
-        <button class="train-btn" data-train="decl"><span>🧩</span><b>Склонения</b><small>падежи существительных</small></button>
-        <button class="train-btn" data-train="conj"><span>🔀</span><b>Спряжения</b><small>глаголы в наст. времени</small></button>
+        <button class="train-btn" data-train="decl"><span>🧩</span><b>Склонения</b><small>32 слова · все падежи</small></button>
+        <button class="train-btn" data-train="conj"><span>🔀</span><b>Спряжения</b><small>28 глаголов · наст. время</small></button>
       </div>
 
-      <h3 class="section-title">📚 Теория (${GRAMMAR_LESSONS.length} уроков)</h3>
+      <h3 class="section-title">📚 Темы (${GRAMMAR_LESSONS.length})</h3>
       ${items}
     `;
   },
@@ -634,6 +639,56 @@ const App = {
       <div class="opts">${opts}</div>
       <div id="fb" class="feedback"></div>
     `;
+  },
+
+  /* ---------- УПРАЖНЕНИЯ ПО ТЕМЕ ГРАММАТИКИ ---------- */
+  renderGex() {
+    const id = this.params.topic;
+    const lesson = GRAMMAR_LESSONS.find((g) => g.id === id);
+    if (!this.session) {
+      const all = GrammarEx.gen(id);
+      const byLvl = {};
+      all.forEach((x) => { const l = x.lvl || 1; (byLvl[l] = byLvl[l] || []).push(x); });
+      let ordered = [];
+      Object.keys(byLvl).sort().forEach((l) => ordered = ordered.concat(this.shuffle(byLvl[l])));
+      this.session = { id, qs: ordered.slice(0, 24), idx: 0, correct: 0 };
+    }
+    const s = this.session;
+    const title = (lesson ? lesson.title.replace(/^\d+\.\s*/, "") : "Упражнения");
+    if (s.idx >= s.qs.length) {
+      const pct = s.qs.length ? Math.round((100 * s.correct) / s.qs.length) : 0;
+      return `<div class="result"><h2>${pct >= 80 ? "Отлично! 🎉" : "Готово 💪"}</h2>
+        <p class="big-score ${pct < 60 ? "fail" : ""}">${s.correct} / ${s.qs.length}</p>
+        <button class="big-btn primary" data-gex="${s.id}">Ещё раунд</button>
+        <button class="big-btn ghost" data-go="grammar">К грамматике</button></div>`;
+    }
+    if (!s.qs.length) return `<div class="result"><h2>Скоро</h2><p class="muted">Для этой темы упражнения готовятся.</p><button class="big-btn ghost" data-go="grammar">Назад</button></div>`;
+    const q = s.qs[s.idx];
+    const opts = q.opts.map((o) => `<button class="opt" data-gexopt="${this.esc(o)}">${o}</button>`).join("");
+    return `
+      <header class="page-head"><h2>${GrammarEx.icon(s.id)} ${title}</h2><div class="counter">${s.idx + 1}/${s.qs.length}</div></header>
+      <button class="back" data-go="grammar">← Грамматика</button>
+      <div class="exam-q">${q.q}</div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>`;
+  },
+
+  gexAnswer(opt, el) {
+    const s = this.session;
+    const q = s.qs[s.idx];
+    const ok = opt === q.ans;
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.gexopt === q.ans) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + q.ans + "</b>"} ${this.speakBtn(q.ans)}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
+    Speech.say(q.ans);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   /* ---------- ПИСЬМО (авто-упражнения) ---------- */
@@ -1265,8 +1320,11 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt]");
     if (!t) return;
+
+    if (t.dataset.gex !== undefined) return this.go("gex", { topic: t.dataset.gex });
+    if (t.dataset.gexopt !== undefined) return this.gexAnswer(t.dataset.gexopt, t);
 
     if (t.dataset.rw !== undefined) return this.showWord(t.dataset.rw, t.dataset.ro);
     if (t.dataset.rtr !== undefined) return this.rTrans(t.dataset.rtr);

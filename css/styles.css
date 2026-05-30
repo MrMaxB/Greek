@@ -309,6 +309,8 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .gram[open] summary::before { content: "▾ "; }
 .gram-body { padding: 0 16px 16px; color: var(--ink); }
 .gram-body b { color: var(--blue-2); }
+.gram-ic { display: inline-block; width: 1.5em; text-align: center; }
+.gex-launch { margin-top: 12px; }
 .gram-body p { margin: 8px 0; }
 .gram-body ul { margin: 8px 0; padding-left: 20px; }
 .gram-body li { margin: 4px 0; }
