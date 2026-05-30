@@ -37,7 +37,7 @@ body {
   color: var(--ink);
   line-height: 1.5;
 }
-#app { max-width: 760px; margin: 0 auto; padding-bottom: 40px; }
+#app { max-width: 760px; margin: 0 auto; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .muted { color: var(--muted); }
@@ -45,24 +45,34 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .small { font-size: .85rem; }
 
 /* ---------- NAV ---------- */
-.nav {
+/* Верхняя слим-шапка */
+.topbar {
   position: sticky; top: 0; z-index: 50;
-  background: var(--blue);
-  color: #fff;
-  padding: 10px 14px 0;
-  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+  background: var(--blue); color: #fff;
+  padding: 12px 16px; box-shadow: 0 2px 12px rgba(0,0,0,.12);
 }
-.brand { font-size: 1.25rem; font-weight: 800; letter-spacing: .5px; padding-bottom: 8px; }
+.brand { font-size: 1.2rem; font-weight: 800; letter-spacing: .5px; }
 .brand span { color: var(--gold); }
-.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
-.tabs::-webkit-scrollbar { display: none; }
-.tab {
-  flex: 0 0 auto; color: #cfe0f2; font-size: .72rem; font-weight: 600;
-  padding: 6px 12px 10px; border-bottom: 3px solid transparent;
-  display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap;
+
+/* Нижняя панель вкладок — фиксированная, без скролла */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  max-width: 760px; margin: 0 auto;
+  display: flex; background: var(--card);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 14px rgba(13,59,102,.08);
+  padding-bottom: env(safe-area-inset-bottom);
 }
-.tab span { font-size: 1.15rem; }
-.tab.active { color: #fff; border-color: var(--gold); }
+.tab {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 2px 7px; color: var(--muted); font-weight: 600;
+  border-top: 3px solid transparent; position: relative;
+}
+.tab-ic { font-size: 1.35rem; line-height: 1; }
+.tab-lbl { font-size: .6rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab.active { color: var(--blue-2); border-top-color: var(--gold); background: #f5f9fe; }
+.tab:active { background: #eef4fb; }
 
 .screen { padding: 18px 16px; }
 
@@ -1530,21 +1540,19 @@ const App = {
       ["alphabet", "🔤", "Алфавит"],
       ["review", "🧠", "Повтор"],
       ["decks", "📚", "Темы"],
-      ["grammar", "📖", "Грамматика"],
+      ["grammar", "📖", "Грамм."],
       ["writing", "✍️", "Письмо"],
       ["progress", "📊", "Прогресс"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
       : this.view === "trainer" ? "grammar" : this.view;
-    return `<nav class="nav">
-      <div class="brand" data-go="home">Ελληνικά <span>A1</span></div>
-      <div class="tabs">${tabs
+    return `<header class="topbar"><div class="brand" data-go="home">Ελληνικά <span>A1</span></div></header>
+      <nav class="tabbar">${tabs
         .map(([v, ic, l]) =>
-          `<button class="tab ${root === v ? "active" : ""}" data-go="${v}"><span>${ic}</span>${l}</button>`
+          `<button class="tab ${root === v ? "active" : ""}" data-go="${v}"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`
         )
-        .join("")}</div>
-    </nav>`;
+        .join("")}</nav>`;
   },
 
   /* ---------- ГЛАВНАЯ ---------- */

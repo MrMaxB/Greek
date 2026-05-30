@@ -135,21 +135,19 @@ const App = {
       ["alphabet", "🔤", "Алфавит"],
       ["review", "🧠", "Повтор"],
       ["decks", "📚", "Темы"],
-      ["grammar", "📖", "Грамматика"],
+      ["grammar", "📖", "Грамм."],
       ["writing", "✍️", "Письмо"],
       ["progress", "📊", "Прогресс"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
       : this.view === "trainer" ? "grammar" : this.view;
-    return `<nav class="nav">
-      <div class="brand" data-go="home">Ελληνικά <span>A1</span></div>
-      <div class="tabs">${tabs
+    return `<header class="topbar"><div class="brand" data-go="home">Ελληνικά <span>A1</span></div></header>
+      <nav class="tabbar">${tabs
         .map(([v, ic, l]) =>
-          `<button class="tab ${root === v ? "active" : ""}" data-go="${v}"><span>${ic}</span>${l}</button>`
+          `<button class="tab ${root === v ? "active" : ""}" data-go="${v}"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`
         )
-        .join("")}</div>
-    </nav>`;
+        .join("")}</nav>`;
   },
 
   /* ---------- ГЛАВНАЯ ---------- */
