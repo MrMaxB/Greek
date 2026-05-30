@@ -322,6 +322,7 @@ const App = {
           <button class="mode-btn" data-mode="choice"><span>✅</span>Выбор</button>
           <button class="mode-btn" data-mode="listen"><span>👂</span>Аудио</button>
           <button class="mode-btn" data-mode="type"><span>⌨️</span>Набор</button>
+          <button class="mode-btn hot" data-mode="dictation"><span>🎧</span>Диктант</button>
         </div>
         <div class="word-list">${rows}</div>
       `;
@@ -334,7 +335,7 @@ const App = {
       this.session = { pool: this.shuffle(deck.words), idx: 0, correct: 0, answered: false, input: "" };
     }
     const s = this.session;
-    const titleByMode = { learn: "🧠 Карточки", choice: "✅ Выбор перевода", listen: "👂 Аудирование", type: "⌨️ Набор по-гречески" };
+    const titleByMode = { learn: "🧠 Карточки", choice: "✅ Выбор перевода", listen: "👂 Аудирование", type: "⌨️ Набор по-гречески", dictation: "🎧 Диктант (на слух)" };
 
     if (s.idx >= s.pool.length) {
       return `
@@ -390,13 +391,27 @@ const App = {
       return `${head}${prompt}<div class="opts">${buttons}</div><div id="fb" class="feedback"></div>`;
     }
 
-    if (mode === "type") {
+    if (mode === "type" || mode === "dictation") {
+      const prompt =
+        mode === "dictation"
+          ? `<div class="quiz-prompt listen">
+               <button class="play-big" data-say="${this.esc(cur.gr)}">🔊 Повторить</button>
+               <button class="play-slow" data-say-slow="${this.esc(cur.gr)}">🐢 Медленно</button>
+               <div class="muted small dict-hint">Слушай и запиши по-гречески</div>
+             </div>`
+          : `<div class="quiz-prompt">
+               <div class="type-ru">${cur.ru}</div>
+               <div class="muted small">подсказка: [${cur.tr}]</div>
+             </div>`;
+      // В диктанте звук проигрывается сам при показе карточки
+      this.afterRender = () => {
+        if (mode === "dictation") Speech.say(cur.gr);
+        const i = document.getElementById("typeInput");
+        if (i) i.focus();
+      };
       return `${head}
-        <div class="quiz-prompt">
-          <div class="type-ru">${cur.ru}</div>
-          <div class="muted small">подсказка: [${cur.tr}]</div>
-        </div>
-        <input id="typeInput" class="type-input" autocomplete="off" autocapitalize="off"
+        ${prompt}
+        <input id="typeInput" class="type-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
                placeholder="Напиши по-гречески (ударения можно не ставить)" value="${this.esc(s.input)}">
         <div class="kbd-hint">Нужны греческие буквы? Включи раскладку Ελληνικά или используй экранную клавиатуру ниже.</div>
         <div class="gkbd">${this.greekKeyboard()}</div>
@@ -595,7 +610,8 @@ const App = {
     if (ok) s.correct++;
     const fb = document.getElementById("fb");
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
-        ${ok ? "✓ Верно!" : "✗ Правильно: <b>" + cur.gr + "</b>"} ${this.speakBtn(cur.gr)}
+        ${ok ? "✓ Верно! " + cur.gr : "✗ Правильно: <b>" + cur.gr + "</b>"} ${this.speakBtn(cur.gr)}
+        <div class="answer-ru">${cur.ru} · [${cur.tr}]</div>
       </div>
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     if (inp) inp.disabled = true;
