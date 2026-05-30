@@ -12,9 +12,17 @@ const App = {
 
   init() {
     this.root = document.getElementById("app");
-    // Service worker: «никогда не залипает на старой версии» (только на https-сайте)
+    // Service worker: «никогда не залипает на старой версии» (только на https-сайте).
+    // network-first отдаёт свежее из сети; при выходе новой версии — тихий reload.
     if ("serviceWorker" in navigator && location.protocol === "https:") {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded || !hadController) return; // не перезагружаем при самой первой установке
+        reloaded = true;
+        location.reload();
+      });
+      navigator.serviceWorker.register("sw.js").then((reg) => { reg.update(); }).catch(() => {});
     }
     document.body.addEventListener("click", (e) => this.onClick(e));
     document.body.addEventListener("input", (e) => this.onInput(e));
@@ -136,6 +144,8 @@ const App = {
       grammar: () => this.renderGrammar(),
       trainer: () => this.renderTrainer(),
       writing: () => this.renderWriting(),
+      reading: () => this.renderReadingList(),
+      read: () => this.renderRead(),
       exams: () => this.renderExamsList(),
       exam: () => this.renderExam(),
       progress: () => this.renderProgress(),
@@ -153,13 +163,15 @@ const App = {
       ["decks", "📚", "Темы"],
       ["grammar", "📖", "Грамматика"],
       ["writing", "✍️", "Письмо"],
+      ["reading", "📕", "Чтение"],
       ["exams", "📝", "Экзамены"],
       ["progress", "📊", "Прогресс"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
       : this.view === "trainer" ? "grammar"
-      : this.view === "exam" ? "exams" : this.view;
+      : this.view === "exam" ? "exams"
+      : this.view === "read" ? "reading" : this.view;
     const menu = items.map(([v, ic, l]) =>
       `<button class="menu-item ${root === v ? "active" : ""}" data-go="${v}"><span class="mi-ic">${ic}</span>${l}</button>`
     ).join("");
@@ -229,18 +241,21 @@ const App = {
         </button>
       </section>
 
-      <h3 class="section-title">План «с нуля» — 4 шага</h3>
+      <h3 class="section-title">Путь «с нуля» до A1</h3>
       <ol class="steps">
-        <li><b>Шаг 1.</b> Выучи <a data-go="alphabet">алфавит</a> — читать звуки и буквосочетания.</li>
-        <li><b>Шаг 2.</b> Каждый день делай <a data-go="review">повторение (SRS)</a> — 10–15 минут.</li>
-        <li><b>Шаг 3.</b> Прокачивай <a data-go="decks">темы</a>: аудирование, выбор, набор слов.</li>
-        <li><b>Шаг 4.</b> Загляни в <a data-go="grammar">грамматику</a>, когда слова начнут складываться.</li>
+        <li><b>1.</b> Выучи <a data-go="alphabet">алфавит</a> — звуки и буквосочетания.</li>
+        <li><b>2.</b> Каждый день — <a data-go="review">повторение (SRS)</a>, 10–15 минут.</li>
+        <li><b>3.</b> Прокачивай <a data-go="decks">темы</a>: аудио, диктант, голос, набор.</li>
+        <li><b>4.</b> Читай <a data-go="reading">тексты</a> и пиши в <a data-go="writing">письме</a> — слова в деле.</li>
+        <li><b>5.</b> Сверяйся с <a data-go="grammar">грамматикой</a> и проверяй себя <a data-go="exams">экзаменами</a>.</li>
       </ol>
 
       <h3 class="section-title">Быстрый старт</h3>
       <div class="grid">
         <button class="tile" data-go="alphabet"><span class="tile-ic">🔤</span>Алфавит</button>
         <button class="tile" data-go="decks"><span class="tile-ic">📚</span>Темы (${DECKS.length})</button>
+        <button class="tile" data-go="reading"><span class="tile-ic">📕</span>Чтение (${READING_TEXTS.length})</button>
+        <button class="tile" data-go="writing"><span class="tile-ic">✍️</span>Письмо</button>
         <button class="tile" data-go="grammar"><span class="tile-ic">📖</span>Грамматика</button>
         <button class="tile" data-go="progress"><span class="tile-ic">📊</span>Прогресс</button>
       </div>
@@ -798,6 +813,100 @@ const App = {
       <div id="reveal">${reveal}</div>`;
   },
 
+  /* ---------- ЧТЕНИЕ (graded readers) ---------- */
+  readingDone() {
+    try { return JSON.parse(localStorage.getItem("greekA1_reading_done")) || {}; }
+    catch { return {}; }
+  },
+  isRead(id) { return !!this.readingDone()[id]; },
+  markRead(id) {
+    const d = this.readingDone();
+    d[id] = true;
+    localStorage.setItem("greekA1_reading_done", JSON.stringify(d));
+    if (window.Cloud && window.Cloud.push) window.Cloud.push();
+  },
+
+  renderReadingList() {
+    const done = this.readingDone();
+    const groups = ["A0", "A0+", "A1"].map((lv) => {
+      const items = READING_TEXTS.filter((t) => t.level === lv).map((t) => `
+        <button class="deck-tile" data-read="${t.id}">
+          <div class="deck-ic">${done[t.id] ? "✅" : "📖"}</div>
+          <div class="deck-body"><div class="deck-title">${t.title}</div>
+          <div class="deck-meta">${t.genre} · ${t.titleRu}</div></div>
+        </button>`).join("");
+      return `<h3 class="section-title">Уровень ${lv}</h3><div class="deck-list">${items}</div>`;
+    }).join("");
+    const total = READING_TEXTS.length;
+    const read = READING_TEXTS.filter((t) => done[t.id]).length;
+    return `
+      <header class="page-head"><h2>📕 Чтение</h2></header>
+      <p class="muted">Короткие тексты от A0 до честного A1. Тапни слово — перевод и звук; тапни 🇷🇺 — перевод фразы. Прочитано <b>${read}/${total}</b>.</p>
+      ${groups}`;
+  },
+
+  // Словарь для тап-перевода: текст > общий > словарь приложения
+  buildGloss(t) {
+    const g = {};
+    ALL_WORDS.forEach((w) => { const k = this.normGreek(w.gr); if (k && !k.includes(" ")) g[k] = w.ru; });
+    Object.entries(READING_COMMON).forEach(([k, v]) => { g[this.normGreek(k)] = v; });
+    Object.entries(t.gloss).forEach(([k, v]) => { g[this.normGreek(k)] = v; });
+    return g;
+  },
+
+  buildReadWords(gr) {
+    const parts = gr.match(/[Ͱ-Ͽἀ-῿]+|[^Ͱ-Ͽἀ-῿]+/g) || [];
+    return parts.map((p) => {
+      if (/[Ͱ-Ͽἀ-῿]/.test(p)) {
+        return `<span class="rword" data-rw="${this.esc(this.normGreek(p))}" data-ro="${this.esc(p)}">${this.esc(p)}</span>`;
+      }
+      return this.esc(p);
+    }).join("");
+  },
+
+  renderRead() {
+    const t = READING_TEXTS.find((x) => x.id === this.params.id);
+    if (!t) return this.renderReadingList();
+    this._gloss = this.buildGloss(t);
+    const sents = t.sents.map((p, i) => `
+      <div class="r-sent">
+        <span class="r-text">${this.buildReadWords(p[0])}</span>
+        <span class="r-tools"><button class="r-ic" data-say="${this.esc(p[0])}">🔊</button><button class="r-ic" data-rtr="${i}">🇷🇺</button></span>
+        <div class="r-trans" id="rtrans-${i}" hidden>${p[1]}</div>
+      </div>`).join("");
+    const readBtn = this.isRead(t.id)
+      ? `<button class="big-btn ghost" data-action="read-done" data-id="${t.id}">✅ Прочитано</button>`
+      : `<button class="big-btn primary" data-action="read-done" data-id="${t.id}">✓ Отметить прочитанным</button>`;
+    return `
+      <header class="page-head"><h2>${t.title}</h2><button class="back" data-go="reading">← Чтение</button></header>
+      <div class="r-meta"><span class="lvl-badge">${t.level}</span> ${t.genre} · ${t.titleRu}</div>
+      <button class="big-btn primary slim" data-action="read-all">🔊 Озвучить весь текст</button>
+      <p class="muted small">Тапни слово — перевод и звук. Тапни 🇷🇺 у строки — перевод предложения.</p>
+      <div class="reader">${sents}</div>
+      ${readBtn}
+      <div id="wordbar" class="wordbar" hidden>
+        <button class="wb-spk" data-say="">🔊</button>
+        <div class="wb-body"><span class="wb-gr"></span><span class="wb-ru"></span></div>
+        <button class="wb-x" data-action="wordbar-close">✕</button>
+      </div>`;
+  },
+
+  showWord(norm, orig) {
+    const tr = (this._gloss && this._gloss[norm]) || "";
+    const bar = document.getElementById("wordbar");
+    if (!bar) return;
+    bar.querySelector(".wb-gr").textContent = orig;
+    bar.querySelector(".wb-ru").textContent = tr || "— (нет в словаре)";
+    bar.querySelector(".wb-spk").dataset.say = orig;
+    bar.hidden = false;
+    Speech.say(orig);
+  },
+
+  rTrans(i) {
+    const el = document.getElementById("rtrans-" + i);
+    if (el) el.hidden = !el.hidden;
+  },
+
   /* ---------- ЭКЗАМЕНЫ ---------- */
   examBest() {
     try { return JSON.parse(localStorage.getItem("greekA1_exam_best")) || {}; }
@@ -865,18 +974,39 @@ const App = {
     `;
   },
 
+  // Привести предложение к единому виду: заглавная первая буква + точка.
+  // starter — исходно заглавное первое слово (его делаем строчным, если оно не первое),
+  // чтобы варианты нельзя было отличить по формату — только по порядку слов.
+  presentSentence(arr, starter) {
+    const lo = (w) => w.charAt(0).toLowerCase() + w.slice(1);
+    const up = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+    let used = false;
+    const words = arr.map((w) => {
+      if (!used && w === starter) { used = true; return lo(w); }
+      return w;
+    });
+    words[0] = up(words[0]);
+    return words.join(" ") + ".";
+  },
+
   // Сборка одного экзамена из текста + общих банков
   buildExam(n) {
     const R = EXAM_READINGS[n % EXAM_READINGS.length];
     const qs = [];
-    const otherRu = (ru, k) => this.shuffle(ALL_WORDS.filter((x) => x.ru !== ru)).slice(0, k).map((x) => x.ru);
     const uniq = (arr) => [...new Set(arr)];
+    // Дистракторы — из ТОЙ ЖЕ темы (числа к числу, фразы к фразе), чтобы
+    // нельзя было угадать по формату/длине. Добор из общего словаря при нехватке.
+    const distract = (w, k) => {
+      let pool = ALL_WORDS.filter((x) => x.deck === w.deck && x.ru !== w.ru);
+      if (pool.length < k) pool = pool.concat(ALL_WORDS.filter((x) => x.deck !== w.deck && x.ru !== w.ru));
+      return this.shuffle(pool).slice(0, k).map((x) => x.ru);
+    };
 
     // Чтение
     R.q.forEach((q) => qs.push({ section: "Чтение", passage: R.gr, passageRu: R.ru, prompt: q.ask, options: this.shuffle(q.options.slice()), answer: q.answer }));
     // Лексика (4): что значит слово
     this.shuffle(ALL_WORDS).slice(0, 4).forEach((w) => {
-      const opts = uniq([w.ru, ...otherRu(w.ru, 3)]);
+      const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Лексика", prompt: `Что значит «${w.gr}»?`, audio: w.gr, options: this.shuffle(opts), answer: w.ru });
     });
     // Грамматика (4): вставь слово
@@ -885,19 +1015,20 @@ const App = {
     });
     // Аудио (3): услышь и выбери перевод (текст скрыт)
     this.shuffle(ALL_WORDS).slice(0, 3).forEach((w) => {
-      const opts = uniq([w.ru, ...otherRu(w.ru, 3)]);
+      const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Аудио", prompt: "Прослушай и выбери перевод:", audio: w.gr, hideAudioText: true, autoplay: true, options: this.shuffle(opts), answer: w.ru });
     });
-    // Письмо (2): выбери правильное предложение
+    // Письмо (2): выбери правильное предложение (все варианты в едином виде)
     this.shuffle(WRITING_ORDER).slice(0, 2).forEach((sn) => {
-      const correct = sn.tokens.join(" ");
-      const scrambles = new Set();
+      const starter = sn.tokens[0];
+      const correct = this.presentSentence(sn.tokens, starter);
+      const opts = new Set([correct]);
       let guard = 0;
-      while (scrambles.size < 2 && guard++ < 30) {
-        const x = this.shuffle(sn.tokens).join(" ");
-        if (x !== correct) scrambles.add(x);
+      while (opts.size < 3 && guard++ < 40) {
+        const perm = this.shuffle(sn.tokens);
+        if (perm.join(" ") !== sn.tokens.join(" ")) opts.add(this.presentSentence(perm, starter));
       }
-      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sn.ru}»`, options: this.shuffle([correct, ...scrambles]), answer: correct });
+      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sn.ru}»`, options: this.shuffle([...opts]), answer: correct });
     });
     return qs;
   },
@@ -1002,16 +1133,37 @@ const App = {
       </section>
       <h3 class="section-title">Активность (14 дней)</h3>
       <div class="heat">${days.join("")}</div>
+      ${this.renderExamProgress()}
       <h3 class="section-title">По темам</h3>
       <div class="word-list">${perDeck}</div>
       <button class="big-btn ghost danger" data-action="reset">Сбросить весь прогресс</button>
     `;
   },
 
+  renderExamProgress() {
+    const best = this.examBest();
+    const taken = Object.keys(best).length;
+    const passed = Object.values(best).filter((p) => p >= 60).length;
+    const rows = EXAM_READINGS.map((r, i) => {
+      const b = best[i];
+      if (b == null) return "";
+      return `<div class="word-row"><div class="w-gr">📝 ${r.theme}</div><div class="w-ru">${b}% ${b >= 60 ? "✅" : ""}</div></div>`;
+    }).filter(Boolean).join("");
+    return `
+      <h3 class="section-title">📝 Экзамены</h3>
+      <p class="muted small">Сдано ${passed} из ${EXAM_READINGS.length} · пройдено ${taken}</p>
+      ${rows ? `<div class="word-list">${rows}</div>` : `<p class="muted small">Пока ни одного. Открой «Экзамены» в меню.</p>`}
+    `;
+  },
+
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr]");
     if (!t) return;
+
+    if (t.dataset.rw !== undefined) return this.showWord(t.dataset.rw, t.dataset.ro);
+    if (t.dataset.rtr !== undefined) return this.rTrans(t.dataset.rtr);
+    if (t.dataset.read !== undefined) return this.go("read", { id: t.dataset.read });
 
     if (t.dataset.go) return this.go(t.dataset.go);
 
@@ -1075,6 +1227,13 @@ const App = {
       case "cloud-logout": if (window.Cloud && window.Cloud.logout) window.Cloud.logout(); return;
       case "menu-toggle": return this.toggleMenu();
       case "menu-close": return this.toggleMenu(false);
+      case "read-done": { const id = el.dataset.id; this.markRead(id); return this.go("reading"); }
+      case "read-all": {
+        const tx = READING_TEXTS.find((x) => x.id === this.params.id);
+        if (tx) Speech.sayAll(tx.sents.map((p) => p[0]));
+        return;
+      }
+      case "wordbar-close": { const b = document.getElementById("wordbar"); if (b) b.hidden = true; return; }
       case "reset":
         if (confirm("Сбросить весь прогресс и стрик? Это нельзя отменить.")) { SRS.reset(); this.go("home"); }
         return;
@@ -1139,6 +1298,8 @@ const App = {
   /* --- карточки внутри темы --- */
   deckLearnNext(knew) {
     const s = this.session;
+    const cur = s.pool[s.idx];
+    if (cur && cur.id) SRS.grade(cur.id, knew ? 2 : 0); // практика идёт в прогресс
     if (knew) s.correct++;
     s.idx++; s.answered = false;
     this.render();
@@ -1149,6 +1310,7 @@ const App = {
     const s = this.session;
     const cur = s.pool[s.idx];
     const ok = id === cur.id;
+    if (cur && cur.id) SRS.grade(cur.id, ok ? 2 : 0); // практика идёт в прогресс
     if (ok) s.correct++;
     document.querySelectorAll(".opt").forEach((b) => {
       if (b.dataset.choice === cur.id) b.classList.add("ok");
@@ -1179,6 +1341,7 @@ const App = {
     const inp = document.getElementById("typeInput");
     const val = inp ? inp.value : s.input;
     const ok = this.normGreek(val) === this.normGreek(cur.gr);
+    if (cur && cur.id) SRS.grade(cur.id, ok ? 2 : 0); // практика идёт в прогресс
     if (ok) s.correct++;
     const fb = document.getElementById("fb");
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
@@ -1222,12 +1385,16 @@ const App = {
     const target = this.phoneticGreek(cur.gr);
     const targetWords = target.split(" ").filter(Boolean);
     const heardNorm = alts.map((a) => this.phoneticGreek(a));
+    // Числа распознаются как цифры («δύο» → «2»): принимаем и цифру.
+    const ruDigits = (cur.ru || "").replace(/[^\d]/g, "");
+    const digitOk = ruDigits && alts.some((a) => a.replace(/[^\d]/g, "") === ruDigits);
     // Совпадение: точное ИЛИ все слова цели присутствуют в одном из вариантов
-    const ok = heardNorm.some((h) => {
+    const ok = digitOk || heardNorm.some((h) => {
       if (h === target) return true;
       const hw = h.split(" ").filter(Boolean);
       return targetWords.every((w) => hw.includes(w));
     });
+    if (ok && cur.id) SRS.grade(cur.id, 2); // успешное произношение идёт в прогресс
     if (ok && !s._scored) s.correct++;
     s._scored = true; // не двойной счёт при повторных попытках одного слова
     const heardShow = alts[0] || "—";

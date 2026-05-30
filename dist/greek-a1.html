@@ -285,6 +285,33 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .chip.done::before { content: "✓ "; }
 .type-input.area { min-height: 110px; text-align: left; font-size: 1.15rem; resize: vertical; line-height: 1.5; }
 
+/* ---------- READING ---------- */
+.r-meta { margin: 2px 0 10px; color: var(--muted); font-size: .9rem; }
+.lvl-badge { display: inline-block; background: var(--gold); color: #4a3500; font-weight: 800; font-size: .72rem; padding: 2px 9px; border-radius: 99px; margin-right: 4px; }
+.reader { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 8px 14px; box-shadow: var(--shadow); margin: 10px 0; }
+.r-sent { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.r-sent:last-child { border-bottom: none; }
+.r-text { font-size: 1.3rem; line-height: 2; color: var(--ink); }
+.rword { color: var(--blue); border-bottom: 1px dotted var(--sky); cursor: pointer; padding: 1px 0; border-radius: 3px; }
+.rword:active { background: #dceafa; }
+.r-tools { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: middle; }
+.r-ic { background: #eef4fb; border-radius: 8px; padding: 4px 8px; font-size: .95rem; }
+.r-ic:active { background: #d6e8fa; }
+.r-trans { margin-top: 8px; color: var(--muted); font-size: .95rem; background: #f5f8fc; border-radius: 8px; padding: 8px 10px; }
+.wordbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+  max-width: 760px; margin: 0 auto;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--blue); color: #fff;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 20px rgba(8,20,40,.25);
+}
+.wb-spk { background: rgba(255,255,255,.18); border-radius: 10px; padding: 8px 12px; font-size: 1.1rem; flex: 0 0 auto; }
+.wb-body { flex: 1; display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.wb-gr { font-weight: 800; font-size: 1.1rem; }
+.wb-ru { font-size: .9rem; color: #cfe0f2; }
+.wb-x { color: #cfe0f2; font-size: 1.3rem; padding: 6px 8px; flex: 0 0 auto; }
+
 /* ---------- GRAMMAR ---------- */
 .gram { background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; box-shadow: var(--shadow); overflow: hidden; }
 .gram summary { padding: 16px; font-weight: 700; cursor: pointer; color: var(--blue); list-style: none; }
@@ -1219,6 +1246,345 @@ const WRITING_STARTER_WORDS = [
 ];
 
 /* ============================================================
+   Ελληνικά A1 — ЧТЕНИЕ (graded readers)
+   Короткие тексты от A0 до A1, разные жанры.
+   • Тап по слову  → перевод + озвучка (словарь ниже + общий словарь)
+   • Тап по 🇷🇺     → перевод всего предложения
+   • 🔊 / «озвучить всё» — TTS
+   Перевод слова ищется: словарь текста → общий → словарь приложения.
+   ============================================================ */
+
+/* Очень частые слова/формы — общий словарь для всех текстов */
+const READING_COMMON = {
+  // приветствия / служебные
+  "γεια": "привет / здравствуйте", "σας": "вам / ваш", "σου": "тебе / твой",
+  "μου": "мой / мне", "με": "меня / с", "σε": "тебя / в", "μας": "нам / наш",
+  "και": "и", "ή": "или", "αλλά": "но", "γιατί": "потому что / почему",
+  "από": "из / от", "για": "для / о", "μετά": "потом", "τώρα": "сейчас",
+  "πολύ": "очень / много", "λίγο": "немного", "εδώ": "здесь", "εκεί": "там",
+  "κάθε": "каждый", "ναι": "да", "όχι": "нет", "ευχαριστώ": "спасибо",
+  "δεν": "не", "στις": "в (во столько-то)", "λίγα": "немного", "ας": "давай(те)",
+  "κάνει": "делает (о погоде)", "κάνεις": "делаешь", "πολλή": "много",
+  "μένει": "живёт", "ελληνικά": "по-гречески", "αγαπημένο": "любимое", "αγαπημένη": "любимая",
+  "παρακαλώ": "пожалуйста", "δίπλα": "рядом", "μια": "одна", "ένα": "один / одно",
+  "έναν": "одного", "μία": "одна", "ένας": "один",
+  // артикли
+  "ο": "（арт. м.）", "η": "（арт. ж.）", "το": "（арт. ср.）", "οι": "（арт. мн.）",
+  "τα": "（арт. мн.）", "του": "（арт. род.）", "της": "（арт. род. ж.）", "των": "（арт. род. мн.）",
+  "τον": "（арт. вин. м.）", "την": "（арт. вин. ж.）", "τους": "（арт. вин. мн.）", "τις": "（арт. вин. ж. мн.）",
+  "στο": "в / на (ср.)", "στη": "в / на (ж.)", "στην": "в / на (ж.)", "στον": "в / на (м.)", "στα": "в / на (мн.)",
+  // местоимения
+  "εγώ": "я", "εσύ": "ты", "αυτός": "он", "αυτή": "она", "αυτό": "оно / это",
+  "εμείς": "мы", "εσείς": "вы", "αυτοί": "они",
+  // глаголы (формы)
+  "είμαι": "я есть", "είσαι": "ты есть", "είναι": "есть / является",
+  "είμαστε": "мы есть", "είστε": "вы есть",
+  "έχω": "у меня есть", "έχει": "есть (у него/неё)", "έχουμε": "у нас есть", "έχουν": "у них есть",
+  "θέλω": "хочу", "θέλετε": "хотите", "θα": "（будущее）", "να": "（частица）",
+  "πάω": "иду / еду", "πάμε": "идём / поедем", "πάει": "идёт",
+  "πηγαίνω": "иду", "πηγαίνει": "идёт", "πηγαίνετε": "идите",
+  "μιλάω": "говорю", "μένω": "живу", "τρώω": "ем", "τρώει": "ест",
+  "πίνω": "пью", "πίνει": "пьёт", "διαβάζω": "читаю", "διαβάζει": "читает",
+  "αρέσει": "нравится", "αρέσουν": "нравятся", "αγαπάω": "люблю",
+};
+
+/* level: "A0" | "A0+" | "A1" — порядок = сложность */
+const READING_TEXTS = [
+  {
+    id: "bio", level: "A0", genre: "Знакомство", title: "Με λένε Άννα", titleRu: "Меня зовут Анна",
+    sents: [
+      ["Γεια σας!", "Здравствуйте!"],
+      ["Με λένε Άννα.", "Меня зовут Анна."],
+      ["Είμαι από την Κύπρο.", "Я с Кипра."],
+      ["Μιλάω ελληνικά και λίγα ρωσικά.", "Я говорю по-гречески и немного по-русски."],
+    ],
+    gloss: { "λένε": "зовут", "άννα": "Анна", "κύπρο": "Кипр", "ελληνικά": "по-гречески", "ρωσικά": "по-русски" },
+  },
+  {
+    id: "family", level: "A0", genre: "Семья", title: "Η οικογένειά μου", titleRu: "Моя семья",
+    sents: [
+      ["Έχω μια μεγάλη οικογένεια.", "У меня большая семья."],
+      ["Έχω έναν αδερφό και μία αδερφή.", "У меня есть брат и сестра."],
+      ["Ο πατέρας μου είναι γιατρός.", "Мой отец — врач."],
+      ["Η μητέρα μου είναι δασκάλα.", "Моя мама — учительница."],
+    ],
+    gloss: { "μεγάλη": "большая", "οικογένεια": "семья", "αδερφό": "брата", "αδερφή": "сестра", "πατέρας": "отец", "γιατρός": "врач", "μητέρα": "мама", "δασκάλα": "учительница" },
+  },
+  {
+    id: "coffee", level: "A0", genre: "Еда", title: "Ο καφές μου", titleRu: "Мой кофе",
+    sents: [
+      ["Κάθε πρωί πίνω καφέ.", "Каждое утро я пью кофе."],
+      ["Ο καφές είναι ζεστός και γλυκός.", "Кофе горячий и сладкий."],
+      ["Μου αρέσει πολύ ο καφές.", "Мне очень нравится кофе."],
+    ],
+    gloss: { "πρωί": "утро", "καφέ": "кофе", "καφές": "кофе", "ζεστός": "горячий", "γλυκός": "сладкий" },
+  },
+  {
+    id: "today", level: "A0", genre: "Погода", title: "Σήμερα", titleRu: "Сегодня",
+    sents: [
+      ["Σήμερα κάνει ζέστη.", "Сегодня жарко."],
+      ["Ο ουρανός είναι γαλάζιος.", "Небо голубое."],
+      ["Πάω στη θάλασσα με τους φίλους μου.", "Я иду на море с друзьями."],
+    ],
+    gloss: { "σήμερα": "сегодня", "κάνει": "делает (о погоде)", "ζέστη": "жара", "ουρανός": "небо", "γαλάζιος": "голубой", "θάλασσα": "море", "φίλους": "друзей" },
+  },
+  {
+    id: "home", level: "A0", genre: "Дом", title: "Το σπίτι μου", titleRu: "Мой дом",
+    sents: [
+      ["Μένω σε ένα μικρό σπίτι.", "Я живу в маленьком доме."],
+      ["Έχει δύο δωμάτια και μια κουζίνα.", "В нём две комнаты и кухня."],
+      ["Από το παράθυρο βλέπω τον κήπο.", "Из окна я вижу сад."],
+    ],
+    gloss: { "μικρό": "маленький", "σπίτι": "дом", "δύο": "два", "δωμάτια": "комнаты", "κουζίνα": "кухня", "παράθυρο": "окно", "βλέπω": "вижу", "κήπο": "сад" },
+  },
+  {
+    id: "routine", level: "A0+", genre: "Распорядок", title: "Μια μέρα της Μαρίας", titleRu: "День Марии",
+    sents: [
+      ["Η Μαρία ξυπνάει στις εφτά.", "Мария просыпается в семь."],
+      ["Τρώει πρωινό και πίνει τσάι.", "Завтракает и пьёт чай."],
+      ["Μετά πηγαίνει στη δουλειά με το λεωφορείο.", "Потом едет на работу на автобусе."],
+      ["Το βράδυ διαβάζει ένα βιβλίο και κοιμάται.", "Вечером читает книгу и ложится спать."],
+    ],
+    gloss: { "μαρία": "Мария", "ξυπνάει": "просыпается", "εφτά": "семь", "πρωινό": "завтрак", "τσάι": "чай", "δουλειά": "работа", "λεωφορείο": "автобус", "βράδυ": "вечер", "βιβλίο": "книга", "κοιμάται": "спит / ложится спать" },
+  },
+  {
+    id: "restaurant", level: "A0+", genre: "Диалог", title: "Στο εστιατόριο", titleRu: "В ресторане",
+    sents: [
+      ["Καλησπέρα! Τι θέλετε;", "Добрый вечер! Что желаете?"],
+      ["Θέλω ψάρι και μια σαλάτα.", "Хочу рыбу и салат."],
+      ["Τι θέλετε να πιείτε;", "Что будете пить?"],
+      ["Ένα ποτήρι κρασί, παρακαλώ.", "Бокал вина, пожалуйста."],
+    ],
+    gloss: { "καλησπέρα": "добрый вечер", "ψάρι": "рыба", "σαλάτα": "салат", "πιείτε": "пить (вы)", "ποτήρι": "стакан / бокал", "κρασί": "вино" },
+  },
+  {
+    id: "directions", level: "A0+", genre: "Город", title: "Πού είναι η τράπεζα;", titleRu: "Где банк?",
+    sents: [
+      ["Συγγνώμη, πού είναι η τράπεζα;", "Извините, где банк?"],
+      ["Πηγαίνετε ευθεία και μετά στρίψτε αριστερά.", "Идите прямо, потом поверните налево."],
+      ["Η τράπεζα είναι δίπλα στο φαρμακείο.", "Банк рядом с аптекой."],
+      ["Είναι πέντε λεπτά με τα πόδια.", "Это пять минут пешком."],
+    ],
+    gloss: { "συγγνώμη": "извините", "τράπεζα": "банк", "ευθεία": "прямо", "στρίψτε": "поверните", "αριστερά": "налево", "φαρμακείο": "аптека", "πέντε": "пять", "λεπτά": "минуты", "πόδια": "ноги (пешком)" },
+  },
+  {
+    id: "shopping", level: "A0+", genre: "Покупки", title: "Τα ψώνια", titleRu: "Покупки",
+    sents: [
+      ["Το Σάββατο πάω στην αγορά.", "В субботу я иду на рынок."],
+      ["Αγοράζω ψωμί, τυρί και φρούτα.", "Покупаю хлеб, сыр и фрукты."],
+      ["Τα φρούτα είναι φρέσκα και φτηνά.", "Фрукты свежие и дешёвые."],
+      ["Πληρώνω και γυρίζω σπίτι.", "Плачу и возвращаюсь домой."],
+    ],
+    gloss: { "σάββατο": "суббота", "αγορά": "рынок", "αγοράζω": "покупаю", "ψωμί": "хлеб", "τυρί": "сыр", "φρούτα": "фрукты", "φρέσκα": "свежие", "φτηνά": "дешёвые", "πληρώνω": "плачу", "γυρίζω": "возвращаюсь", "σπίτι": "дом" },
+  },
+  {
+    id: "cat", level: "A1", genre: "Рассказ", title: "Η γάτα μου", titleRu: "Моя кошка",
+    sents: [
+      ["Έχω μια μικρή γάτα.", "У меня есть маленькая кошка."],
+      ["Τη λένε Μίμη και είναι μαύρη.", "Её зовут Мими, и она чёрная."],
+      ["Κάθε πρωί πίνει γάλα και κοιμάται στον καναπέ.", "Каждое утро она пьёт молоко и спит на диване."],
+      ["Το βράδυ παίζει με μια μικρή μπάλα.", "Вечером она играет с маленьким мячиком."],
+      ["Αγαπάω πολύ τη γάτα μου.", "Я очень люблю свою кошку."],
+    ],
+    gloss: { "γάτα": "кошка", "μικρή": "маленькая", "λένε": "зовут", "μίμη": "Мими", "μαύρη": "чёрная", "γάλα": "молоко", "κοιμάται": "спит", "καναπέ": "диван", "παίζει": "играет", "μπάλα": "мяч", "τη": "её" },
+  },
+  {
+    id: "postcard", level: "A1", genre: "Открытка", title: "Διακοπές στην Κύπρο", titleRu: "Отпуск на Кипре",
+    sents: [
+      ["Αγαπητέ Νίκο,", "Дорогой Нико,"],
+      ["είμαι στην Κύπρο για διακοπές.", "я на Кипре в отпуске."],
+      ["Ο καιρός είναι υπέροχος και η θάλασσα ζεστή.", "Погода чудесная, и море тёплое."],
+      ["Αύριο θα πάμε σε ένα παλιό χωριό στα βουνά.", "Завтра поедем в старую деревню в горах."],
+      ["Θα σου στείλω φωτογραφίες. Φιλιά!", "Пришлю тебе фотографии. Целую!"],
+    ],
+    gloss: { "αγαπητέ": "дорогой", "νίκο": "Нико", "κύπρο": "Кипр", "διακοπές": "отпуск / каникулы", "καιρός": "погода", "υπέροχος": "чудесный", "θάλασσα": "море", "ζεστή": "тёплая", "αύριο": "завтра", "παλιό": "старая", "χωριό": "деревня", "βουνά": "горы", "στείλω": "пришлю", "φωτογραφίες": "фотографии", "φιλιά": "поцелуи / целую" },
+  },
+  {
+    id: "book", level: "A1", genre: "Дневник", title: "Το αγαπημένο μου βιβλίο", titleRu: "Моя любимая книга",
+    sents: [
+      ["Μου αρέσει πολύ να διαβάζω.", "Мне очень нравится читать."],
+      ["Το αγαπημένο μου βιβλίο είναι μια ιστορία αγάπης.", "Моя любимая книга — история любви."],
+      ["Το διαβάζω κάθε χρόνο το καλοκαίρι.", "Я читаю её каждый год летом."],
+      ["Η ιστορία είναι λυπητερή αλλά πολύ όμορφη.", "История грустная, но очень красивая."],
+    ],
+    gloss: { "αγαπημένο": "любимое", "διαβάζω": "читаю", "βιβλίο": "книга", "ιστορία": "история", "αγάπης": "любви", "χρόνο": "год", "καλοκαίρι": "лето", "λυπητερή": "грустная", "αλλά": "но", "όμορφη": "красивая" },
+  },
+  {
+    id: "friend", level: "A0", genre: "Знакомство", title: "Ο φίλος μου ο Πέτρος", titleRu: "Мой друг Петрос",
+    sents: [
+      ["Ο φίλος μου ο Πέτρος είναι είκοσι πέντε χρονών.", "Моему другу Петросу двадцать пять лет."],
+      ["Μένει στην Αθήνα.", "Он живёт в Афинах."],
+      ["Δουλεύει σε ένα καφέ.", "Работает в кафе."],
+    ],
+    gloss: { "φίλος": "друг", "πέτρος": "Петрос", "είκοσι": "двадцать", "πέντε": "пять", "χρονών": "лет", "αθήνα": "Афины", "δουλεύει": "работает", "καφέ": "кафе" },
+  },
+  {
+    id: "colors", level: "A0", genre: "Цвета", title: "Τα χρώματα", titleRu: "Цвета",
+    sents: [
+      ["Μου αρέσουν τα χρώματα.", "Мне нравятся цвета."],
+      ["Ο ουρανός είναι γαλάζιος και το γρασίδι πράσινο.", "Небо голубое, а трава зелёная."],
+      ["Το αγαπημένο μου χρώμα είναι το κόκκινο.", "Мой любимый цвет — красный."],
+    ],
+    gloss: { "χρώματα": "цвета", "ουρανός": "небо", "γαλάζιος": "голубой", "γρασίδι": "трава", "πράσινο": "зелёное", "αγαπημένο": "любимый", "χρώμα": "цвет", "κόκκινο": "красный" },
+  },
+  {
+    id: "week", level: "A0", genre: "Распорядок", title: "Η εβδομάδα μου", titleRu: "Моя неделя",
+    sents: [
+      ["Από Δευτέρα μέχρι Παρασκευή δουλεύω.", "С понедельника до пятницы я работаю."],
+      ["Το Σάββατο ξεκουράζομαι.", "В субботу отдыхаю."],
+      ["Την Κυριακή βλέπω τους φίλους μου.", "В воскресенье встречаюсь с друзьями."],
+    ],
+    gloss: { "εβδομάδα": "неделя", "δευτέρα": "понедельник", "μέχρι": "до", "παρασκευή": "пятница", "δουλεύω": "работаю", "σάββατο": "суббота", "ξεκουράζομαι": "отдыхаю", "κυριακή": "воскресенье", "βλέπω": "вижу / встречаю", "φίλους": "друзей" },
+  },
+  {
+    id: "goodmorning", level: "A0", genre: "Диалог", title: "Καλημέρα!", titleRu: "Доброе утро!",
+    sents: [
+      ["Καλημέρα! Τι κάνεις;", "Доброе утро! Как дела?"],
+      ["Καλά, ευχαριστώ. Εσύ;", "Хорошо, спасибо. А ты?"],
+      ["Πολύ καλά!", "Очень хорошо!"],
+    ],
+    gloss: { "καλημέρα": "доброе утро", "κάνεις": "делаешь (как дела)", "καλά": "хорошо" },
+  },
+  {
+    id: "lesson", level: "A0", genre: "Учёба", title: "Στο μάθημα", titleRu: "На уроке",
+    sents: [
+      ["Είμαι στο μάθημα ελληνικών.", "Я на уроке греческого."],
+      ["Η δασκάλα γράφει στον πίνακα.", "Учительница пишет на доске."],
+      ["Εγώ διαβάζω και γράφω.", "Я читаю и пишу."],
+    ],
+    gloss: { "μάθημα": "урок", "ελληνικών": "греческого", "δασκάλα": "учительница", "γράφει": "пишет", "πίνακα": "доска", "διαβάζω": "читаю", "γράφω": "пишу" },
+  },
+  {
+    id: "cafeorder", level: "A0+", genre: "Диалог", title: "Στην καφετέρια", titleRu: "В кофейне",
+    sents: [
+      ["Καλημέρα, τι θα πάρετε;", "Доброе утро, что будете брать?"],
+      ["Έναν καφέ και ένα κρουασάν, παρακαλώ.", "Кофе и круассан, пожалуйста."],
+      ["Με ζάχαρη;", "С сахаром?"],
+      ["Όχι, χωρίς ζάχαρη.", "Нет, без сахара."],
+    ],
+    gloss: { "καφετέρια": "кофейня", "πάρετε": "возьмёте", "καφέ": "кофе", "κρουασάν": "круассан", "ζάχαρη": "сахар", "χωρίς": "без" },
+  },
+  {
+    id: "clothesshop", level: "A0+", genre: "Покупки", title: "Στο κατάστημα", titleRu: "В магазине",
+    sents: [
+      ["Θέλω να αγοράσω ένα παντελόνι.", "Я хочу купить брюки."],
+      ["Τι νούμερο φοράτε;", "Какой у вас размер?"],
+      ["Φοράω μέντιουμ. Πόσο κάνει;", "Я ношу M. Сколько стоит?"],
+      ["Είκοσι ευρώ.", "Двадцать евро."],
+    ],
+    gloss: { "κατάστημα": "магазин", "αγοράσω": "купить", "παντελόνι": "брюки", "νούμερο": "размер / номер", "φοράτε": "носите", "φοράω": "ношу", "μέντιουμ": "размер M", "πόσο": "сколько", "κάνει": "стоит", "είκοσι": "двадцать", "ευρώ": "евро" },
+  },
+  {
+    id: "phone", level: "A0+", genre: "Диалог", title: "Στο τηλέφωνο", titleRu: "По телефону",
+    sents: [
+      ["Εμπρός, ποιος είναι;", "Алло, кто это?"],
+      ["Γεια σου, είμαι ο Γιάννης.", "Привет, это Яннис."],
+      ["Θέλεις να πάμε σινεμά απόψε;", "Хочешь пойти в кино сегодня вечером?"],
+      ["Ναι, με χαρά!", "Да, с удовольствием!"],
+    ],
+    gloss: { "εμπρός": "алло", "ποιος": "кто", "γιάννης": "Яннис", "θέλεις": "хочешь", "σινεμά": "кино", "απόψε": "сегодня вечером", "χαρά": "радость" },
+  },
+  {
+    id: "weekend", level: "A0+", genre: "Распорядок", title: "Το Σαββατοκύριακο", titleRu: "Выходные",
+    sents: [
+      ["Το Σαββατοκύριακο δεν δουλεύω.", "На выходных я не работаю."],
+      ["Το πρωί πάω για περπάτημα στο πάρκο.", "Утром иду гулять в парк."],
+      ["Το απόγευμα μαγειρεύω για την οικογένειά μου.", "Днём готовлю для семьи."],
+    ],
+    gloss: { "σαββατοκύριακο": "выходные", "δουλεύω": "работаю", "πρωί": "утро", "περπάτημα": "прогулка", "πάρκο": "парк", "απόγευμα": "день", "μαγειρεύω": "готовлю", "οικογένεια": "семья" },
+  },
+  {
+    id: "bus", level: "A0+", genre: "Город", title: "Πάμε με το λεωφορείο", titleRu: "Едем на автобусе",
+    sents: [
+      ["Πώς πάμε στο κέντρο;", "Как добраться до центра?"],
+      ["Με το λεωφορείο νούμερο πέντε.", "На автобусе номер пять."],
+      ["Το εισιτήριο κοστίζει ένα ευρώ και πενήντα.", "Билет стоит один евро пятьдесят."],
+    ],
+    gloss: { "κέντρο": "центр", "λεωφορείο": "автобус", "νούμερο": "номер", "πέντε": "пять", "εισιτήριο": "билет", "κοστίζει": "стоит", "πενήντα": "пятьдесят" },
+  },
+  {
+    id: "breakfast", level: "A0+", genre: "Еда", title: "Το πρωινό", titleRu: "Завтрак",
+    sents: [
+      ["Κάθε πρωί τρώω πρωινό στις οχτώ.", "Каждое утро я завтракаю в восемь."],
+      ["Τρώω ψωμί με μέλι και πίνω χυμό.", "Ем хлеб с мёдом и пью сок."],
+      ["Μερικές φορές τρώω ένα αυγό.", "Иногда ем яйцо."],
+    ],
+    gloss: { "πρωί": "утро", "πρωινό": "завтрак", "οχτώ": "восемь", "ψωμί": "хлеб", "μέλι": "мёд", "χυμό": "сок", "μερικές": "несколько", "φορές": "раз", "αυγό": "яйцо" },
+  },
+  {
+    id: "letter", level: "A1", genre: "Письмо", title: "Ένα γράμμα στη φίλη μου", titleRu: "Письмо подруге",
+    sents: [
+      ["Αγαπητή Έλενα,", "Дорогая Елена,"],
+      ["τι κάνεις; Εγώ είμαι καλά.", "как дела? У меня всё хорошо."],
+      ["Τώρα μαθαίνω ελληνικά κάθε μέρα.", "Сейчас я учу греческий каждый день."],
+      ["Ελπίζω να σε δω σύντομα.", "Надеюсь скоро тебя увидеть."],
+      ["Με αγάπη, η Άννα.", "С любовью, Анна."],
+    ],
+    gloss: { "γράμμα": "письмо", "αγαπητή": "дорогая", "έλενα": "Елена", "μαθαίνω": "учу", "ελπίζω": "надеюсь", "δω": "увидеть", "σύντομα": "скоро", "αγάπη": "любовь", "άννα": "Анна" },
+  },
+  {
+    id: "mycity", level: "A1", genre: "Город", title: "Η πόλη μου", titleRu: "Мой город",
+    sents: [
+      ["Μένω στη Λεμεσό, μια όμορφη πόλη στην Κύπρο.", "Я живу в Лимасоле, красивом городе на Кипре."],
+      ["Έχει μεγάλες παραλίες και πολλά καφέ.", "Здесь большие пляжи и много кафе."],
+      ["Το καλοκαίρι έρχονται πολλοί τουρίστες.", "Летом приезжает много туристов."],
+      ["Μου αρέσει πολύ η πόλη μου.", "Мне очень нравится мой город."],
+    ],
+    gloss: { "πόλη": "город", "λεμεσό": "Лимасол", "όμορφη": "красивый", "κύπρο": "Кипр", "μεγάλες": "большие", "παραλίες": "пляжи", "πολλά": "много", "καφέ": "кафе", "έρχονται": "приезжают", "πολλοί": "многие", "τουρίστες": "туристы", "καλοκαίρι": "лето" },
+  },
+  {
+    id: "favfood", level: "A1", genre: "Еда", title: "Το αγαπημένο μου φαγητό", titleRu: "Моё любимое блюдо",
+    sents: [
+      ["Το αγαπημένο μου φαγητό είναι ο μουσακάς.", "Моё любимое блюдо — мусака."],
+      ["Η μητέρα μου τον μαγειρεύει πολύ νόστιμο.", "Моя мама готовит её очень вкусно."],
+      ["Έχει πατάτες, κιμά και τυρί.", "В ней картофель, фарш и сыр."],
+      ["Τον τρώμε όλη η οικογένεια μαζί.", "Мы едим её всей семьёй вместе."],
+    ],
+    gloss: { "φαγητό": "блюдо / еда", "μουσακάς": "мусака", "μητέρα": "мама", "μαγειρεύει": "готовит", "νόστιμο": "вкусно", "πατάτες": "картофель", "κιμά": "фарш", "τυρί": "сыр", "τρώμε": "едим", "όλη": "вся", "οικογένεια": "семья", "μαζί": "вместе" },
+  },
+  {
+    id: "doctor", level: "A1", genre: "Диалог", title: "Στον γιατρό", titleRu: "У врача",
+    sents: [
+      ["Γιατρέ, δεν νιώθω καλά.", "Доктор, я плохо себя чувствую."],
+      ["Τι έχετε;", "Что у вас?"],
+      ["Πονάει ο λαιμός μου και έχω βήχα.", "У меня болит горло и кашель."],
+      ["Πάρτε αυτό το φάρμακο τρεις φορές την ημέρα.", "Принимайте это лекарство три раза в день."],
+    ],
+    gloss: { "γιατρέ": "доктор", "νιώθω": "чувствую", "πονάει": "болит", "λαιμός": "горло", "βήχα": "кашель", "πάρτε": "принимайте", "φάρμακο": "лекарство", "τρεις": "три", "φορές": "раза", "ημέρα": "день" },
+  },
+  {
+    id: "fable", level: "A1", genre: "Сказка", title: "Ο λαγός και η χελώνα", titleRu: "Заяц и черепаха",
+    sents: [
+      ["Ένας λαγός γελάει με μια αργή χελώνα.", "Заяц смеётся над медленной черепахой."],
+      ["«Ας τρέξουμε!» λέει η χελώνα.", "«Давай побежим!» — говорит черепаха."],
+      ["Ο λαγός τρέχει γρήγορα αλλά κοιμάται.", "Заяц бежит быстро, но засыпает."],
+      ["Η χελώνα συνεχίζει και κερδίζει.", "Черепаха продолжает и побеждает."],
+    ],
+    gloss: { "λαγός": "заяц", "χελώνα": "черепаха", "γελάει": "смеётся", "αργή": "медленная", "τρέξουμε": "побежим", "λέει": "говорит", "τρέχει": "бежит", "γρήγορα": "быстро", "κοιμάται": "засыпает", "συνεχίζει": "продолжает", "κερδίζει": "побеждает" },
+  },
+  {
+    id: "seasons", level: "A1", genre: "Погода", title: "Οι εποχές", titleRu: "Времена года",
+    sents: [
+      ["Στην Κύπρο έχουμε τέσσερις εποχές.", "На Кипре четыре времени года."],
+      ["Το καλοκαίρι κάνει πολλή ζέστη.", "Летом очень жарко."],
+      ["Τον χειμώνα βρέχει αλλά δεν κάνει πολύ κρύο.", "Зимой идёт дождь, но не очень холодно."],
+      ["Η άνοιξη είναι η αγαπημένη μου εποχή.", "Весна — моё любимое время года."],
+    ],
+    gloss: { "κύπρο": "Кипр", "τέσσερις": "четыре", "εποχές": "времена года", "καλοκαίρι": "лето", "ζέστη": "жара", "χειμώνα": "зима", "βρέχει": "идёт дождь", "κρύο": "холод", "άνοιξη": "весна", "αγαπημένη": "любимое", "εποχή": "время года / сезон" },
+  },
+  {
+    id: "dreamjob", level: "A1", genre: "Дневник", title: "Η δουλειά των ονείρων μου", titleRu: "Работа мечты",
+    sents: [
+      ["Τώρα δουλεύω σε ένα γραφείο.", "Сейчас я работаю в офисе."],
+      ["Αλλά θέλω να γίνω δάσκαλος.", "Но я хочу стать учителем."],
+      ["Μου αρέσει να βοηθάω τους ανθρώπους.", "Мне нравится помогать людям."],
+      ["Του χρόνου θα σπουδάσω για να γίνω δάσκαλος.", "В следующем году я буду учиться, чтобы стать учителем."],
+    ],
+    gloss: { "δουλειά": "работа", "ονείρων": "мечты", "γραφείο": "офис", "γίνω": "стать", "δάσκαλος": "учитель", "βοηθάω": "помогаю", "ανθρώπους": "людей", "χρόνου": "год", "σπουδάσω": "буду учиться" },
+  },
+];
+
+/* ============================================================
    Ελληνικά A1 — ПРОБНЫЕ МИНИ-ЭКЗАМЕНЫ
    Каждый экзамен = тема (текст для чтения) + смешанные секции:
    Чтение · Лексика · Грамматика · Аудио · Письмо.
@@ -1525,6 +1891,20 @@ const Speech = {
     return true;
   },
 
+  // Озвучить несколько фраз подряд (для чтения «озвучить всё»)
+  sayAll(texts, rate = 0.9) {
+    if (!this.supported) return false;
+    window.speechSynthesis.cancel();
+    texts.forEach((text) => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "el-GR";
+      if (this.voice) u.voice = this.voice;
+      u.rate = rate;
+      window.speechSynthesis.speak(u);
+    });
+    return true;
+  },
+
   stop() {
     if (this.supported) window.speechSynthesis.cancel();
   },
@@ -1583,9 +1963,17 @@ const App = {
 
   init() {
     this.root = document.getElementById("app");
-    // Service worker: «никогда не залипает на старой версии» (только на https-сайте)
+    // Service worker: «никогда не залипает на старой версии» (только на https-сайте).
+    // network-first отдаёт свежее из сети; при выходе новой версии — тихий reload.
     if ("serviceWorker" in navigator && location.protocol === "https:") {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded || !hadController) return; // не перезагружаем при самой первой установке
+        reloaded = true;
+        location.reload();
+      });
+      navigator.serviceWorker.register("sw.js").then((reg) => { reg.update(); }).catch(() => {});
     }
     document.body.addEventListener("click", (e) => this.onClick(e));
     document.body.addEventListener("input", (e) => this.onInput(e));
@@ -1707,6 +2095,8 @@ const App = {
       grammar: () => this.renderGrammar(),
       trainer: () => this.renderTrainer(),
       writing: () => this.renderWriting(),
+      reading: () => this.renderReadingList(),
+      read: () => this.renderRead(),
       exams: () => this.renderExamsList(),
       exam: () => this.renderExam(),
       progress: () => this.renderProgress(),
@@ -1724,13 +2114,15 @@ const App = {
       ["decks", "📚", "Темы"],
       ["grammar", "📖", "Грамматика"],
       ["writing", "✍️", "Письмо"],
+      ["reading", "📕", "Чтение"],
       ["exams", "📝", "Экзамены"],
       ["progress", "📊", "Прогресс"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
       : this.view === "trainer" ? "grammar"
-      : this.view === "exam" ? "exams" : this.view;
+      : this.view === "exam" ? "exams"
+      : this.view === "read" ? "reading" : this.view;
     const menu = items.map(([v, ic, l]) =>
       `<button class="menu-item ${root === v ? "active" : ""}" data-go="${v}"><span class="mi-ic">${ic}</span>${l}</button>`
     ).join("");
@@ -1800,18 +2192,21 @@ const App = {
         </button>
       </section>
 
-      <h3 class="section-title">План «с нуля» — 4 шага</h3>
+      <h3 class="section-title">Путь «с нуля» до A1</h3>
       <ol class="steps">
-        <li><b>Шаг 1.</b> Выучи <a data-go="alphabet">алфавит</a> — читать звуки и буквосочетания.</li>
-        <li><b>Шаг 2.</b> Каждый день делай <a data-go="review">повторение (SRS)</a> — 10–15 минут.</li>
-        <li><b>Шаг 3.</b> Прокачивай <a data-go="decks">темы</a>: аудирование, выбор, набор слов.</li>
-        <li><b>Шаг 4.</b> Загляни в <a data-go="grammar">грамматику</a>, когда слова начнут складываться.</li>
+        <li><b>1.</b> Выучи <a data-go="alphabet">алфавит</a> — звуки и буквосочетания.</li>
+        <li><b>2.</b> Каждый день — <a data-go="review">повторение (SRS)</a>, 10–15 минут.</li>
+        <li><b>3.</b> Прокачивай <a data-go="decks">темы</a>: аудио, диктант, голос, набор.</li>
+        <li><b>4.</b> Читай <a data-go="reading">тексты</a> и пиши в <a data-go="writing">письме</a> — слова в деле.</li>
+        <li><b>5.</b> Сверяйся с <a data-go="grammar">грамматикой</a> и проверяй себя <a data-go="exams">экзаменами</a>.</li>
       </ol>
 
       <h3 class="section-title">Быстрый старт</h3>
       <div class="grid">
         <button class="tile" data-go="alphabet"><span class="tile-ic">🔤</span>Алфавит</button>
         <button class="tile" data-go="decks"><span class="tile-ic">📚</span>Темы (${DECKS.length})</button>
+        <button class="tile" data-go="reading"><span class="tile-ic">📕</span>Чтение (${READING_TEXTS.length})</button>
+        <button class="tile" data-go="writing"><span class="tile-ic">✍️</span>Письмо</button>
         <button class="tile" data-go="grammar"><span class="tile-ic">📖</span>Грамматика</button>
         <button class="tile" data-go="progress"><span class="tile-ic">📊</span>Прогресс</button>
       </div>
@@ -2369,6 +2764,100 @@ const App = {
       <div id="reveal">${reveal}</div>`;
   },
 
+  /* ---------- ЧТЕНИЕ (graded readers) ---------- */
+  readingDone() {
+    try { return JSON.parse(localStorage.getItem("greekA1_reading_done")) || {}; }
+    catch { return {}; }
+  },
+  isRead(id) { return !!this.readingDone()[id]; },
+  markRead(id) {
+    const d = this.readingDone();
+    d[id] = true;
+    localStorage.setItem("greekA1_reading_done", JSON.stringify(d));
+    if (window.Cloud && window.Cloud.push) window.Cloud.push();
+  },
+
+  renderReadingList() {
+    const done = this.readingDone();
+    const groups = ["A0", "A0+", "A1"].map((lv) => {
+      const items = READING_TEXTS.filter((t) => t.level === lv).map((t) => `
+        <button class="deck-tile" data-read="${t.id}">
+          <div class="deck-ic">${done[t.id] ? "✅" : "📖"}</div>
+          <div class="deck-body"><div class="deck-title">${t.title}</div>
+          <div class="deck-meta">${t.genre} · ${t.titleRu}</div></div>
+        </button>`).join("");
+      return `<h3 class="section-title">Уровень ${lv}</h3><div class="deck-list">${items}</div>`;
+    }).join("");
+    const total = READING_TEXTS.length;
+    const read = READING_TEXTS.filter((t) => done[t.id]).length;
+    return `
+      <header class="page-head"><h2>📕 Чтение</h2></header>
+      <p class="muted">Короткие тексты от A0 до честного A1. Тапни слово — перевод и звук; тапни 🇷🇺 — перевод фразы. Прочитано <b>${read}/${total}</b>.</p>
+      ${groups}`;
+  },
+
+  // Словарь для тап-перевода: текст > общий > словарь приложения
+  buildGloss(t) {
+    const g = {};
+    ALL_WORDS.forEach((w) => { const k = this.normGreek(w.gr); if (k && !k.includes(" ")) g[k] = w.ru; });
+    Object.entries(READING_COMMON).forEach(([k, v]) => { g[this.normGreek(k)] = v; });
+    Object.entries(t.gloss).forEach(([k, v]) => { g[this.normGreek(k)] = v; });
+    return g;
+  },
+
+  buildReadWords(gr) {
+    const parts = gr.match(/[Ͱ-Ͽἀ-῿]+|[^Ͱ-Ͽἀ-῿]+/g) || [];
+    return parts.map((p) => {
+      if (/[Ͱ-Ͽἀ-῿]/.test(p)) {
+        return `<span class="rword" data-rw="${this.esc(this.normGreek(p))}" data-ro="${this.esc(p)}">${this.esc(p)}</span>`;
+      }
+      return this.esc(p);
+    }).join("");
+  },
+
+  renderRead() {
+    const t = READING_TEXTS.find((x) => x.id === this.params.id);
+    if (!t) return this.renderReadingList();
+    this._gloss = this.buildGloss(t);
+    const sents = t.sents.map((p, i) => `
+      <div class="r-sent">
+        <span class="r-text">${this.buildReadWords(p[0])}</span>
+        <span class="r-tools"><button class="r-ic" data-say="${this.esc(p[0])}">🔊</button><button class="r-ic" data-rtr="${i}">🇷🇺</button></span>
+        <div class="r-trans" id="rtrans-${i}" hidden>${p[1]}</div>
+      </div>`).join("");
+    const readBtn = this.isRead(t.id)
+      ? `<button class="big-btn ghost" data-action="read-done" data-id="${t.id}">✅ Прочитано</button>`
+      : `<button class="big-btn primary" data-action="read-done" data-id="${t.id}">✓ Отметить прочитанным</button>`;
+    return `
+      <header class="page-head"><h2>${t.title}</h2><button class="back" data-go="reading">← Чтение</button></header>
+      <div class="r-meta"><span class="lvl-badge">${t.level}</span> ${t.genre} · ${t.titleRu}</div>
+      <button class="big-btn primary slim" data-action="read-all">🔊 Озвучить весь текст</button>
+      <p class="muted small">Тапни слово — перевод и звук. Тапни 🇷🇺 у строки — перевод предложения.</p>
+      <div class="reader">${sents}</div>
+      ${readBtn}
+      <div id="wordbar" class="wordbar" hidden>
+        <button class="wb-spk" data-say="">🔊</button>
+        <div class="wb-body"><span class="wb-gr"></span><span class="wb-ru"></span></div>
+        <button class="wb-x" data-action="wordbar-close">✕</button>
+      </div>`;
+  },
+
+  showWord(norm, orig) {
+    const tr = (this._gloss && this._gloss[norm]) || "";
+    const bar = document.getElementById("wordbar");
+    if (!bar) return;
+    bar.querySelector(".wb-gr").textContent = orig;
+    bar.querySelector(".wb-ru").textContent = tr || "— (нет в словаре)";
+    bar.querySelector(".wb-spk").dataset.say = orig;
+    bar.hidden = false;
+    Speech.say(orig);
+  },
+
+  rTrans(i) {
+    const el = document.getElementById("rtrans-" + i);
+    if (el) el.hidden = !el.hidden;
+  },
+
   /* ---------- ЭКЗАМЕНЫ ---------- */
   examBest() {
     try { return JSON.parse(localStorage.getItem("greekA1_exam_best")) || {}; }
@@ -2435,18 +2924,39 @@ const App = {
     `;
   },
 
+  // Привести предложение к единому виду: заглавная первая буква + точка.
+  // starter — исходно заглавное первое слово (его делаем строчным, если оно не первое),
+  // чтобы варианты нельзя было отличить по формату — только по порядку слов.
+  presentSentence(arr, starter) {
+    const lo = (w) => w.charAt(0).toLowerCase() + w.slice(1);
+    const up = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+    let used = false;
+    const words = arr.map((w) => {
+      if (!used && w === starter) { used = true; return lo(w); }
+      return w;
+    });
+    words[0] = up(words[0]);
+    return words.join(" ") + ".";
+  },
+
   // Сборка одного экзамена из текста + общих банков
   buildExam(n) {
     const R = EXAM_READINGS[n % EXAM_READINGS.length];
     const qs = [];
-    const otherRu = (ru, k) => this.shuffle(ALL_WORDS.filter((x) => x.ru !== ru)).slice(0, k).map((x) => x.ru);
     const uniq = (arr) => [...new Set(arr)];
+    // Дистракторы — из ТОЙ ЖЕ темы (числа к числу, фразы к фразе), чтобы
+    // нельзя было угадать по формату/длине. Добор из общего словаря при нехватке.
+    const distract = (w, k) => {
+      let pool = ALL_WORDS.filter((x) => x.deck === w.deck && x.ru !== w.ru);
+      if (pool.length < k) pool = pool.concat(ALL_WORDS.filter((x) => x.deck !== w.deck && x.ru !== w.ru));
+      return this.shuffle(pool).slice(0, k).map((x) => x.ru);
+    };
 
     // Чтение
     R.q.forEach((q) => qs.push({ section: "Чтение", passage: R.gr, passageRu: R.ru, prompt: q.ask, options: this.shuffle(q.options.slice()), answer: q.answer }));
     // Лексика (4): что значит слово
     this.shuffle(ALL_WORDS).slice(0, 4).forEach((w) => {
-      const opts = uniq([w.ru, ...otherRu(w.ru, 3)]);
+      const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Лексика", prompt: `Что значит «${w.gr}»?`, audio: w.gr, options: this.shuffle(opts), answer: w.ru });
     });
     // Грамматика (4): вставь слово
@@ -2455,19 +2965,20 @@ const App = {
     });
     // Аудио (3): услышь и выбери перевод (текст скрыт)
     this.shuffle(ALL_WORDS).slice(0, 3).forEach((w) => {
-      const opts = uniq([w.ru, ...otherRu(w.ru, 3)]);
+      const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Аудио", prompt: "Прослушай и выбери перевод:", audio: w.gr, hideAudioText: true, autoplay: true, options: this.shuffle(opts), answer: w.ru });
     });
-    // Письмо (2): выбери правильное предложение
+    // Письмо (2): выбери правильное предложение (все варианты в едином виде)
     this.shuffle(WRITING_ORDER).slice(0, 2).forEach((sn) => {
-      const correct = sn.tokens.join(" ");
-      const scrambles = new Set();
+      const starter = sn.tokens[0];
+      const correct = this.presentSentence(sn.tokens, starter);
+      const opts = new Set([correct]);
       let guard = 0;
-      while (scrambles.size < 2 && guard++ < 30) {
-        const x = this.shuffle(sn.tokens).join(" ");
-        if (x !== correct) scrambles.add(x);
+      while (opts.size < 3 && guard++ < 40) {
+        const perm = this.shuffle(sn.tokens);
+        if (perm.join(" ") !== sn.tokens.join(" ")) opts.add(this.presentSentence(perm, starter));
       }
-      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sn.ru}»`, options: this.shuffle([correct, ...scrambles]), answer: correct });
+      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sn.ru}»`, options: this.shuffle([...opts]), answer: correct });
     });
     return qs;
   },
@@ -2572,16 +3083,37 @@ const App = {
       </section>
       <h3 class="section-title">Активность (14 дней)</h3>
       <div class="heat">${days.join("")}</div>
+      ${this.renderExamProgress()}
       <h3 class="section-title">По темам</h3>
       <div class="word-list">${perDeck}</div>
       <button class="big-btn ghost danger" data-action="reset">Сбросить весь прогресс</button>
     `;
   },
 
+  renderExamProgress() {
+    const best = this.examBest();
+    const taken = Object.keys(best).length;
+    const passed = Object.values(best).filter((p) => p >= 60).length;
+    const rows = EXAM_READINGS.map((r, i) => {
+      const b = best[i];
+      if (b == null) return "";
+      return `<div class="word-row"><div class="w-gr">📝 ${r.theme}</div><div class="w-ru">${b}% ${b >= 60 ? "✅" : ""}</div></div>`;
+    }).filter(Boolean).join("");
+    return `
+      <h3 class="section-title">📝 Экзамены</h3>
+      <p class="muted small">Сдано ${passed} из ${EXAM_READINGS.length} · пройдено ${taken}</p>
+      ${rows ? `<div class="word-list">${rows}</div>` : `<p class="muted small">Пока ни одного. Открой «Экзамены» в меню.</p>`}
+    `;
+  },
+
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr]");
     if (!t) return;
+
+    if (t.dataset.rw !== undefined) return this.showWord(t.dataset.rw, t.dataset.ro);
+    if (t.dataset.rtr !== undefined) return this.rTrans(t.dataset.rtr);
+    if (t.dataset.read !== undefined) return this.go("read", { id: t.dataset.read });
 
     if (t.dataset.go) return this.go(t.dataset.go);
 
@@ -2645,6 +3177,13 @@ const App = {
       case "cloud-logout": if (window.Cloud && window.Cloud.logout) window.Cloud.logout(); return;
       case "menu-toggle": return this.toggleMenu();
       case "menu-close": return this.toggleMenu(false);
+      case "read-done": { const id = el.dataset.id; this.markRead(id); return this.go("reading"); }
+      case "read-all": {
+        const tx = READING_TEXTS.find((x) => x.id === this.params.id);
+        if (tx) Speech.sayAll(tx.sents.map((p) => p[0]));
+        return;
+      }
+      case "wordbar-close": { const b = document.getElementById("wordbar"); if (b) b.hidden = true; return; }
       case "reset":
         if (confirm("Сбросить весь прогресс и стрик? Это нельзя отменить.")) { SRS.reset(); this.go("home"); }
         return;
@@ -2709,6 +3248,8 @@ const App = {
   /* --- карточки внутри темы --- */
   deckLearnNext(knew) {
     const s = this.session;
+    const cur = s.pool[s.idx];
+    if (cur && cur.id) SRS.grade(cur.id, knew ? 2 : 0); // практика идёт в прогресс
     if (knew) s.correct++;
     s.idx++; s.answered = false;
     this.render();
@@ -2719,6 +3260,7 @@ const App = {
     const s = this.session;
     const cur = s.pool[s.idx];
     const ok = id === cur.id;
+    if (cur && cur.id) SRS.grade(cur.id, ok ? 2 : 0); // практика идёт в прогресс
     if (ok) s.correct++;
     document.querySelectorAll(".opt").forEach((b) => {
       if (b.dataset.choice === cur.id) b.classList.add("ok");
@@ -2749,6 +3291,7 @@ const App = {
     const inp = document.getElementById("typeInput");
     const val = inp ? inp.value : s.input;
     const ok = this.normGreek(val) === this.normGreek(cur.gr);
+    if (cur && cur.id) SRS.grade(cur.id, ok ? 2 : 0); // практика идёт в прогресс
     if (ok) s.correct++;
     const fb = document.getElementById("fb");
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
@@ -2792,12 +3335,16 @@ const App = {
     const target = this.phoneticGreek(cur.gr);
     const targetWords = target.split(" ").filter(Boolean);
     const heardNorm = alts.map((a) => this.phoneticGreek(a));
+    // Числа распознаются как цифры («δύο» → «2»): принимаем и цифру.
+    const ruDigits = (cur.ru || "").replace(/[^\d]/g, "");
+    const digitOk = ruDigits && alts.some((a) => a.replace(/[^\d]/g, "") === ruDigits);
     // Совпадение: точное ИЛИ все слова цели присутствуют в одном из вариантов
-    const ok = heardNorm.some((h) => {
+    const ok = digitOk || heardNorm.some((h) => {
       if (h === target) return true;
       const hw = h.split(" ").filter(Boolean);
       return targetWords.every((w) => hw.includes(w));
     });
+    if (ok && cur.id) SRS.grade(cur.id, 2); // успешное произношение идёт в прогресс
     if (ok && !s._scored) s.correct++;
     s._scored = true; // не двойной счёт при повторных попытках одного слова
     const heardShow = alts[0] || "—";

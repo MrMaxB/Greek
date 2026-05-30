@@ -17,6 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const EXAM_KEY = "greekA1_exam_best";
+const READ_KEY = "greekA1_reading_done";
 
 const Cloud = { enabled: false, ready: false, user: null, status: "" };
 window.Cloud = Cloud;
@@ -32,6 +33,7 @@ function localState() {
     srs: S ? S.data : JSON.parse(localStorage.getItem("greekA1_srs_v1") || "{}"),
     stats: S ? S.stats : JSON.parse(localStorage.getItem("greekA1_stats_v1") || "{}"),
     exams: JSON.parse(localStorage.getItem(EXAM_KEY) || "{}"),
+    reading: JSON.parse(localStorage.getItem(READ_KEY) || "{}"),
     _v: 1, _ts: Date.now(),
   };
 }
@@ -51,6 +53,7 @@ function applyState(state) {
     localStorage.setItem("greekA1_stats_v1", JSON.stringify(state.stats || {}));
   }
   localStorage.setItem(EXAM_KEY, JSON.stringify(state.exams || {}));
+  localStorage.setItem(READ_KEY, JSON.stringify(state.reading || {}));
   Cloud._applying = false;
 }
 
@@ -84,7 +87,12 @@ function mergeState(a, b) {
   new Set([...Object.keys(ea), ...Object.keys(eb)]).forEach((n) => {
     exams[n] = Math.max(ea[n] || 0, eb[n] || 0);
   });
-  return { srs, stats, exams, _v: 1, _ts: Date.now() };
+  const ra = a.reading || {}, rb = b.reading || {};
+  const reading = {};
+  new Set([...Object.keys(ra), ...Object.keys(rb)]).forEach((k) => {
+    reading[k] = ra[k] || rb[k] || false;
+  });
+  return { srs, stats, exams, reading, _v: 1, _ts: Date.now() };
 }
 
 const cfg = window.FIREBASE_CONFIG;

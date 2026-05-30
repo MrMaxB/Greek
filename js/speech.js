@@ -42,6 +42,20 @@ const Speech = {
     return true;
   },
 
+  // Озвучить несколько фраз подряд (для чтения «озвучить всё»)
+  sayAll(texts, rate = 0.9) {
+    if (!this.supported) return false;
+    window.speechSynthesis.cancel();
+    texts.forEach((text) => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "el-GR";
+      if (this.voice) u.voice = this.voice;
+      u.rate = rate;
+      window.speechSynthesis.speak(u);
+    });
+    return true;
+  },
+
   stop() {
     if (this.supported) window.speechSynthesis.cancel();
   },
