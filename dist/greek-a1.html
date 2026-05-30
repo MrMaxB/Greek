@@ -223,6 +223,22 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .gram[open] summary::before { content: "▾ "; }
 .gram-body { padding: 0 16px 16px; color: var(--ink); }
 .gram-body b { color: var(--blue-2); }
+.gram-body p { margin: 8px 0; }
+.gram-body ul { margin: 8px 0; padding-left: 20px; }
+.gram-body li { margin: 4px 0; }
+.gram-body i { color: var(--blue); font-style: normal; background: #eef4fb; padding: 0 4px; border-radius: 4px; }
+.gtab { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: .9rem; }
+.gtab th, .gtab td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; }
+.gtab th { background: var(--blue); color: #fff; font-weight: 600; }
+.gtab td:first-child { color: var(--muted); white-space: nowrap; }
+.gtab b { color: var(--blue-2); }
+
+/* Тренажёры грамматики */
+.train-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+.train-btn { background: linear-gradient(135deg, var(--blue-2), var(--blue)); color: #fff; border-radius: 16px; padding: 16px 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; box-shadow: var(--shadow); }
+.train-btn span { font-size: 1.7rem; }
+.train-btn small { font-weight: 500; opacity: .85; font-size: .72rem; text-align: center; }
+.slot-target { font-size: 1.5rem; font-weight: 800; color: var(--blue); margin: 8px 0 2px; }
 
 /* ---------- PROGRESS ---------- */
 .heat { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0; }
@@ -555,50 +571,7 @@ const DECKS = [
   },
 ];
 
-/* ---------- 3. КОРОТКАЯ ГРАММАТИКА A1 ---------- */
-const GRAMMAR = [
-  {
-    title: "Три рода и артикли",
-    body: `В греческом у каждого существительного есть род, и артикль («the») меняется:
-• мужской: <b>ο</b> (о) — ο άντρας (мужчина)
-• женский: <b>η</b> (и) — η γυναίκα (женщина)
-• средний: <b>το</b> (то) — το παιδί (ребёнок)
-Неопределённый артикль («a»): <b>ένας / μία / ένα</b>.
-Совет: учите слово сразу с артиклем — так запомнится род.`,
-  },
-  {
-    title: "Глагол «быть» — είμαι",
-    body: `είμαι — это «я есть». Спряжение в настоящем:
-• εγώ <b>είμαι</b> — я есть
-• εσύ <b>είσαι</b> — ты есть
-• αυτός/αυτή <b>είναι</b> — он/она есть
-• εμείς <b>είμαστε</b> — мы есть
-• εσείς <b>είστε</b> — вы есть
-• αυτοί <b>είναι</b> — они есть
-Пример: <b>Είμαι από τη Ρωσία.</b> — Я из России.`,
-  },
-  {
-    title: "Глаголы настоящего времени (группа -ω)",
-    body: `Большинство глаголов в наст. времени меняют окончание по лицу. Пример: μένω (жить):
-• μέν<b>ω</b> — я живу
-• μέν<b>εις</b> — ты живёшь
-• μέν<b>ει</b> — он/она живёт
-• μέν<b>ουμε</b> — мы живём
-• μέν<b>ετε</b> — вы живёте
-• μέν<b>ουν</b> — они живут`,
-  },
-  {
-    title: "Ударение — это важно",
-    body: `В греческом всегда ставится знак ударения (΄) над гласной: καλημέ<b>ρα</b>.
-Ударение меняет смысл и обязательно при письме на экзамене. Произносите ударный слог чётче и сильнее.`,
-  },
-  {
-    title: "Вопрос и точка с запятой",
-    body: `Знак вопроса в греческом — это <b>;</b> (точка с запятой!):
-<b>Τι κάνεις;</b> — Как дела?
-А греческая «;» (пауза посильнее запятой) выглядит как приподнятая точка <b>·</b>.`,
-  },
-];
+/* Теория грамматики, склонения и спряжения — в js/grammar.js */
 
 /* ---------- ИНИЦИАЛИЗАЦИЯ id ---------- */
 // Стабильные id нужны для хранения прогресса SRS.
@@ -612,6 +585,312 @@ DECKS.forEach((deck) => {
 
 // Плоский список всех слов
 const ALL_WORDS = DECKS.flatMap((d) => d.words);
+
+/* ============================================================
+   Ελληνικά A1 — ГРАММАТИКА
+   1) GRAMMAR_LESSONS — теория (полный минимум для A1)
+   2) DECLENSIONS    — таблицы склонения существительных
+   3) CONJUGATIONS   — таблицы спряжения глаголов (наст. время)
+   Используется в тренажёрах склонений и спряжений.
+   ============================================================ */
+
+/* ---------- ТЕОРИЯ ---------- */
+const GRAMMAR_LESSONS = [
+  {
+    id: "read",
+    title: "1. Как читать по-гречески",
+    body: `
+      <p>Греческий пишется своим алфавитом (24 буквы). Главное на старте:</p>
+      <ul>
+        <li><b>Ударение</b> всегда обозначается чёрточкой над гласной: καλημέ<b>ρα</b>. Ударный слог произносим сильнее — это обязательно и в письме.</li>
+        <li>Знак <b>вопроса</b> — это <b>;</b> (выглядит как точка с запятой): <i>Τι κάνεις;</i></li>
+        <li>Буквосочетания меняют звук: <b>ου</b>=«у», <b>αι</b>=«э», <b>ει/οι</b>=«и», <b>μπ</b>=«б», <b>ντ</b>=«д».</li>
+      </ul>
+      <p>Полная таблица букв и звуков — во вкладке <b>Алфавит</b>.</p>`,
+  },
+  {
+    id: "gender",
+    title: "2. Род и артикль",
+    body: `
+      <p>У каждого существительного есть <b>род</b>. Артикль («the») зависит от рода, падежа и числа.</p>
+      <p><b>Определённый артикль</b> (как «этот/тот, известный»):</p>
+      <table class="gtab">
+        <tr><th></th><th>муж.</th><th>жен.</th><th>ср.</th></tr>
+        <tr><td>Им. ед.</td><td>ο</td><td>η</td><td>το</td></tr>
+        <tr><td>Род. ед.</td><td>του</td><td>της</td><td>του</td></tr>
+        <tr><td>Вин. ед.</td><td>τον</td><td>την</td><td>το</td></tr>
+        <tr><td>Им. мн.</td><td>οι</td><td>οι</td><td>τα</td></tr>
+        <tr><td>Род. мн.</td><td>των</td><td>των</td><td>των</td></tr>
+        <tr><td>Вин. мн.</td><td>τους</td><td>τις</td><td>τα</td></tr>
+      </table>
+      <p><b>Неопределённый артикль</b> («какой-то», только ед. число): муж. <b>ένας</b>, жен. <b>μία/μια</b>, ср. <b>ένα</b>.</p>
+      <p>💡 Учи слово сразу с артиклем: не «δρόμος», а <b>ο δρόμος</b> — так запоминается род.</p>`,
+  },
+  {
+    id: "cases",
+    title: "3. Что такое падежи",
+    body: `
+      <p>В греческом 3 рабочих падежа (для A1). Окончание слова и артикль меняются:</p>
+      <ul>
+        <li><b>Именительный</b> (ονομαστική) — кто? что? Подлежащее: <i><b>Ο δρόμος</b> είναι μεγάλος.</i> — Улица большая.</li>
+        <li><b>Винительный</b> (αιτιατική) — кого? что? Прямое дополнение и <b>после предлогов</b> (σε, από, με, για): <i>Βλέπω <b>τον δρόμο</b>.</i> — Вижу улицу.</li>
+        <li><b>Родительный</b> (γενική) — кого? чего? чей? Принадлежность: <i>το όνομα <b>του δρόμου</b></i> — название улицы.</li>
+      </ul>
+      <p>Винительный нужен очень часто — почти после любого предлога. Освой его в первую очередь.</p>`,
+  },
+  {
+    id: "decl-m",
+    title: "4. Склонение: мужской род",
+    body: `
+      <p>Три основных типа: на <b>-ος</b>, <b>-ας</b>, <b>-ης</b>.</p>
+      <table class="gtab">
+        <tr><th></th><th>-ος (δρόμος)</th><th>-ας (άντρας)</th><th>-ης (μαθητής)</th></tr>
+        <tr><td>Им. ед.</td><td>ο δρόμος</td><td>ο άντρας</td><td>ο μαθητής</td></tr>
+        <tr><td>Род. ед.</td><td>του δρόμου</td><td>του άντρα</td><td>του μαθητή</td></tr>
+        <tr><td>Вин. ед.</td><td>τον δρόμο</td><td>τον άντρα</td><td>τον μαθητή</td></tr>
+        <tr><td>Им. мн.</td><td>οι δρόμοι</td><td>οι άντρες</td><td>οι μαθητές</td></tr>
+        <tr><td>Род. мн.</td><td>των δρόμων</td><td>των αντρών</td><td>των μαθητών</td></tr>
+        <tr><td>Вин. мн.</td><td>τους δρόμους</td><td>τους άντρες</td><td>τους μαθητές</td></tr>
+      </table>
+      <p>Заметь: в вин. ед. мужской род «теряет» конечную <b>-ς</b> (δρόμος → δρόμο).</p>`,
+  },
+  {
+    id: "decl-f",
+    title: "5. Склонение: женский род",
+    body: `
+      <p>Два основных типа: на <b>-α</b> и <b>-η</b>.</p>
+      <table class="gtab">
+        <tr><th></th><th>-α (ώρα)</th><th>-η (αδερφή)</th></tr>
+        <tr><td>Им. ед.</td><td>η ώρα</td><td>η αδερφή</td></tr>
+        <tr><td>Род. ед.</td><td>της ώρας</td><td>της αδερφής</td></tr>
+        <tr><td>Вин. ед.</td><td>την ώρα</td><td>την αδερφή</td></tr>
+        <tr><td>Им. мн.</td><td>οι ώρες</td><td>οι αδερφές</td></tr>
+        <tr><td>Род. мн.</td><td>των ωρών</td><td>των αδερφών</td></tr>
+        <tr><td>Вин. мн.</td><td>τις ώρες</td><td>τις αδερφές</td></tr>
+      </table>
+      <p>Женский род в вин. ед. не меняет само слово — меняется только артикль (η → την).</p>`,
+  },
+  {
+    id: "decl-n",
+    title: "6. Склонение: средний род",
+    body: `
+      <p>Три типа: на <b>-ο</b>, <b>-ι</b>, <b>-μα</b>.</p>
+      <table class="gtab">
+        <tr><th></th><th>-ο (βιβλίο)</th><th>-ι (παιδί)</th><th>-μα (όνομα)</th></tr>
+        <tr><td>Им. ед.</td><td>το βιβλίο</td><td>το παιδί</td><td>το όνομα</td></tr>
+        <tr><td>Род. ед.</td><td>του βιβλίου</td><td>του παιδιού</td><td>του ονόματος</td></tr>
+        <tr><td>Вин. ед.</td><td>το βιβλίο</td><td>το παιδί</td><td>το όνομα</td></tr>
+        <tr><td>Им. мн.</td><td>τα βιβλία</td><td>τα παιδιά</td><td>τα ονόματα</td></tr>
+        <tr><td>Род. мн.</td><td>των βιβλίων</td><td>των παιδιών</td><td>των ονομάτων</td></tr>
+        <tr><td>Вин. мн.</td><td>τα βιβλία</td><td>τα παιδιά</td><td>τα ονόματα</td></tr>
+      </table>
+      <p>💡 У среднего рода <b>Им. = Вин.</b> всегда (и в ед., и во мн.). Это упрощает жизнь.</p>
+      <p>Тренируй это во вкладке <b>«🧩 Склонения»</b> ниже.</p>`,
+  },
+  {
+    id: "be-have",
+    title: "7. Глаголы «быть» и «иметь»",
+    body: `
+      <table class="gtab">
+        <tr><th></th><th>είμαι (быть)</th><th>έχω (иметь)</th></tr>
+        <tr><td>εγώ (я)</td><td>είμαι</td><td>έχω</td></tr>
+        <tr><td>εσύ (ты)</td><td>είσαι</td><td>έχεις</td></tr>
+        <tr><td>αυτός/-ή (он/она)</td><td>είναι</td><td>έχει</td></tr>
+        <tr><td>εμείς (мы)</td><td>είμαστε</td><td>έχουμε</td></tr>
+        <tr><td>εσείς (вы)</td><td>είστε</td><td>έχετε</td></tr>
+        <tr><td>αυτοί (они)</td><td>είναι</td><td>έχουν</td></tr>
+      </table>
+      <p>Примеры: <i>Είμαι από τη Ρωσία.</i> — Я из России. <i>Έχω δύο παιδιά.</i> — У меня двое детей.</p>`,
+  },
+  {
+    id: "verb-a",
+    title: "8. Настоящее время: группа А (-ω)",
+    body: `
+      <p>Самая частая группа. Окончания: <b>-ω, -εις, -ει, -ουμε, -ετε, -ουν</b>. Пример — μένω (жить):</p>
+      <table class="gtab">
+        <tr><td>εγώ</td><td>μέν<b>ω</b></td><td>εμείς</td><td>μέν<b>ουμε</b></td></tr>
+        <tr><td>εσύ</td><td>μέν<b>εις</b></td><td>εσείς</td><td>μέν<b>ετε</b></td></tr>
+        <tr><td>αυτός/-ή</td><td>μέν<b>ει</b></td><td>αυτοί</td><td>μέν<b>ουν</b></td></tr>
+      </table>
+      <p>Так же: κάνω (делать), θέλω (хотеть), ξέρω (знать), πίνω (пить), γράφω (писать).</p>
+      <p>Местоимение (εγώ, εσύ…) обычно опускают — окончание уже показывает лицо: просто <i>μένω στη Λευκωσία</i>.</p>`,
+  },
+  {
+    id: "verb-b",
+    title: "9. Настоящее время: группа Б (-άω / -ώ)",
+    body: `
+      <p>Глаголы с ударением на окончании. Два подтипа:</p>
+      <table class="gtab">
+        <tr><th></th><th>μιλάω (говорить)</th><th>μπορώ (мочь)</th></tr>
+        <tr><td>εγώ</td><td>μιλάω / μιλώ</td><td>μπορώ</td></tr>
+        <tr><td>εσύ</td><td>μιλάς</td><td>μπορείς</td></tr>
+        <tr><td>αυτός/-ή</td><td>μιλάει / μιλά</td><td>μπορεί</td></tr>
+        <tr><td>εμείς</td><td>μιλάμε</td><td>μπορούμε</td></tr>
+        <tr><td>εσείς</td><td>μιλάτε</td><td>μπορείτε</td></tr>
+        <tr><td>αυτοί</td><td>μιλάνε / μιλούν</td><td>μπορούν</td></tr>
+      </table>
+      <p>Как μιλάω: αγαπάω (любить), ρωτάω (спрашивать). Как μπορώ: μπορώ, οδηγώ (водить).</p>`,
+  },
+  {
+    id: "pronouns",
+    title: "10. Местоимения",
+    body: `
+      <p><b>Сильные</b> (подлежащее, для акцента): εγώ, εσύ, αυτός/αυτή/αυτό, εμείς, εσείς, αυτοί/αυτές/αυτά.</p>
+      <p><b>Слабые</b> (дополнение, стоят <u>перед</u> глаголом):</p>
+      <table class="gtab">
+        <tr><th>лицо</th><th>вин. (кого?)</th><th>пример</th></tr>
+        <tr><td>меня</td><td>με</td><td>Με λένε Μαξ. — Меня зовут Макс.</td></tr>
+        <tr><td>тебя</td><td>σε</td><td>Σε ξέρω. — Я тебя знаю.</td></tr>
+        <tr><td>его/её</td><td>τον / την</td><td>Τον βλέπω. — Я его вижу.</td></tr>
+        <tr><td>нас</td><td>μας</td><td>Μας βοηθάει. — Он нам помогает.</td></tr>
+        <tr><td>вас</td><td>σας</td><td>Σας ευχαριστώ. — Благодарю вас.</td></tr>
+        <tr><td>их</td><td>τους / τις</td><td>Τους ξέρω. — Я их знаю.</td></tr>
+      </table>`,
+  },
+  {
+    id: "possessive",
+    title: "11. Притяжение (мой, твой…)",
+    body: `
+      <p>В греческом «мой/твой» ставятся <b>после</b> существительного и не меняются:</p>
+      <table class="gtab">
+        <tr><td>мой</td><td>μου</td><td>το σπίτι <b>μου</b> — мой дом</td></tr>
+        <tr><td>твой</td><td>σου</td><td>η μητέρα <b>σου</b> — твоя мама</td></tr>
+        <tr><td>его</td><td>του</td><td>το όνομά <b>του</b> — его имя</td></tr>
+        <tr><td>её</td><td>της</td><td>ο φίλος <b>της</b> — её друг</td></tr>
+        <tr><td>наш</td><td>μας</td><td>η πόλη <b>μας</b> — наш город</td></tr>
+        <tr><td>ваш</td><td>σας</td><td>τα παιδιά <b>σας</b> — ваши дети</td></tr>
+        <tr><td>их</td><td>τους</td><td>το σπίτι <b>τους</b> — их дом</td></tr>
+      </table>`,
+  },
+  {
+    id: "adjectives",
+    title: "12. Прилагательные и согласование",
+    body: `
+      <p>Прилагательное согласуется с существительным в роде, числе и падеже. Тип καλός:</p>
+      <table class="gtab">
+        <tr><th></th><th>муж.</th><th>жен.</th><th>ср.</th></tr>
+        <tr><td>ед.</td><td>καλός</td><td>καλή</td><td>καλό</td></tr>
+        <tr><td>мн.</td><td>καλοί</td><td>καλές</td><td>καλά</td></tr>
+      </table>
+      <p>Примеры: <i>ο καλός φίλος</i> (хороший друг), <i>η καλή μέρα</i> (хороший день), <i>το καλό παιδί</i> (хороший ребёнок).</p>
+      <p>Прилагательное обычно стоит <b>перед</b> словом, как в русском.</p>`,
+  },
+  {
+    id: "neg-q",
+    title: "13. Отрицание и вопросы",
+    body: `
+      <p><b>Отрицание</b>: перед глаголом ставим <b>δεν</b>: <i>Δεν καταλαβαίνω.</i> — Не понимаю. <i>Δεν είμαι Κύπριος.</i> — Я не киприот.</p>
+      <p>«Нет» как ответ — <b>όχι</b>; «да» — <b>ναι</b>.</p>
+      <p><b>Вопросы</b> — порядок слов как в утверждении, меняется интонация, в конце ставится <b>;</b></p>
+      <ul>
+        <li>ποιος; — кто? · τι; — что? · πού; — где/куда?</li>
+        <li>πότε; — когда? · πώς; — как? · γιατί; — почему?</li>
+        <li>πόσο; — сколько? · πόσων χρονών; — сколько лет?</li>
+      </ul>`,
+  },
+  {
+    id: "prepositions",
+    title: "14. Предлоги (после них — винительный!)",
+    body: `
+      <p>Главные предлоги: <b>σε</b> (в/на/к), <b>από</b> (из/от), <b>με</b> (с), <b>για</b> (для/о), <b>χωρίς</b> (без).</p>
+      <p>Предлог <b>σε</b> сливается с артиклем:</p>
+      <table class="gtab">
+        <tr><td>σε + τον</td><td>→ <b>στον</b></td><td>στον δρόμο — на улице</td></tr>
+        <tr><td>σε + την</td><td>→ <b>στην</b></td><td>στην πόλη — в городе</td></tr>
+        <tr><td>σε + το</td><td>→ <b>στο</b></td><td>στο σπίτι — дома</td></tr>
+        <tr><td>σε + τα</td><td>→ <b>στα</b></td><td>στα ελληνικά — по-гречески</td></tr>
+      </table>
+      <p>После предлога слово всегда в <b>винительном</b> падеже.</p>`,
+  },
+  {
+    id: "numbers",
+    title: "15. Числа и счёт",
+    body: `
+      <p>1, 3, 4 согласуются с родом (как артикль):</p>
+      <table class="gtab">
+        <tr><th></th><th>муж.</th><th>жен.</th><th>ср.</th></tr>
+        <tr><td>1</td><td>ένας</td><td>μία</td><td>ένα</td></tr>
+        <tr><td>3</td><td>τρεις</td><td>τρεις</td><td>τρία</td></tr>
+        <tr><td>4</td><td>τέσσερις</td><td>τέσσερις</td><td>τέσσερα</td></tr>
+      </table>
+      <p>Остальные числа (2, 5, 6…) не меняются: <i>δύο σπίτια, πέντε ευρώ</i>.</p>
+      <p>Возраст: <i>Είμαι τριάντα <b>χρονών</b>.</i> — Мне 30 лет. Полную таблицу чисел учи в теме <b>«Числа»</b>.</p>`,
+  },
+];
+
+/* ---------- СКЛОНЕНИЯ (для тренажёра) ---------- */
+// Ключи форм: nomS genS accS  nomP genP accP
+const DECLENSIONS = [
+  { word: "δρόμος", ru: "улица", g: "м", pat: "-ος",
+    f: { nomS: "ο δρόμος", genS: "του δρόμου", accS: "τον δρόμο", nomP: "οι δρόμοι", genP: "των δρόμων", accP: "τους δρόμους" } },
+  { word: "άνθρωπος", ru: "человек", g: "м", pat: "-ος",
+    f: { nomS: "ο άνθρωπος", genS: "του ανθρώπου", accS: "τον άνθρωπο", nomP: "οι άνθρωποι", genP: "των ανθρώπων", accP: "τους ανθρώπους" } },
+  { word: "φίλος", ru: "друг", g: "м", pat: "-ος",
+    f: { nomS: "ο φίλος", genS: "του φίλου", accS: "τον φίλο", nomP: "οι φίλοι", genP: "των φίλων", accP: "τους φίλους" } },
+  { word: "άντρας", ru: "мужчина", g: "м", pat: "-ας",
+    f: { nomS: "ο άντρας", genS: "του άντρα", accS: "τον άντρα", nomP: "οι άντρες", genP: "των αντρών", accP: "τους άντρες" } },
+  { word: "πατέρας", ru: "отец", g: "м", pat: "-ας",
+    f: { nomS: "ο πατέρας", genS: "του πατέρα", accS: "τον πατέρα", nomP: "οι πατέρες", genP: "των πατέρων", accP: "τους πατέρες" } },
+  { word: "μαθητής", ru: "ученик", g: "м", pat: "-ης",
+    f: { nomS: "ο μαθητής", genS: "του μαθητή", accS: "τον μαθητή", nomP: "οι μαθητές", genP: "των μαθητών", accP: "τους μαθητές" } },
+  { word: "ώρα", ru: "час", g: "ж", pat: "-α",
+    f: { nomS: "η ώρα", genS: "της ώρας", accS: "την ώρα", nomP: "οι ώρες", genP: "των ωρών", accP: "τις ώρες" } },
+  { word: "γυναίκα", ru: "женщина", g: "ж", pat: "-α",
+    f: { nomS: "η γυναίκα", genS: "της γυναίκας", accS: "την γυναίκα", nomP: "οι γυναίκες", genP: "των γυναικών", accP: "τις γυναίκες" } },
+  { word: "αδερφή", ru: "сестра", g: "ж", pat: "-η",
+    f: { nomS: "η αδερφή", genS: "της αδερφής", accS: "την αδερφή", nomP: "οι αδερφές", genP: "των αδερφών", accP: "τις αδερφές" } },
+  { word: "βιβλίο", ru: "книга", g: "ср", pat: "-ο",
+    f: { nomS: "το βιβλίο", genS: "του βιβλίου", accS: "το βιβλίο", nomP: "τα βιβλία", genP: "των βιβλίων", accP: "τα βιβλία" } },
+  { word: "σπίτι", ru: "дом", g: "ср", pat: "-ι",
+    f: { nomS: "το σπίτι", genS: "του σπιτιού", accS: "το σπίτι", nomP: "τα σπίτια", genP: "των σπιτιών", accP: "τα σπίτια" } },
+  { word: "παιδί", ru: "ребёнок", g: "ср", pat: "-ι",
+    f: { nomS: "το παιδί", genS: "του παιδιού", accS: "το παιδί", nomP: "τα παιδιά", genP: "των παιδιών", accP: "τα παιδιά" } },
+  { word: "όνομα", ru: "имя", g: "ср", pat: "-μα",
+    f: { nomS: "το όνομα", genS: "του ονόματος", accS: "το όνομα", nomP: "τα ονόματα", genP: "των ονομάτων", accP: "τα ονόματα" } },
+];
+
+const DECL_CASES = [
+  { key: "nomS", label: "Именительный · ед.ч.", hint: "кто? что?" },
+  { key: "genS", label: "Родительный · ед.ч.", hint: "кого? чего? чей?" },
+  { key: "accS", label: "Винительный · ед.ч.", hint: "кого? что? после предлога" },
+  { key: "nomP", label: "Именительный · мн.ч.", hint: "кто? что? (много)" },
+  { key: "genP", label: "Родительный · мн.ч.", hint: "кого? чего? (много)" },
+  { key: "accP", label: "Винительный · мн.ч.", hint: "кого? что? после предлога" },
+];
+
+/* ---------- СПРЯЖЕНИЯ (для тренажёра) ---------- */
+// Ключи: s1 s2 s3 p1 p2 p3
+const CONJUGATIONS = [
+  { word: "μένω", ru: "жить", grp: "А",
+    f: { s1: "μένω", s2: "μένεις", s3: "μένει", p1: "μένουμε", p2: "μένετε", p3: "μένουν" } },
+  { word: "κάνω", ru: "делать", grp: "А",
+    f: { s1: "κάνω", s2: "κάνεις", s3: "κάνει", p1: "κάνουμε", p2: "κάνετε", p3: "κάνουν" } },
+  { word: "έχω", ru: "иметь", grp: "А",
+    f: { s1: "έχω", s2: "έχεις", s3: "έχει", p1: "έχουμε", p2: "έχετε", p3: "έχουν" } },
+  { word: "θέλω", ru: "хотеть", grp: "А",
+    f: { s1: "θέλω", s2: "θέλεις", s3: "θέλει", p1: "θέλουμε", p2: "θέλετε", p3: "θέλουν" } },
+  { word: "ξέρω", ru: "знать", grp: "А",
+    f: { s1: "ξέρω", s2: "ξέρεις", s3: "ξέρει", p1: "ξέρουμε", p2: "ξέρετε", p3: "ξέρουν" } },
+  { word: "πίνω", ru: "пить", grp: "А",
+    f: { s1: "πίνω", s2: "πίνεις", s3: "πίνει", p1: "πίνουμε", p2: "πίνετε", p3: "πίνουν" } },
+  { word: "μιλάω", ru: "говорить", grp: "Б",
+    f: { s1: "μιλάω", s2: "μιλάς", s3: "μιλάει", p1: "μιλάμε", p2: "μιλάτε", p3: "μιλάνε" } },
+  { word: "αγαπάω", ru: "любить", grp: "Б",
+    f: { s1: "αγαπάω", s2: "αγαπάς", s3: "αγαπάει", p1: "αγαπάμε", p2: "αγαπάτε", p3: "αγαπάνε" } },
+  { word: "μπορώ", ru: "мочь", grp: "Б",
+    f: { s1: "μπορώ", s2: "μπορείς", s3: "μπορεί", p1: "μπορούμε", p2: "μπορείτε", p3: "μπορούν" } },
+  { word: "είμαι", ru: "быть", grp: "непр.",
+    f: { s1: "είμαι", s2: "είσαι", s3: "είναι", p1: "είμαστε", p2: "είστε", p3: "είναι" } },
+];
+
+const CONJ_PERSONS = [
+  { key: "s1", label: "εγώ", hint: "я" },
+  { key: "s2", label: "εσύ", hint: "ты" },
+  { key: "s3", label: "αυτός / αυτή", hint: "он / она" },
+  { key: "p1", label: "εμείς", hint: "мы" },
+  { key: "p2", label: "εσείς", hint: "вы" },
+  { key: "p3", label: "αυτοί / αυτές", hint: "они" },
+];
 
 /* ============================================================
    SRS — интервальные повторения (упрощённый SM-2 + стрик)
@@ -877,6 +1156,7 @@ const App = {
       decks: () => this.renderDecks(),
       practice: () => this.renderPractice(),
       grammar: () => this.renderGrammar(),
+      trainer: () => this.renderTrainer(),
       progress: () => this.renderProgress(),
     };
     this.root.innerHTML =
@@ -894,7 +1174,8 @@ const App = {
       ["progress", "📊", "Прогресс"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
-      : this.view === "practice" ? "decks" : this.view;
+      : this.view === "practice" ? "decks"
+      : this.view === "trainer" ? "grammar" : this.view;
     return `<nav class="nav">
       <div class="brand" data-go="home">Ελληνικά <span>A1</span></div>
       <div class="tabs">${tabs
@@ -1242,15 +1523,77 @@ const App = {
       .join("");
   },
 
-  /* ---------- ГРАММАТИКА ---------- */
+  /* ---------- ГРАММАТИКА (теория + тренажёры) ---------- */
   renderGrammar() {
-    const items = GRAMMAR.map(
-      (g) => `<details class="gram"><summary>${g.title}</summary><div class="gram-body">${g.body.replace(/\n/g, "<br>")}</div></details>`
+    const items = GRAMMAR_LESSONS.map(
+      (g) => `<details class="gram"><summary>${g.title}</summary><div class="gram-body">${g.body}</div></details>`
     ).join("");
     return `
-      <header class="page-head"><h2>📖 Мини-грамматика A1</h2></header>
-      <p class="muted">Самое нужное на старте. Не зубри — просто понимай, как слова соединяются.</p>
+      <header class="page-head"><h2>📖 Грамматика A1</h2></header>
+      <p class="muted">Полная теория для A1 + упражнения. Сначала прочитай урок, потом закрепи в тренажёре.</p>
+
+      <div class="train-row">
+        <button class="train-btn" data-train="decl"><span>🧩</span><b>Склонения</b><small>падежи существительных</small></button>
+        <button class="train-btn" data-train="conj"><span>🔀</span><b>Спряжения</b><small>глаголы в наст. времени</small></button>
+      </div>
+
+      <h3 class="section-title">📚 Теория (15 уроков)</h3>
       ${items}
+    `;
+  },
+
+  /* ---------- ТРЕНАЖЁР ФОРМ (склонения / спряжения) ---------- */
+  renderTrainer() {
+    const kind = this.params.kind || "decl";
+    const isDecl = kind === "decl";
+    const data = isDecl ? DECLENSIONS : CONJUGATIONS;
+    const slots = isDecl ? DECL_CASES : CONJ_PERSONS;
+    // Для спряжений не спрашиваем словарную форму (s1 = εγώ)
+    const askable = isDecl ? slots : slots.filter((s) => s.key !== "s1");
+
+    if (!this.session) {
+      const tasks = this.shuffle(data).slice(0, 10).map((entry) => {
+        const slot = askable[Math.floor(Math.random() * askable.length)];
+        return { entry, slot };
+      });
+      this.session = { kind, tasks, idx: 0, correct: 0 };
+    }
+    const s = this.session;
+    const title = isDecl ? "🧩 Тренажёр склонений" : "🔀 Тренажёр спряжений";
+
+    if (s.idx >= s.tasks.length) {
+      return `
+        <div class="result">
+          <h2>Готово! 🎉</h2>
+          <p class="big-score">${s.correct} / ${s.tasks.length}</p>
+          <p class="muted">${isDecl ? "правильных форм по падежам" : "правильных форм глаголов"}</p>
+          <button class="big-btn primary" data-action="trainer-again">Ещё раунд</button>
+          <button class="big-btn ghost" data-go="grammar">К грамматике</button>
+        </div>`;
+    }
+    const { entry, slot } = s.tasks[s.idx];
+    const correct = entry.f[slot.key];
+    // Варианты из других форм этого же слова (учим различать формы)
+    const pool = [...new Set(Object.values(entry.f))].filter((v) => v !== correct);
+    const options = this.shuffle([correct, ...this.shuffle(pool).slice(0, 3)]);
+
+    const promptTop = isDecl
+      ? `Поставь <b>«${entry.word}»</b> (${entry.ru}, ${entry.g} род, тип ${entry.pat}) в форму:`
+      : `Проспрягай <b>«${entry.word}»</b> (${entry.ru}, группа «${entry.grp}») для лица:`;
+
+    const opts = options
+      .map((o) => `<button class="opt" data-form="${this.esc(o)}">${o} ${this.speakBtn(o)}</button>`)
+      .join("");
+
+    return `
+      <header class="page-head"><h2>${title}</h2><div class="counter">${s.idx + 1}/${s.tasks.length}</div></header>
+      <div class="quiz-prompt">
+        <div class="muted small">${promptTop}</div>
+        <div class="slot-target">${slot.label}</div>
+        <div class="muted small">${slot.hint}</div>
+      </div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>
     `;
   },
 
@@ -1292,13 +1635,16 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form]");
     if (!t) return;
 
     if (t.dataset.go) return this.go(t.dataset.go);
 
     if (t.dataset.say !== undefined) { Speech.say(t.dataset.say); return; }
     if (t.dataset.saySlow !== undefined) { Speech.say(t.dataset.saySlow, 0.6); return; }
+
+    if (t.dataset.train) return this.go("trainer", { kind: t.dataset.train });
+    if (t.dataset.form !== undefined) return this.formAnswer(t.dataset.form, t);
 
     if (t.dataset.deck && !t.dataset.mode) return this.go("practice", { deck: t.dataset.deck, mode: "list" });
     if (t.dataset.deck && t.dataset.mode) return this.go("practice", { deck: t.dataset.deck, mode: t.dataset.mode });
@@ -1331,6 +1677,7 @@ const App = {
       case "review-again": this.session = null; return this.render();
       case "alpha-again": this.session = null; return this.render();
       case "mode-again": this.session = null; return this.render();
+      case "trainer-again": this.session = null; return this.render();
       case "deck-flip": this.session.answered = true; return this.render();
       case "type-check": return this.typeCheck();
       case "reset":
@@ -1371,6 +1718,25 @@ const App = {
     s.idx++;
     s.flipped = false;
     this.render();
+  },
+
+  /* --- ответ в тренажёре склонений/спряжений --- */
+  formAnswer(form, el) {
+    const s = this.session;
+    const { entry, slot } = s.tasks[s.idx];
+    const correct = entry.f[slot.key];
+    const ok = form === correct;
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.form === correct) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    Speech.say(correct);
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + correct : "✗ Правильно: <b>" + correct + "</b>"}</div>
+      <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
   },
 
   /* --- карточки внутри темы --- */

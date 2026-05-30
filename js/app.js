@@ -69,6 +69,7 @@ const App = {
       decks: () => this.renderDecks(),
       practice: () => this.renderPractice(),
       grammar: () => this.renderGrammar(),
+      trainer: () => this.renderTrainer(),
       progress: () => this.renderProgress(),
     };
     this.root.innerHTML =
@@ -86,7 +87,8 @@ const App = {
       ["progress", "📊", "Прогресс"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
-      : this.view === "practice" ? "decks" : this.view;
+      : this.view === "practice" ? "decks"
+      : this.view === "trainer" ? "grammar" : this.view;
     return `<nav class="nav">
       <div class="brand" data-go="home">Ελληνικά <span>A1</span></div>
       <div class="tabs">${tabs
@@ -434,15 +436,77 @@ const App = {
       .join("");
   },
 
-  /* ---------- ГРАММАТИКА ---------- */
+  /* ---------- ГРАММАТИКА (теория + тренажёры) ---------- */
   renderGrammar() {
-    const items = GRAMMAR.map(
-      (g) => `<details class="gram"><summary>${g.title}</summary><div class="gram-body">${g.body.replace(/\n/g, "<br>")}</div></details>`
+    const items = GRAMMAR_LESSONS.map(
+      (g) => `<details class="gram"><summary>${g.title}</summary><div class="gram-body">${g.body}</div></details>`
     ).join("");
     return `
-      <header class="page-head"><h2>📖 Мини-грамматика A1</h2></header>
-      <p class="muted">Самое нужное на старте. Не зубри — просто понимай, как слова соединяются.</p>
+      <header class="page-head"><h2>📖 Грамматика A1</h2></header>
+      <p class="muted">Полная теория для A1 + упражнения. Сначала прочитай урок, потом закрепи в тренажёре.</p>
+
+      <div class="train-row">
+        <button class="train-btn" data-train="decl"><span>🧩</span><b>Склонения</b><small>падежи существительных</small></button>
+        <button class="train-btn" data-train="conj"><span>🔀</span><b>Спряжения</b><small>глаголы в наст. времени</small></button>
+      </div>
+
+      <h3 class="section-title">📚 Теория (15 уроков)</h3>
       ${items}
+    `;
+  },
+
+  /* ---------- ТРЕНАЖЁР ФОРМ (склонения / спряжения) ---------- */
+  renderTrainer() {
+    const kind = this.params.kind || "decl";
+    const isDecl = kind === "decl";
+    const data = isDecl ? DECLENSIONS : CONJUGATIONS;
+    const slots = isDecl ? DECL_CASES : CONJ_PERSONS;
+    // Для спряжений не спрашиваем словарную форму (s1 = εγώ)
+    const askable = isDecl ? slots : slots.filter((s) => s.key !== "s1");
+
+    if (!this.session) {
+      const tasks = this.shuffle(data).slice(0, 10).map((entry) => {
+        const slot = askable[Math.floor(Math.random() * askable.length)];
+        return { entry, slot };
+      });
+      this.session = { kind, tasks, idx: 0, correct: 0 };
+    }
+    const s = this.session;
+    const title = isDecl ? "🧩 Тренажёр склонений" : "🔀 Тренажёр спряжений";
+
+    if (s.idx >= s.tasks.length) {
+      return `
+        <div class="result">
+          <h2>Готово! 🎉</h2>
+          <p class="big-score">${s.correct} / ${s.tasks.length}</p>
+          <p class="muted">${isDecl ? "правильных форм по падежам" : "правильных форм глаголов"}</p>
+          <button class="big-btn primary" data-action="trainer-again">Ещё раунд</button>
+          <button class="big-btn ghost" data-go="grammar">К грамматике</button>
+        </div>`;
+    }
+    const { entry, slot } = s.tasks[s.idx];
+    const correct = entry.f[slot.key];
+    // Варианты из других форм этого же слова (учим различать формы)
+    const pool = [...new Set(Object.values(entry.f))].filter((v) => v !== correct);
+    const options = this.shuffle([correct, ...this.shuffle(pool).slice(0, 3)]);
+
+    const promptTop = isDecl
+      ? `Поставь <b>«${entry.word}»</b> (${entry.ru}, ${entry.g} род, тип ${entry.pat}) в форму:`
+      : `Проспрягай <b>«${entry.word}»</b> (${entry.ru}, группа «${entry.grp}») для лица:`;
+
+    const opts = options
+      .map((o) => `<button class="opt" data-form="${this.esc(o)}">${o} ${this.speakBtn(o)}</button>`)
+      .join("");
+
+    return `
+      <header class="page-head"><h2>${title}</h2><div class="counter">${s.idx + 1}/${s.tasks.length}</div></header>
+      <div class="quiz-prompt">
+        <div class="muted small">${promptTop}</div>
+        <div class="slot-target">${slot.label}</div>
+        <div class="muted small">${slot.hint}</div>
+      </div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>
     `;
   },
 
@@ -484,13 +548,16 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form]");
     if (!t) return;
 
     if (t.dataset.go) return this.go(t.dataset.go);
 
     if (t.dataset.say !== undefined) { Speech.say(t.dataset.say); return; }
     if (t.dataset.saySlow !== undefined) { Speech.say(t.dataset.saySlow, 0.6); return; }
+
+    if (t.dataset.train) return this.go("trainer", { kind: t.dataset.train });
+    if (t.dataset.form !== undefined) return this.formAnswer(t.dataset.form, t);
 
     if (t.dataset.deck && !t.dataset.mode) return this.go("practice", { deck: t.dataset.deck, mode: "list" });
     if (t.dataset.deck && t.dataset.mode) return this.go("practice", { deck: t.dataset.deck, mode: t.dataset.mode });
@@ -523,6 +590,7 @@ const App = {
       case "review-again": this.session = null; return this.render();
       case "alpha-again": this.session = null; return this.render();
       case "mode-again": this.session = null; return this.render();
+      case "trainer-again": this.session = null; return this.render();
       case "deck-flip": this.session.answered = true; return this.render();
       case "type-check": return this.typeCheck();
       case "reset":
@@ -563,6 +631,25 @@ const App = {
     s.idx++;
     s.flipped = false;
     this.render();
+  },
+
+  /* --- ответ в тренажёре склонений/спряжений --- */
+  formAnswer(form, el) {
+    const s = this.session;
+    const { entry, slot } = s.tasks[s.idx];
+    const correct = entry.f[slot.key];
+    const ok = form === correct;
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.form === correct) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    Speech.say(correct);
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + correct : "✗ Правильно: <b>" + correct + "</b>"}</div>
+      <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
   },
 
   /* --- карточки внутри темы --- */
