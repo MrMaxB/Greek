@@ -23,6 +23,8 @@ const SRS = {
   save() {
     localStorage.setItem(SRS_KEY, JSON.stringify(this.data));
     localStorage.setItem(STATS_KEY, JSON.stringify(this.stats));
+    // Отправить в облако (если подключено и это не применение облачных данных)
+    if (window.Cloud && window.Cloud.push && !window.Cloud._applying) window.Cloud.push();
   },
 
   today() {
@@ -139,3 +141,4 @@ const SRS = {
 };
 
 SRS.load();
+window.SRS = SRS; // для облачной синхронизации (js/cloud.js)

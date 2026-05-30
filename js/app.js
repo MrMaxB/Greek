@@ -771,7 +771,33 @@ const App = {
   },
   saveExamBest(n, pct) {
     const b = this.examBest();
-    if (b[n] == null || pct > b[n]) { b[n] = pct; localStorage.setItem("greekA1_exam_best", JSON.stringify(b)); }
+    if (b[n] == null || pct > b[n]) {
+      b[n] = pct;
+      localStorage.setItem("greekA1_exam_best", JSON.stringify(b));
+      if (window.Cloud && window.Cloud.push) window.Cloud.push();
+    }
+  },
+
+  // Карточка аккаунта (облачная синхронизация)
+  renderAccount() {
+    const c = window.Cloud;
+    if (!c || !c.enabled) {
+      return `<div class="acct-card"><div class="muted small">☁️ Облачная синхронизация доступна на сайте <b>mrmaxb.github.io/Greek</b> (онлайн, в этом же браузере).</div></div>`;
+    }
+    const err = c.status ? `<div class="bad-msg small" style="text-align:left">${c.status}</div>` : "";
+    if (c.user) {
+      const name = this.esc(c.user.displayName || c.user.email || "аккаунт");
+      return `<div class="acct-card">
+        <div>☁️ <b>${name}</b><br><span class="muted small">Прогресс синхронизируется между устройствами автоматически.</span></div>
+        ${err}
+        <button class="big-btn ghost" data-action="cloud-logout">Выйти</button>
+      </div>`;
+    }
+    return `<div class="acct-card">
+      <button class="big-btn primary" data-action="cloud-login">☁️ Войти через Google</button>
+      <div class="muted small">Чтобы прогресс был на ПК и телефоне и не терялся при очистке кэша.</div>
+      ${err}
+    </div>`;
   },
 
   renderExamsList() {
@@ -916,6 +942,8 @@ const App = {
     }
     return `
       <header class="page-head"><h2>📊 Прогресс</h2></header>
+      <h3 class="section-title">☁️ Синхронизация</h3>
+      ${this.renderAccount()}
       <section class="cards-row">
         <div class="stat"><div class="stat-num">${s.streak}🔥</div><div class="stat-lbl">дней подряд</div></div>
         <div class="stat"><div class="stat-num">${s.learned}/${s.total}</div><div class="stat-lbl">слов</div></div>
@@ -993,6 +1021,8 @@ const App = {
       case "self-reveal": this.session.revealed = true; return this.render();
       case "self-next": this.session.idx++; this.session.revealed = false; this.session.text = ""; return this.render();
       case "wr-again": this.session = null; return this.render();
+      case "cloud-login": if (window.Cloud && window.Cloud.login) window.Cloud.login(); return;
+      case "cloud-logout": if (window.Cloud && window.Cloud.logout) window.Cloud.logout(); return;
       case "reset":
         if (confirm("Сбросить весь прогресс и стрик? Это нельзя отменить.")) { SRS.reset(); this.go("home"); }
         return;
@@ -1157,4 +1187,5 @@ const App = {
   },
 };
 
+window.App = App; // для облачной синхронизации (js/cloud.js)
 document.addEventListener("DOMContentLoaded", () => App.init());

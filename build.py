@@ -19,6 +19,12 @@ def main():
     html = re.sub(r'\s*<script src="js/data.js"></script>.*?<script src="js/app.js"></script>',
                   lambda m: "\n  <script>\n" + js + "\n  </script>", html, flags=re.S)
 
+    # Облако (Firebase) работает только онлайн — в офлайн-файл не включаем
+    html = "\n".join(
+        ln for ln in html.split("\n")
+        if not any(s in ln for s in ("firebase-config", "cloud.js", "Облачная синхронизация"))
+    )
+
     os.makedirs(os.path.join(ROOT, "dist"), exist_ok=True)
     out = os.path.join(ROOT, "dist", "greek-a1.html")
     io.open(out, "w", encoding="utf-8").write(html)

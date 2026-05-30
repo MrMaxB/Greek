@@ -268,6 +268,10 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .train-btn small { font-weight: 500; opacity: .85; font-size: .72rem; text-align: center; }
 .slot-target { font-size: 1.5rem; font-weight: 800; color: var(--blue); margin: 8px 0 2px; }
 
+/* ---------- ACCOUNT ---------- */
+.acct-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.acct-card .big-btn { margin-bottom: 0; }
+
 /* ---------- PROGRESS ---------- */
 .heat { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0; }
 .hday { width: 34px; height: 34px; border-radius: 8px; background: var(--line); display: flex; align-items: center; justify-content: center; font-size: .72rem; color: var(--muted); }
