@@ -12,6 +12,10 @@ const App = {
 
   init() {
     this.root = document.getElementById("app");
+    // Service worker: «никогда не залипает на старой версии» (только на https-сайте)
+    if ("serviceWorker" in navigator && location.protocol === "https:") {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
     document.body.addEventListener("click", (e) => this.onClick(e));
     document.body.addEventListener("input", (e) => this.onInput(e));
     document.body.addEventListener("keydown", (e) => this.onKey(e));
@@ -98,6 +102,14 @@ const App = {
       .replace(/μπ/g, "б").replace(/ντ/g, "д") // звонкие сочетания
       .replace(/(.)\1+/g, "$1");    // двойные буквы → одна (σσ→σ)
     return x;
+  },
+
+  // Прокрутить блок обратной связи (с кнопкой «Дальше») в зону видимости
+  afterAnswer() {
+    requestAnimationFrame(() => {
+      const fb = document.getElementById("fb");
+      if (fb) fb.scrollIntoView({ behavior: "smooth", block: "end" });
+    });
   },
 
   esc(s) {
@@ -667,6 +679,7 @@ const App = {
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     Speech.say(right);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.bank = null; s.built = []; s._scored = false; this.render(); });
+    this.afterAnswer();
   },
 
   // Вставь слово
@@ -701,6 +714,7 @@ const App = {
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     Speech.say(full);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   // Текст из изученных слов
@@ -745,6 +759,7 @@ const App = {
     fb.innerHTML = allUsed && hasText
       ? `<div class="ok-msg">✓ Отлично! Использованы все ${used.length} слов(а). Так держать!</div>`
       : `<div class="bad-msg">Использовано ${used.length}/${s.targets.length}. Осталось вставить: <b>${missing.join(", ") || "—"}</b>${hasText ? "" : " (и напиши хоть пару слов)"}</div>`;
+    this.afterAnswer();
   },
 
   // О себе (подсказка + образец)
@@ -929,6 +944,7 @@ const App = {
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
     if (q.audio) Speech.say(q.audio);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   /* ---------- ПРОГРЕСС ---------- */
@@ -1060,6 +1076,7 @@ const App = {
     fb.querySelector("[data-action='alpha-next']").addEventListener("click", () => {
       s.idx++; s.answered = false; this.render();
     });
+    this.afterAnswer();
   },
 
   /* --- SRS оценка --- */
@@ -1091,6 +1108,7 @@ const App = {
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + correct : "✗ Правильно: <b>" + correct + "</b>"}</div>
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   /* --- карточки внутри темы --- */
@@ -1116,6 +1134,7 @@ const App = {
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ " + cur.gr + " — " + cur.ru}</div>
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   /* --- экранная клавиатура --- */
@@ -1145,6 +1164,7 @@ const App = {
     if (inp) inp.disabled = true;
     Speech.say(cur.gr);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.input = ""; this.render(); });
+    this.afterAnswer();
   },
 
   /* --- произношение: запись и проверка --- */
@@ -1195,6 +1215,7 @@ const App = {
       <button class="big-btn primary" id="nextBtn">${ok ? "Дальше →" : "Дальше (пропустить) →"}</button>`;
     Speech.say(cur.gr);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s._scored = false; this.render(); });
+    this.afterAnswer();
   },
 };
 

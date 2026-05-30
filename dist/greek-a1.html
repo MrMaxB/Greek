@@ -81,7 +81,7 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .tab.active { color: var(--blue-2); border-top-color: var(--gold); background: #f5f9fe; }
 .tab:active { background: #eef4fb; }
 
-.screen { padding: 18px 16px; }
+.screen { padding: 14px 14px; }
 
 /* ---------- HERO / HOME ---------- */
 .hero h1 { margin: 6px 0 2px; font-size: 2rem; }
@@ -155,22 +155,23 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .letter-ex { font-size: .78rem; color: var(--blue-2); margin-top: 4px; }
 
 /* ---------- QUIZ ---------- */
-.quiz-prompt { background: var(--card); border-radius: var(--r); padding: 24px; text-align: center; box-shadow: var(--shadow); margin: 16px 0; }
-.quiz-prompt.listen { padding: 28px 16px; }
-.big-letter { font-size: 3rem; font-weight: 800; color: var(--blue); }
-.big-letter.sm { font-size: 2rem; }
-.play-big { background: linear-gradient(135deg, var(--blue-2), var(--blue)); color: #fff; border-radius: 14px; padding: 16px 24px; font-size: 1.1rem; font-weight: 700; margin: 4px; }
-.play-slow { background: #eaf3fc; color: var(--blue-2); border-radius: 14px; padding: 16px 18px; font-weight: 700; margin: 4px; }
+.quiz-prompt { background: var(--card); border-radius: var(--r); padding: 16px; text-align: center; box-shadow: var(--shadow); margin: 10px 0; }
+.quiz-prompt.listen { padding: 18px 14px; }
+.big-letter { font-size: 2.3rem; font-weight: 800; color: var(--blue); }
+.big-letter.sm { font-size: 1.7rem; }
+.play-big { background: linear-gradient(135deg, var(--blue-2), var(--blue)); color: #fff; border-radius: 14px; padding: 13px 22px; font-size: 1.05rem; font-weight: 700; margin: 4px; }
+.play-slow { background: #eaf3fc; color: var(--blue-2); border-radius: 14px; padding: 13px 16px; font-weight: 700; margin: 4px; }
 .mic-btn { display: block; width: 100%; background: linear-gradient(135deg, #1faa59, #0d7a3f); color: #fff; border-radius: 16px; padding: 20px; font-size: 1.15rem; font-weight: 800; box-shadow: var(--shadow); margin: 12px 0 4px; }
 .mic-btn:disabled { opacity: 1; }
 .mic-btn.rec { background: linear-gradient(135deg, #e4572e, #b23a18); animation: pulse 1s infinite; }
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(228,87,46,.5); } 50% { box-shadow: 0 0 0 14px rgba(228,87,46,0); } }
-.opts { display: grid; gap: 10px; margin: 8px 0; }
+.opts { display: grid; gap: 8px; margin: 6px 0; }
 .opt {
-  background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px;
-  font-size: 1rem; font-weight: 600; text-align: center; box-shadow: var(--shadow); transition: .12s;
+  background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 12px;
+  font-size: .98rem; font-weight: 600; text-align: center; box-shadow: var(--shadow); transition: .12s;
 }
-.opt small { font-weight: 400; color: var(--muted); }
+.opt small { font-weight: 400; color: var(--muted); font-size: .8rem; }
+.opt br + * , .opt small { display: inline-block; margin-top: 2px; }
 .opt:active { transform: scale(.98); }
 .opt.ok { border-color: var(--ok); background: #e8f8ee; color: #137a3f; }
 .opt.bad { border-color: var(--bad); background: #fdece7; color: #b23a18; }
@@ -180,8 +181,8 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 
 /* ---------- FLASHCARD ---------- */
 .flashcard {
-  background: var(--card); border-radius: 20px; padding: 30px 20px; text-align: center;
-  box-shadow: var(--shadow); margin: 14px 0; min-height: 180px;
+  background: var(--card); border-radius: 18px; padding: 20px 18px; text-align: center;
+  box-shadow: var(--shadow); margin: 10px 0; min-height: 130px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
 }
 .card-tag { font-size: .75rem; color: var(--muted); background: #f0f4fa; padding: 3px 10px; border-radius: 99px; }
@@ -1559,6 +1560,10 @@ const App = {
 
   init() {
     this.root = document.getElementById("app");
+    // Service worker: «никогда не залипает на старой версии» (только на https-сайте)
+    if ("serviceWorker" in navigator && location.protocol === "https:") {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
     document.body.addEventListener("click", (e) => this.onClick(e));
     document.body.addEventListener("input", (e) => this.onInput(e));
     document.body.addEventListener("keydown", (e) => this.onKey(e));
@@ -1645,6 +1650,14 @@ const App = {
       .replace(/μπ/g, "б").replace(/ντ/g, "д") // звонкие сочетания
       .replace(/(.)\1+/g, "$1");    // двойные буквы → одна (σσ→σ)
     return x;
+  },
+
+  // Прокрутить блок обратной связи (с кнопкой «Дальше») в зону видимости
+  afterAnswer() {
+    requestAnimationFrame(() => {
+      const fb = document.getElementById("fb");
+      if (fb) fb.scrollIntoView({ behavior: "smooth", block: "end" });
+    });
   },
 
   esc(s) {
@@ -2214,6 +2227,7 @@ const App = {
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     Speech.say(right);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.bank = null; s.built = []; s._scored = false; this.render(); });
+    this.afterAnswer();
   },
 
   // Вставь слово
@@ -2248,6 +2262,7 @@ const App = {
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     Speech.say(full);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   // Текст из изученных слов
@@ -2292,6 +2307,7 @@ const App = {
     fb.innerHTML = allUsed && hasText
       ? `<div class="ok-msg">✓ Отлично! Использованы все ${used.length} слов(а). Так держать!</div>`
       : `<div class="bad-msg">Использовано ${used.length}/${s.targets.length}. Осталось вставить: <b>${missing.join(", ") || "—"}</b>${hasText ? "" : " (и напиши хоть пару слов)"}</div>`;
+    this.afterAnswer();
   },
 
   // О себе (подсказка + образец)
@@ -2475,6 +2491,7 @@ const App = {
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
     if (q.audio) Speech.say(q.audio);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   /* ---------- ПРОГРЕСС ---------- */
@@ -2606,6 +2623,7 @@ const App = {
     fb.querySelector("[data-action='alpha-next']").addEventListener("click", () => {
       s.idx++; s.answered = false; this.render();
     });
+    this.afterAnswer();
   },
 
   /* --- SRS оценка --- */
@@ -2637,6 +2655,7 @@ const App = {
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + correct : "✗ Правильно: <b>" + correct + "</b>"}</div>
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   /* --- карточки внутри темы --- */
@@ -2662,6 +2681,7 @@ const App = {
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ " + cur.gr + " — " + cur.ru}</div>
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
   },
 
   /* --- экранная клавиатура --- */
@@ -2691,6 +2711,7 @@ const App = {
     if (inp) inp.disabled = true;
     Speech.say(cur.gr);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.input = ""; this.render(); });
+    this.afterAnswer();
   },
 
   /* --- произношение: запись и проверка --- */
@@ -2741,6 +2762,7 @@ const App = {
       <button class="big-btn primary" id="nextBtn">${ok ? "Дальше →" : "Дальше (пропустить) →"}</button>`;
     Speech.say(cur.gr);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s._scored = false; this.render(); });
+    this.afterAnswer();
   },
 };
 
