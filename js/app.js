@@ -926,7 +926,11 @@ const App = {
 
     const q = s.qs[s.idx];
     const passage = q.passage
-      ? `<details class="passage" open><summary>📖 Текст</summary><div class="passage-gr">${q.passage}</div><div class="passage-ru muted small">${q.passageRu}</div></details>`
+      ? `<div class="passage">
+           <div class="passage-label">📖 Прочитай</div>
+           <div class="passage-gr">${q.passage}</div>
+           <details class="passage-tr"><summary>Перевод (подсмотреть)</summary><div class="muted small">${q.passageRu}</div></details>
+         </div>`
       : "";
     const audio = q.audio
       ? `<div class="quiz-prompt listen">

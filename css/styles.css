@@ -215,10 +215,13 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .exam-sec { display: inline-block; background: var(--blue); color: #fff; font-size: .75rem; font-weight: 700; padding: 4px 12px; border-radius: 99px; margin-bottom: 10px; }
 .exam-q { font-size: 1.25rem; font-weight: 700; color: var(--ink); margin: 6px 0 12px; line-height: 1.4; }
 .exam-q .blank { color: var(--gold); letter-spacing: 1px; }
-.passage { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; box-shadow: var(--shadow); }
-.passage summary { padding: 12px 14px; font-weight: 700; color: var(--blue); cursor: pointer; }
-.passage-gr { padding: 0 14px; font-size: 1.15rem; color: var(--blue); line-height: 1.6; }
-.passage-ru { padding: 6px 14px 14px; }
+.passage { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; box-shadow: var(--shadow); padding: 12px 14px; }
+.passage-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.passage-gr { font-size: 1.15rem; color: var(--blue); line-height: 1.6; }
+.passage-tr { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.passage-tr summary { font-size: .82rem; color: var(--blue-2); font-weight: 600; cursor: pointer; }
+.passage-tr summary::-webkit-details-marker { color: var(--blue-2); }
+.passage-tr .muted { margin-top: 6px; }
 
 /* ---------- DECKS ---------- */
 .deck-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
