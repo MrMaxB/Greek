@@ -289,16 +289,16 @@ const App = {
     const opts = options
       .map(
         (o) =>
-          `<button class="opt" data-alpha-opt="${o.upper}">${o.sound}<br><small>${o.example} — ${o.exTr}</small></button>`
+          `<button class="opt" data-alpha-opt="${o.upper}">${o.sound} <small>· ${o.example}</small></button>`
       )
       .join("");
     return `
       <header class="page-head"><h2>Буква → звук</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
-      <div class="quiz-prompt">
+      <div class="quiz-prompt compact">
         <div class="big-letter">${cur.upper} ${cur.lower}</div>
-        <div class="muted">${cur.name} ${this.speakBtn(cur.example)}</div>
+        <div class="muted small">${cur.name} ${this.speakBtn(cur.example)}</div>
       </div>
-      <p class="muted center">Какой это звук?</p>
+      <p class="muted center small q-ask">Какой это звук?</p>
       <div class="opts">${opts}</div>
       <div id="fb" class="feedback"></div>
     `;

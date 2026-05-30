@@ -145,6 +145,11 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 /* ---------- QUIZ ---------- */
 .quiz-prompt { background: var(--card); border-radius: var(--r); padding: 16px; text-align: center; box-shadow: var(--shadow); margin: 10px 0; }
 .quiz-prompt.listen { padding: 18px 14px; }
+.quiz-prompt.compact { padding: 10px; margin: 8px 0; }
+.quiz-prompt.compact .big-letter { font-size: 2rem; }
+.q-ask { margin: 6px 0; }
+.page-head { margin-bottom: 6px; }
+.feedback { margin-top: 8px; }
 .big-letter { font-size: 2.3rem; font-weight: 800; color: var(--blue); }
 .big-letter.sm { font-size: 1.7rem; }
 .play-big { background: linear-gradient(135deg, var(--blue-2), var(--blue)); color: #fff; border-radius: 14px; padding: 13px 22px; font-size: 1.05rem; font-weight: 700; margin: 4px; }
