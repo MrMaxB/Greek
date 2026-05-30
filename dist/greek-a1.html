@@ -50,8 +50,15 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
   position: sticky; top: 0; z-index: 50;
   background: var(--blue); color: #fff;
   padding: 12px 16px; box-shadow: 0 2px 12px rgba(0,0,0,.12);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
 .brand { font-size: 1.2rem; font-weight: 800; letter-spacing: .5px; }
+.acct-chip {
+  background: rgba(255,255,255,.16); color: #fff; border: 1px solid rgba(255,255,255,.35);
+  border-radius: 99px; padding: 6px 14px; font-weight: 700; font-size: .82rem;
+  max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.acct-chip:active { background: rgba(255,255,255,.28); }
 .brand span { color: var(--gold); }
 
 /* Нижняя панель вкладок — фиксированная, без скролла */
@@ -1684,7 +1691,7 @@ const App = {
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
       : this.view === "trainer" ? "grammar" : this.view;
-    return `<header class="topbar"><div class="brand" data-go="home">Ελληνικά <span>A1</span></div></header>
+    return `<header class="topbar"><div class="brand" data-go="home">Ελληνικά <span>A1</span></div>${this.renderTopAccount()}</header>
       <nav class="tabbar">${tabs
         .map(([v, ic, l]) =>
           `<button class="tab ${root === v ? "active" : ""}" data-go="${v}"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`
@@ -2316,6 +2323,17 @@ const App = {
       localStorage.setItem("greekA1_exam_best", JSON.stringify(b));
       if (window.Cloud && window.Cloud.push) window.Cloud.push();
     }
+  },
+
+  // Кнопка аккаунта в шапке (видна на всех экранах)
+  renderTopAccount() {
+    const c = window.Cloud;
+    if (!c || !c.enabled) return "";
+    if (c.user) {
+      const name = this.esc((c.user.displayName || c.user.email || "Аккаунт").split(" ")[0]);
+      return `<button class="acct-chip" data-go="progress">☁️ ${name}</button>`;
+    }
+    return `<button class="acct-chip" data-action="cloud-login">☁️ Войти</button>`;
   },
 
   // Карточка аккаунта (облачная синхронизация)

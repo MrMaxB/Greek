@@ -144,7 +144,7 @@ const App = {
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
       : this.view === "trainer" ? "grammar" : this.view;
-    return `<header class="topbar"><div class="brand" data-go="home">Ελληνικά <span>A1</span></div></header>
+    return `<header class="topbar"><div class="brand" data-go="home">Ελληνικά <span>A1</span></div>${this.renderTopAccount()}</header>
       <nav class="tabbar">${tabs
         .map(([v, ic, l]) =>
           `<button class="tab ${root === v ? "active" : ""}" data-go="${v}"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`
@@ -776,6 +776,17 @@ const App = {
       localStorage.setItem("greekA1_exam_best", JSON.stringify(b));
       if (window.Cloud && window.Cloud.push) window.Cloud.push();
     }
+  },
+
+  // Кнопка аккаунта в шапке (видна на всех экранах)
+  renderTopAccount() {
+    const c = window.Cloud;
+    if (!c || !c.enabled) return "";
+    if (c.user) {
+      const name = this.esc((c.user.displayName || c.user.email || "Аккаунт").split(" ")[0]);
+      return `<button class="acct-chip" data-go="progress">☁️ ${name}</button>`;
+    }
+    return `<button class="acct-chip" data-action="cloud-login">☁️ Войти</button>`;
   },
 
   // Карточка аккаунта (облачная синхронизация)
