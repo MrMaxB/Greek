@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d3b66">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ελληνικά A1">
+  <title>Ελληνικά A1 — тренажёр греческого</title>
+  <style>
+/* ============================================================
+   Ελληνικά A1 — стили. Греческая бело-синяя палитра.
+   Мобайл-фёрст, без зависимостей.
+   ============================================================ */
+:root {
+  --blue: #0d3b66;
+  --blue-2: #1b5e9c;
+  --sky: #2a9df4;
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --ink: #14233a;
+  --muted: #6b7a90;
+  --line: #e2e8f2;
+  --ok: #1faa59;
+  --bad: #e4572e;
+  --gold: #f2a900;
+  --r: 16px;
+  --shadow: 0 6px 24px rgba(13,59,102,.10);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+#app { max-width: 760px; margin: 0 auto; padding-bottom: 40px; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
+.muted { color: var(--muted); }
+.center { text-align: center; }
+.small { font-size: .85rem; }
+
+/* ---------- NAV ---------- */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--blue);
+  color: #fff;
+  padding: 10px 14px 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+}
+.brand { font-size: 1.25rem; font-weight: 800; letter-spacing: .5px; padding-bottom: 8px; }
+.brand span { color: var(--gold); }
+.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto; color: #cfe0f2; font-size: .72rem; font-weight: 600;
+  padding: 6px 12px 10px; border-bottom: 3px solid transparent;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap;
+}
+.tab span { font-size: 1.15rem; }
+.tab.active { color: #fff; border-color: var(--gold); }
+
+.screen { padding: 18px 16px; }
+
+/* ---------- HERO / HOME ---------- */
+.hero h1 { margin: 6px 0 2px; font-size: 2rem; }
+.hero .sub { margin: 0 0 6px; color: var(--muted); }
+.banner {
+  background: #fff6e0; border: 1px solid #f3d98a; color: #7a5a10;
+  padding: 10px 14px; border-radius: 12px; font-size: .85rem; margin-bottom: 14px;
+}
+.cards-row { display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap; }
+.stat {
+  flex: 1; min-width: 90px; background: var(--card); border-radius: var(--r);
+  padding: 14px 10px; text-align: center; box-shadow: var(--shadow);
+}
+.stat-num { font-size: 1.5rem; font-weight: 800; color: var(--blue); }
+.stat-lbl { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+.progress-bar { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress-bar.mini { height: 6px; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--sky), var(--blue-2)); border-radius: 99px; transition: width .4s; }
+
+.cta { margin: 18px 0; }
+.big-btn {
+  width: 100%; background: var(--card); color: var(--ink); border-radius: var(--r);
+  padding: 16px; font-size: 1.05rem; font-weight: 700; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 10px;
+  border: 1px solid var(--line);
+}
+.big-btn small { font-weight: 500; color: var(--muted); font-size: .78rem; }
+.big-btn.primary { background: linear-gradient(135deg, var(--blue-2), var(--blue)); color: #fff; border: none; }
+.big-btn.primary small { color: #cfe0f2; }
+.big-btn.ghost { background: var(--card); }
+.big-btn.slim { width: auto; padding: 10px 16px; font-size: .95rem; }
+.big-btn.danger { color: var(--bad); border-color: #f3c4b8; margin-top: 24px; }
+.big-btn:active { transform: translateY(1px); }
+
+.section-title { margin: 24px 0 10px; font-size: 1.05rem; }
+.steps { padding-left: 20px; color: var(--ink); }
+.steps li { margin-bottom: 8px; }
+
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.tile {
+  background: var(--card); border-radius: var(--r); padding: 18px 10px; box-shadow: var(--shadow);
+  font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 1px solid var(--line);
+}
+.tile-ic { font-size: 1.8rem; }
+
+/* ---------- PAGE HEAD ---------- */
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.page-head h2 { margin: 0; font-size: 1.4rem; }
+.counter { background: var(--card); border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; font-weight: 700; font-size: .85rem; color: var(--blue); }
+.back { color: var(--blue-2); font-weight: 600; }
+
+/* ---------- SPEAK BTN ---------- */
+.speak {
+  background: #eaf3fc; color: var(--blue-2); border-radius: 8px; padding: 2px 8px;
+  font-size: .9rem; vertical-align: middle; margin-left: 4px;
+}
+.speak:active { background: #d6e8fa; }
+
+/* ---------- ALPHABET ---------- */
+.letter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+.letter {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 10px;
+  text-align: center; box-shadow: var(--shadow); transition: transform .1s;
+}
+.letter:active { transform: scale(.97); }
+.letter.dig .letter-glyph { color: var(--blue-2); }
+.letter-glyph { font-size: 1.7rem; font-weight: 800; color: var(--blue); }
+.letter-name { font-size: .8rem; color: var(--muted); }
+.letter-sound { font-size: .82rem; margin-top: 4px; }
+.letter-ex { font-size: .78rem; color: var(--blue-2); margin-top: 4px; }
+
+/* ---------- QUIZ ---------- */
+.quiz-prompt { background: var(--card); border-radius: var(--r); padding: 24px; text-align: center; box-shadow: var(--shadow); margin: 16px 0; }
+.quiz-prompt.listen { padding: 28px 16px; }
+.big-letter { font-size: 3rem; font-weight: 800; color: var(--blue); }
+.big-letter.sm { font-size: 2rem; }
+.play-big { background: linear-gradient(135deg, var(--blue-2), var(--blue)); color: #fff; border-radius: 14px; padding: 16px 24px; font-size: 1.1rem; font-weight: 700; margin: 4px; }
+.play-slow { background: #eaf3fc; color: var(--blue-2); border-radius: 14px; padding: 16px 18px; font-weight: 700; margin: 4px; }
+.opts { display: grid; gap: 10px; margin: 8px 0; }
+.opt {
+  background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px;
+  font-size: 1rem; font-weight: 600; text-align: center; box-shadow: var(--shadow); transition: .12s;
+}
+.opt small { font-weight: 400; color: var(--muted); }
+.opt:active { transform: scale(.98); }
+.opt.ok { border-color: var(--ok); background: #e8f8ee; color: #137a3f; }
+.opt.bad { border-color: var(--bad); background: #fdece7; color: #b23a18; }
+.feedback { margin-top: 10px; }
+.ok-msg { color: var(--ok); font-weight: 700; text-align: center; padding: 8px; }
+.bad-msg { color: var(--bad); font-weight: 700; text-align: center; padding: 8px; }
+
+/* ---------- FLASHCARD ---------- */
+.flashcard {
+  background: var(--card); border-radius: 20px; padding: 30px 20px; text-align: center;
+  box-shadow: var(--shadow); margin: 14px 0; min-height: 180px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+}
+.card-tag { font-size: .75rem; color: var(--muted); background: #f0f4fa; padding: 3px 10px; border-radius: 99px; }
+.flash-gr { font-size: 2.4rem; font-weight: 800; color: var(--blue); }
+.flash-tr { color: var(--muted); font-size: 1rem; }
+.flash-ru { font-size: 1.5rem; font-weight: 700; margin-top: 6px; }
+.reveal { margin-top: 10px; background: var(--blue-2); color: #fff; border-radius: 12px; padding: 12px 20px; font-weight: 700; }
+
+.grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; }
+.grades.simple { grid-template-columns: repeat(2, 1fr); margin-top: 14px; }
+.grade { border-radius: 12px; padding: 12px 6px; font-weight: 700; color: #fff; display: flex; flex-direction: column; gap: 2px; }
+.grade small { font-weight: 500; opacity: .85; font-size: .68rem; }
+.g0 { background: var(--bad); }
+.g1 { background: var(--gold); }
+.g2 { background: var(--blue-2); }
+.g3 { background: var(--ok); }
+.grade:active { transform: translateY(1px); }
+
+/* ---------- RESULT ---------- */
+.result { text-align: center; padding: 30px 10px; }
+.big-score { font-size: 3rem; font-weight: 800; color: var(--blue); margin: 6px 0; }
+
+/* ---------- DECKS ---------- */
+.deck-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.deck-tile { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: var(--shadow); text-align: left; }
+.deck-ic { font-size: 2rem; flex: 0 0 auto; }
+.deck-body { flex: 1; }
+.deck-title { font-weight: 700; }
+.deck-meta { font-size: .78rem; color: var(--muted); margin: 2px 0 6px; }
+
+.mode-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(62px, 1fr)); gap: 8px; margin: 14px 0; }
+.mode-btn { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 4px; font-weight: 600; font-size: .78rem; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.mode-btn span { font-size: 1.4rem; }
+.mode-btn.hot { border-color: var(--gold); background: #fffaf0; }
+.dict-hint { margin-top: 10px; }
+.answer-ru { font-weight: 500; font-size: .9rem; color: var(--ink); margin-top: 4px; }
+
+.word-list { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.word-row { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.w-gr { font-weight: 700; color: var(--blue); flex: 1.4; }
+.w-tr { color: var(--muted); flex: 1; font-size: .85rem; }
+.w-ru { flex: 1.2; }
+
+/* ---------- TYPE MODE ---------- */
+.type-ru { font-size: 1.6rem; font-weight: 700; }
+.type-input { width: 100%; padding: 14px; font-size: 1.3rem; border: 2px solid var(--line); border-radius: 14px; margin: 12px 0 8px; text-align: center; }
+.type-input:focus { outline: none; border-color: var(--sky); }
+.kbd-hint { font-size: .78rem; color: var(--muted); margin-bottom: 8px; }
+.gkbd { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.gkbd-row { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+.gkey { background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-width: 30px; padding: 10px 6px; font-size: 1.05rem; font-weight: 700; color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.gkey.wide { min-width: 48px; }
+.gkey:active { background: #e6eef8; }
+
+/* ---------- GRAMMAR ---------- */
+.gram { background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; box-shadow: var(--shadow); overflow: hidden; }
+.gram summary { padding: 16px; font-weight: 700; cursor: pointer; color: var(--blue); list-style: none; }
+.gram summary::-webkit-details-marker { display: none; }
+.gram summary::before { content: "▸ "; }
+.gram[open] summary::before { content: "▾ "; }
+.gram-body { padding: 0 16px 16px; color: var(--ink); }
+.gram-body b { color: var(--blue-2); }
+
+/* ---------- PROGRESS ---------- */
+.heat { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0; }
+.hday { width: 34px; height: 34px; border-radius: 8px; background: var(--line); display: flex; align-items: center; justify-content: center; font-size: .72rem; color: var(--muted); }
+.hday.on { background: var(--ok); color: #fff; font-weight: 700; }
+
+@media (min-width: 560px) {
+  .grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+</style>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🇬🇷</text></svg>">
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+/* ============================================================
+   Ελληνικά A1 — учебные данные
+   Весь контент офлайн. Интерфейс на русском.
+   Уровень: с нуля до A1 (с прицелом на A2 для гражданства Кипра).
+   ============================================================ */
+
+/* ---------- 1. АЛФАВИТ ---------- */
+// sound — упрощённое описание звука для русскоязычного.
+const ALPHABET = [
+  { upper: "Α", lower: "α", name: "άλφα",    translit: "a",  sound: "как «а» в «дам»",                 example: "αγάπη",   exTr: "любовь" },
+  { upper: "Β", lower: "β", name: "βήτα",    translit: "v",  sound: "как «в»",                          example: "βιβλίο",  exTr: "книга" },
+  { upper: "Γ", lower: "γ", name: "γάμα",    translit: "γ",  sound: "мягкое «г» (укр. «г»/«й»)",         example: "γάλα",    exTr: "молоко" },
+  { upper: "Δ", lower: "δ", name: "δέλτα",   translit: "ð",  sound: "звонкое «th» (англ. this)",        example: "δέντρο",  exTr: "дерево" },
+  { upper: "Ε", lower: "ε", name: "έψιλον",  translit: "e",  sound: "как «э»",                          example: "ελιά",    exTr: "оливка" },
+  { upper: "Ζ", lower: "ζ", name: "ζήτα",    translit: "z",  sound: "как «з»",                          example: "ζάχαρη",  exTr: "сахар" },
+  { upper: "Η", lower: "η", name: "ήτα",     translit: "i",  sound: "как «и»",                          example: "ήλιος",   exTr: "солнце" },
+  { upper: "Θ", lower: "θ", name: "θήτα",    translit: "θ",  sound: "глухое «th» (англ. think)",        example: "θάλασσα", exTr: "море" },
+  { upper: "Ι", lower: "ι", name: "γιώτα",   translit: "i",  sound: "как «и»",                          example: "ιστορία", exTr: "история" },
+  { upper: "Κ", lower: "κ", name: "κάπα",    translit: "k",  sound: "как «к»",                          example: "καφές",   exTr: "кофе" },
+  { upper: "Λ", lower: "λ", name: "λάμδα",   translit: "l",  sound: "как «л»",                          example: "λεμόνι",  exTr: "лимон" },
+  { upper: "Μ", lower: "μ", name: "μι",      translit: "m",  sound: "как «м»",                          example: "μήλο",    exTr: "яблоко" },
+  { upper: "Ν", lower: "ν", name: "νι",      translit: "n",  sound: "как «н»",                          example: "νερό",    exTr: "вода" },
+  { upper: "Ξ", lower: "ξ", name: "ξι",      translit: "ks", sound: "как «кс»",                         example: "ξύλο",    exTr: "дерево (материал)" },
+  { upper: "Ο", lower: "ο", name: "όμικρον", translit: "o",  sound: "как «о»",                          example: "όνομα",   exTr: "имя" },
+  { upper: "Π", lower: "π", name: "πι",      translit: "p",  sound: "как «п»",                          example: "πόρτα",   exTr: "дверь" },
+  { upper: "Ρ", lower: "ρ", name: "ρο",      translit: "r",  sound: "раскатистое «р»",                  example: "ρολόι",   exTr: "часы" },
+  { upper: "Σ", lower: "σ/ς", name: "σίγμα", translit: "s",  sound: "как «с» (ς — только в конце слова)", example: "σπίτι", exTr: "дом" },
+  { upper: "Τ", lower: "τ", name: "ταυ",     translit: "t",  sound: "как «т»",                          example: "τυρί",    exTr: "сыр" },
+  { upper: "Υ", lower: "υ", name: "ύψιλον",  translit: "i",  sound: "как «и»",                          example: "ύπνος",   exTr: "сон" },
+  { upper: "Φ", lower: "φ", name: "φι",      translit: "f",  sound: "как «ф»",                          example: "φως",     exTr: "свет" },
+  { upper: "Χ", lower: "χ", name: "χι",      translit: "x",  sound: "как «х»",                          example: "χέρι",    exTr: "рука" },
+  { upper: "Ψ", lower: "ψ", name: "ψι",      translit: "ps", sound: "как «пс»",                         example: "ψωμί",    exTr: "хлеб" },
+  { upper: "Ω", lower: "ω", name: "ωμέγα",   translit: "o",  sound: "как «о»",                          example: "ώρα",     exTr: "час, время" },
+];
+
+/* Буквосочетания — без них не прочитать ни слова */
+const DIGRAPHS = [
+  { gr: "ου", translit: "у",     note: "как русское «у»",                       example: "ούζο",     exTr: "узо" },
+  { gr: "αι", translit: "э",     note: "звучит как «э»",                        example: "παιδί",    exTr: "ребёнок" },
+  { gr: "ει", translit: "и",     note: "звучит как «и»",                        example: "είμαι",    exTr: "я есть" },
+  { gr: "οι", translit: "и",     note: "звучит как «и»",                        example: "σπίτια",   exTr: "дома" },
+  { gr: "αυ", translit: "ав/аф", note: "«ав» перед звонкими, «аф» перед глухими", example: "αύριο",   exTr: "завтра" },
+  { gr: "ευ", translit: "эв/эф", note: "«эв» перед звонкими, «эф» перед глухими", example: "ευχαριστώ", exTr: "спасибо" },
+  { gr: "μπ", translit: "б/мб",  note: "«б» в начале слова",                    example: "μπύρα",    exTr: "пиво" },
+  { gr: "ντ", translit: "д/нд",  note: "«д» в начале слова",                    example: "ντομάτα",  exTr: "помидор" },
+  { gr: "γκ", translit: "г/нг",  note: "«г» в начале слова",                    example: "γκολ",     exTr: "гол" },
+  { gr: "γγ", translit: "нг",    note: "как «нг»",                              example: "αγγλικά",  exTr: "английский" },
+  { gr: "τσ", translit: "ц",     note: "как «ц»",                               example: "τσάι",     exTr: "чай" },
+  { gr: "τζ", translit: "дз",    note: "как «дз»",                              example: "τζατζίκι", exTr: "дзадзики" },
+];
+
+/* ---------- 2. СЛОВАРЬ ПО ТЕМАМ ---------- */
+// Каждое слово: gr (греческий), tr (транслит/произношение), ru (перевод).
+// id присваивается автоматически ниже.
+const DECKS = [
+  {
+    id: "greetings",
+    icon: "👋",
+    title: "Приветствия и вежливость",
+    words: [
+      { gr: "Γεια σου",       tr: "я́су",            ru: "Привет (тебе)" },
+      { gr: "Γεια σας",       tr: "я́сас",           ru: "Здравствуйте / Привет (вам)" },
+      { gr: "Καλημέρα",       tr: "калимэ́ра",       ru: "Доброе утро" },
+      { gr: "Καλησπέρα",      tr: "калиспэ́ра",      ru: "Добрый вечер" },
+      { gr: "Καληνύχτα",      tr: "калини́хта",      ru: "Спокойной ночи" },
+      { gr: "Αντίο",          tr: "анди́о",          ru: "До свидания" },
+      { gr: "Ευχαριστώ",      tr: "эфхаристо́",      ru: "Спасибо" },
+      { gr: "Παρακαλώ",       tr: "паракало́",       ru: "Пожалуйста / Прошу" },
+      { gr: "Ναι",            tr: "нэ",              ru: "Да" },
+      { gr: "Όχι",            tr: "о́хи",            ru: "Нет" },
+      { gr: "Συγγνώμη",       tr: "сигно́ми",        ru: "Извините" },
+      { gr: "Καλώς ήρθες",    tr: "кало́с и́рθэс",   ru: "Добро пожаловать" },
+      { gr: "Τι κάνεις;",     tr: "ти ка́нис",       ru: "Как дела?" },
+      { gr: "Καλά",           tr: "кала́",           ru: "Хорошо" },
+      { gr: "Χαίρω πολύ",     tr: "хэ́ро поли́",     ru: "Очень приятно" },
+    ],
+  },
+  {
+    id: "numbers",
+    icon: "🔢",
+    title: "Числа",
+    words: [
+      { gr: "μηδέν",     tr: "миðэ́н",     ru: "0" },
+      { gr: "ένα",       tr: "э́на",       ru: "1" },
+      { gr: "δύο",       tr: "ðи́о",       ru: "2" },
+      { gr: "τρία",      tr: "три́а",      ru: "3" },
+      { gr: "τέσσερα",   tr: "тэ́ссэра",   ru: "4" },
+      { gr: "πέντε",     tr: "пэ́ндэ",     ru: "5" },
+      { gr: "έξι",       tr: "э́кси",      ru: "6" },
+      { gr: "εφτά",      tr: "эфта́",      ru: "7" },
+      { gr: "οχτώ",      tr: "охто́",      ru: "8" },
+      { gr: "εννιά",     tr: "энья́",      ru: "9" },
+      { gr: "δέκα",      tr: "ðэ́ка",      ru: "10" },
+      { gr: "έντεκα",    tr: "э́ндэка",    ru: "11" },
+      { gr: "δώδεκα",    tr: "ðо́ðэка",    ru: "12" },
+      { gr: "είκοσι",    tr: "и́коси",     ru: "20" },
+      { gr: "τριάντα",   tr: "трья́нда",   ru: "30" },
+      { gr: "σαράντα",   tr: "сара́нда",   ru: "40" },
+      { gr: "πενήντα",   tr: "пэни́нда",   ru: "50" },
+      { gr: "εκατό",     tr: "экато́",     ru: "100" },
+      { gr: "χίλια",     tr: "хи́ля",      ru: "1000" },
+    ],
+  },
+  {
+    id: "personal",
+    icon: "🪪",
+    title: "О себе (личные данные)",
+    words: [
+      { gr: "όνομα",         tr: "о́нома",          ru: "имя" },
+      { gr: "επώνυμο",       tr: "эпо́нимо",        ru: "фамилия" },
+      { gr: "Με λένε...",    tr: "мэ ле́нэ",        ru: "Меня зовут..." },
+      { gr: "Πώς σε λένε;",  tr: "пос сэ ле́нэ",    ru: "Как тебя зовут?" },
+      { gr: "χώρα",          tr: "хо́ра",           ru: "страна" },
+      { gr: "Είμαι από...",  tr: "и́мэ апо́",       ru: "Я из..." },
+      { gr: "Μένω στη...",   tr: "мэ́но сти",       ru: "Я живу в..." },
+      { gr: "διεύθυνση",     tr: "ðиэ́фθинси",      ru: "адрес" },
+      { gr: "τηλέφωνο",      tr: "тиле́фоно",       ru: "телефон" },
+      { gr: "ηλικία",        tr: "илики́а",         ru: "возраст" },
+      { gr: "χρονών",        tr: "хроно́н",         ru: "лет (о возрасте)" },
+      { gr: "δουλειά",       tr: "ðулья́",          ru: "работа" },
+      { gr: "γλώσσα",        tr: "гло́сса",         ru: "язык" },
+      { gr: "Κύπρος",        tr: "ки́прос",         ru: "Кипр" },
+      { gr: "Ελλάδα",        tr: "элла́ða",         ru: "Греция" },
+    ],
+  },
+  {
+    id: "family",
+    icon: "👨‍👩‍👧",
+    title: "Семья",
+    words: [
+      { gr: "οικογένεια", tr: "икойе́нья",  ru: "семья" },
+      { gr: "μητέρα",     tr: "митэ́ра",     ru: "мать" },
+      { gr: "πατέρας",    tr: "патэ́рас",    ru: "отец" },
+      { gr: "γιος",       tr: "йос",         ru: "сын" },
+      { gr: "κόρη",       tr: "ко́ри",       ru: "дочь" },
+      { gr: "αδερφός",    tr: "аðэрфо́с",    ru: "брат" },
+      { gr: "αδερφή",     tr: "аðэрфи́",     ru: "сестра" },
+      { gr: "παππούς",    tr: "паппу́с",     ru: "дедушка" },
+      { gr: "γιαγιά",     tr: "яя́",         ru: "бабушка" },
+      { gr: "σύζυγος",    tr: "си́зигос",    ru: "супруг(а)" },
+      { gr: "άντρας",     tr: "а́ндрас",     ru: "муж / мужчина" },
+      { gr: "γυναίκα",    tr: "йинэ́ка",     ru: "жена / женщина" },
+      { gr: "παιδί",      tr: "пэðи́",      ru: "ребёнок" },
+      { gr: "φίλος",      tr: "фи́лос",      ru: "друг" },
+      { gr: "φίλη",       tr: "фи́ли",       ru: "подруга" },
+    ],
+  },
+  {
+    id: "time",
+    icon: "🗓️",
+    title: "Время, дни, месяцы",
+    words: [
+      { gr: "σήμερα",     tr: "си́мэра",    ru: "сегодня" },
+      { gr: "αύριο",      tr: "а́врио",     ru: "завтра" },
+      { gr: "χθες",       tr: "хθэс",       ru: "вчера" },
+      { gr: "τώρα",       tr: "то́ра",      ru: "сейчас" },
+      { gr: "μέρα",       tr: "мэ́ра",      ru: "день" },
+      { gr: "εβδομάδα",   tr: "эвðома́ða",  ru: "неделя" },
+      { gr: "μήνας",      tr: "ми́нас",     ru: "месяц" },
+      { gr: "χρόνος",     tr: "хро́нос",    ru: "год" },
+      { gr: "ώρα",        tr: "о́ра",       ru: "час, время" },
+      { gr: "Δευτέρα",    tr: "ðэфтэ́ра",   ru: "понедельник" },
+      { gr: "Τρίτη",      tr: "три́ти",     ru: "вторник" },
+      { gr: "Τετάρτη",    tr: "тэта́рти",   ru: "среда" },
+      { gr: "Πέμπτη",     tr: "пэ́мпти",    ru: "четверг" },
+      { gr: "Παρασκευή",  tr: "параскэви́", ru: "пятница" },
+      { gr: "Σάββατο",    tr: "са́ввато",   ru: "суббота" },
+      { gr: "Κυριακή",    tr: "кирьяки́",   ru: "воскресенье" },
+    ],
+  },
+  {
+    id: "food",
+    icon: "🍽️",
+    title: "Еда и напитки",
+    words: [
+      { gr: "νερό",      tr: "нэро́",      ru: "вода" },
+      { gr: "ψωμί",      tr: "псоми́",     ru: "хлеб" },
+      { gr: "γάλα",      tr: "га́ла",      ru: "молоко" },
+      { gr: "καφές",     tr: "кафэ́с",     ru: "кофе" },
+      { gr: "τσάι",      tr: "ца́и",       ru: "чай" },
+      { gr: "κρασί",     tr: "краси́",     ru: "вино" },
+      { gr: "μπύρα",     tr: "би́ра",      ru: "пиво" },
+      { gr: "τυρί",      tr: "тири́",      ru: "сыр" },
+      { gr: "κρέας",     tr: "крэ́ас",     ru: "мясо" },
+      { gr: "ψάρι",      tr: "пса́ри",     ru: "рыба" },
+      { gr: "φρούτο",    tr: "фру́то",     ru: "фрукт" },
+      { gr: "λαχανικό",  tr: "лаханико́",  ru: "овощ" },
+      { gr: "αλάτι",     tr: "ала́ти",     ru: "соль" },
+      { gr: "ζάχαρη",    tr: "за́хари",    ru: "сахар" },
+      { gr: "πρωινό",    tr: "проино́",    ru: "завтрак" },
+      { gr: "φαγητό",    tr: "файито́",    ru: "еда / блюдо" },
+    ],
+  },
+  {
+    id: "city",
+    icon: "🏙️",
+    title: "Город и места",
+    words: [
+      { gr: "σπίτι",        tr: "спи́ти",       ru: "дом" },
+      { gr: "δρόμος",       tr: "ðро́мос",      ru: "улица / дорога" },
+      { gr: "πόλη",         tr: "по́ли",        ru: "город" },
+      { gr: "αγορά",        tr: "агора́",       ru: "рынок" },
+      { gr: "κατάστημα",    tr: "ката́стима",   ru: "магазин" },
+      { gr: "νοσοκομείο",   tr: "носокоми́о",   ru: "больница" },
+      { gr: "φαρμακείο",    tr: "фармаки́о",    ru: "аптека" },
+      { gr: "τράπεζα",      tr: "тра́пэза",     ru: "банк" },
+      { gr: "εστιατόριο",   tr: "эстьято́рио",  ru: "ресторан" },
+      { gr: "παραλία",      tr: "парали́а",     ru: "пляж" },
+      { gr: "αεροδρόμιο",   tr: "аэроðро́мио",  ru: "аэропорт" },
+      { gr: "στάση",        tr: "ста́си",       ru: "остановка" },
+      { gr: "αριστερά",     tr: "аристэра́",    ru: "налево" },
+      { gr: "δεξιά",        tr: "ðэксья́",      ru: "направо" },
+      { gr: "ευθεία",       tr: "эфθи́а",       ru: "прямо" },
+    ],
+  },
+  {
+    id: "shopping",
+    icon: "🛒",
+    title: "Покупки",
+    words: [
+      { gr: "Πόσο κάνει;",   tr: "по́со ка́ни",    ru: "Сколько стоит?" },
+      { gr: "ευρώ",          tr: "эвро́",          ru: "евро" },
+      { gr: "λεφτά",         tr: "лефта́",         ru: "деньги" },
+      { gr: "ακριβό",        tr: "акриво́",        ru: "дорого" },
+      { gr: "φτηνό",         tr: "фтино́",         ru: "дёшево" },
+      { gr: "Θέλω...",       tr: "θэ́ло",          ru: "Я хочу..." },
+      { gr: "Έχετε...;",     tr: "э́хэтэ",         ru: "У вас есть...?" },
+      { gr: "λογαριασμός",   tr: "логарьязмо́с",   ru: "счёт" },
+      { gr: "κάρτα",         tr: "ка́рта",         ru: "карта" },
+      { gr: "μετρητά",       tr: "мэтрита́",       ru: "наличные" },
+      { gr: "μεγάλο",        tr: "мэга́ло",        ru: "большой" },
+      { gr: "μικρό",         tr: "микро́",         ru: "маленький" },
+    ],
+  },
+  {
+    id: "verbs",
+    icon: "🏃",
+    title: "Глаголы (часто)",
+    words: [
+      { gr: "είμαι",     tr: "и́мэ",       ru: "быть (я есть)" },
+      { gr: "έχω",       tr: "э́хо",       ru: "иметь" },
+      { gr: "θέλω",      tr: "θэ́ло",      ru: "хотеть" },
+      { gr: "μπορώ",     tr: "боро́",      ru: "мочь" },
+      { gr: "ξέρω",      tr: "ксэ́ро",     ru: "знать" },
+      { gr: "κάνω",      tr: "ка́но",      ru: "делать" },
+      { gr: "πηγαίνω",   tr: "пийе́но",    ru: "идти / ехать" },
+      { gr: "έρχομαι",   tr: "э́рхомэ",    ru: "приходить" },
+      { gr: "τρώω",      tr: "тро́о",      ru: "есть (кушать)" },
+      { gr: "πίνω",      tr: "пи́но",      ru: "пить" },
+      { gr: "μιλάω",     tr: "мила́о",     ru: "говорить" },
+      { gr: "καταλαβαίνω", tr: "каталавэ́но", ru: "понимать" },
+      { gr: "δουλεύω",   tr: "ðулэ́во",    ru: "работать" },
+      { gr: "μένω",      tr: "мэ́но",      ru: "жить / оставаться" },
+      { gr: "αγαπάω",    tr: "агапа́о",    ru: "любить" },
+    ],
+  },
+  {
+    id: "adjectives",
+    icon: "🎨",
+    title: "Прилагательные и описания",
+    words: [
+      { gr: "καλός",     tr: "кало́с",     ru: "хороший" },
+      { gr: "κακός",     tr: "како́с",     ru: "плохой" },
+      { gr: "νέος",      tr: "нэ́ос",      ru: "новый / молодой" },
+      { gr: "παλιός",    tr: "пальо́с",    ru: "старый" },
+      { gr: "ωραίος",    tr: "орэ́ос",     ru: "красивый / приятный" },
+      { gr: "ζεστός",    tr: "зэсто́с",    ru: "тёплый / горячий" },
+      { gr: "κρύος",     tr: "кри́ос",     ru: "холодный" },
+      { gr: "εύκολος",   tr: "э́фколос",   ru: "лёгкий" },
+      { gr: "δύσκολος",  tr: "ðи́сколос",  ru: "трудный" },
+      { gr: "πολύ",      tr: "поли́",      ru: "очень / много" },
+      { gr: "λίγο",      tr: "ли́го",      ru: "немного" },
+      { gr: "κοντά",     tr: "конда́",     ru: "близко" },
+      { gr: "μακριά",    tr: "макрья́",    ru: "далеко" },
+    ],
+  },
+  {
+    id: "questions",
+    icon: "❓",
+    title: "Вопросы и местоимения",
+    words: [
+      { gr: "ποιος",     tr: "пьос",       ru: "кто" },
+      { gr: "τι",        tr: "ти",         ru: "что" },
+      { gr: "πού",       tr: "пу",         ru: "где / куда" },
+      { gr: "πότε",      tr: "по́тэ",      ru: "когда" },
+      { gr: "πώς",       tr: "пос",        ru: "как" },
+      { gr: "γιατί",     tr: "яти́",       ru: "почему / потому что" },
+      { gr: "πόσο",      tr: "по́со",      ru: "сколько" },
+      { gr: "εγώ",       tr: "эго́",       ru: "я" },
+      { gr: "εσύ",       tr: "эси́",       ru: "ты" },
+      { gr: "αυτός",     tr: "афто́с",     ru: "он" },
+      { gr: "αυτή",      tr: "афти́",      ru: "она" },
+      { gr: "εμείς",     tr: "эми́с",      ru: "мы" },
+      { gr: "εσείς",     tr: "эси́с",      ru: "вы" },
+      { gr: "αυτοί",     tr: "афти́",      ru: "они" },
+    ],
+  },
+  {
+    id: "phrases",
+    icon: "💬",
+    title: "Полезные фразы (для экзамена)",
+    words: [
+      { gr: "Δεν καταλαβαίνω.",       tr: "ðэн каталавэ́но",        ru: "Я не понимаю." },
+      { gr: "Μιλάτε πιο αργά;",       tr: "мила́тэ пьо арга́",      ru: "Говорите медленнее?" },
+      { gr: "Πώς το λένε στα ελληνικά;", tr: "пос то ле́нэ ста элиника́", ru: "Как это по-гречески?" },
+      { gr: "Μιλάω λίγα ελληνικά.",   tr: "мила́о ли́га элиника́",  ru: "Я немного говорю по-гречески." },
+      { gr: "Πού είναι η τουαλέτα;",  tr: "пу и́нэ и туалэ́та",     ru: "Где туалет?" },
+      { gr: "Τι ώρα είναι;",          tr: "ти о́ра и́нэ",           ru: "Который час?" },
+      { gr: "Βοήθεια!",               tr: "вои́θья",                ru: "Помогите!" },
+      { gr: "Δεν πειράζει.",          tr: "ðэн пира́зи",            ru: "Ничего страшного." },
+      { gr: "Με συγχωρείτε.",         tr: "мэ синхори́тэ",          ru: "Простите (привлечь внимание)." },
+      { gr: "Είμαι ευχαριστημένος.",  tr: "и́мэ эфхаристимэ́нос",   ru: "Я доволен." },
+    ],
+  },
+];
+
+/* ---------- 3. КОРОТКАЯ ГРАММАТИКА A1 ---------- */
+const GRAMMAR = [
+  {
+    title: "Три рода и артикли",
+    body: `В греческом у каждого существительного есть род, и артикль («the») меняется:
+• мужской: <b>ο</b> (о) — ο άντρας (мужчина)
+• женский: <b>η</b> (и) — η γυναίκα (женщина)
+• средний: <b>το</b> (то) — το παιδί (ребёнок)
+Неопределённый артикль («a»): <b>ένας / μία / ένα</b>.
+Совет: учите слово сразу с артиклем — так запомнится род.`,
+  },
+  {
+    title: "Глагол «быть» — είμαι",
+    body: `είμαι — это «я есть». Спряжение в настоящем:
+• εγώ <b>είμαι</b> — я есть
+• εσύ <b>είσαι</b> — ты есть
+• αυτός/αυτή <b>είναι</b> — он/она есть
+• εμείς <b>είμαστε</b> — мы есть
+• εσείς <b>είστε</b> — вы есть
+• αυτοί <b>είναι</b> — они есть
+Пример: <b>Είμαι από τη Ρωσία.</b> — Я из России.`,
+  },
+  {
+    title: "Глаголы настоящего времени (группа -ω)",
+    body: `Большинство глаголов в наст. времени меняют окончание по лицу. Пример: μένω (жить):
+• μέν<b>ω</b> — я живу
+• μέν<b>εις</b> — ты живёшь
+• μέν<b>ει</b> — он/она живёт
+• μέν<b>ουμε</b> — мы живём
+• μέν<b>ετε</b> — вы живёте
+• μέν<b>ουν</b> — они живут`,
+  },
+  {
+    title: "Ударение — это важно",
+    body: `В греческом всегда ставится знак ударения (΄) над гласной: καλημέ<b>ρα</b>.
+Ударение меняет смысл и обязательно при письме на экзамене. Произносите ударный слог чётче и сильнее.`,
+  },
+  {
+    title: "Вопрос и точка с запятой",
+    body: `Знак вопроса в греческом — это <b>;</b> (точка с запятой!):
+<b>Τι κάνεις;</b> — Как дела?
+А греческая «;» (пауза посильнее запятой) выглядит как приподнятая точка <b>·</b>.`,
+  },
+];
+
+/* ---------- ИНИЦИАЛИЗАЦИЯ id ---------- */
+// Стабильные id нужны для хранения прогресса SRS.
+DECKS.forEach((deck) => {
+  deck.words.forEach((w, i) => {
+    w.id = deck.id + "_" + i;
+    w.deck = deck.id;
+    w.deckTitle = deck.title;
+  });
+});
+
+// Плоский список всех слов
+const ALL_WORDS = DECKS.flatMap((d) => d.words);
+
+/* ============================================================
+   SRS — интервальные повторения (упрощённый SM-2 + стрик)
+   Всё хранится в localStorage. Ничего не уходит в сеть.
+   ============================================================ */
+
+const SRS_KEY = "greekA1_srs_v1";
+const STATS_KEY = "greekA1_stats_v1";
+const NEW_PER_DAY = 12; // сколько новых слов вводим в день по умолчанию
+
+const SRS = {
+  data: {},   // id -> { reps, interval, ease, due, lapses }
+  stats: {},  // { streak, lastDay, learnedDates: {date: count}, totalReviews }
+
+  load() {
+    try { this.data = JSON.parse(localStorage.getItem(SRS_KEY)) || {}; }
+    catch { this.data = {}; }
+    try { this.stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {}; }
+    catch { this.stats = {}; }
+    if (!this.stats.learnedDates) this.stats.learnedDates = {};
+    if (!this.stats.totalReviews) this.stats.totalReviews = 0;
+  },
+
+  save() {
+    localStorage.setItem(SRS_KEY, JSON.stringify(this.data));
+    localStorage.setItem(STATS_KEY, JSON.stringify(this.stats));
+  },
+
+  today() {
+    return new Date().toISOString().slice(0, 10);
+  },
+
+  // Карточка ещё не виделась
+  isNew(id) {
+    return !this.data[id];
+  },
+
+  // Карточки к повторению на сегодня (уже изученные, срок подошёл)
+  dueCards(words) {
+    const t = this.today();
+    return words.filter((w) => {
+      const c = this.data[w.id];
+      return c && c.due <= t;
+    });
+  },
+
+  // Новые карточки (с дневным лимитом)
+  newCards(words, limit = NEW_PER_DAY) {
+    const introducedToday = this.stats.learnedDates[this.today()] || 0;
+    const remaining = Math.max(0, limit - introducedToday);
+    return words.filter((w) => this.isNew(w.id)).slice(0, remaining);
+  },
+
+  // Очередь на сессию: сначала повторения, потом новые
+  buildQueue(words, newLimit = NEW_PER_DAY) {
+    return [...this.dueCards(words), ...this.newCards(words, newLimit)];
+  },
+
+  /* Оценка: 0 = не помню, 1 = трудно, 2 = хорошо, 3 = легко */
+  grade(id, quality) {
+    const t = this.today();
+    let c = this.data[id];
+    const wasNew = !c;
+    if (!c) c = { reps: 0, interval: 0, ease: 2.5, lapses: 0 };
+
+    if (quality === 0) {
+      c.reps = 0;
+      c.interval = 0;          // вернётся в эту же сессию / завтра
+      c.lapses += 1;
+      c.ease = Math.max(1.3, c.ease - 0.2);
+    } else {
+      c.reps += 1;
+      if (c.reps === 1) c.interval = quality === 1 ? 1 : 1;
+      else if (c.reps === 2) c.interval = quality === 1 ? 2 : 3;
+      else c.interval = Math.round(c.interval * c.ease);
+
+      // корректировка лёгкости
+      if (quality === 1) c.ease = Math.max(1.3, c.ease - 0.15);
+      else if (quality === 3) c.ease = c.ease + 0.1;
+
+      if (quality === 1) c.interval = Math.max(1, Math.round(c.interval * 0.6));
+      if (quality === 3) c.interval = Math.round(c.interval * 1.3);
+    }
+
+    c.interval = Math.max(0, c.interval);
+    const due = new Date();
+    due.setDate(due.getDate() + Math.max(c.interval, quality === 0 ? 0 : 1));
+    c.due = due.toISOString().slice(0, 10);
+    this.data[id] = c;
+
+    // Статистика
+    this.stats.totalReviews += 1;
+    if (wasNew) {
+      this.stats.learnedDates[t] = (this.stats.learnedDates[t] || 0) + 1;
+    }
+    this.touchStreak();
+    this.save();
+    return c;
+  },
+
+  // Обновление стрика (дни подряд с активностью)
+  touchStreak() {
+    const t = this.today();
+    if (this.stats.lastDay === t) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const y = yesterday.toISOString().slice(0, 10);
+    if (this.stats.lastDay === y) this.stats.streak = (this.stats.streak || 0) + 1;
+    else this.stats.streak = 1;
+    this.stats.lastDay = t;
+  },
+
+  // Сводка прогресса
+  summary(words) {
+    let learned = 0, mature = 0;
+    words.forEach((w) => {
+      const c = this.data[w.id];
+      if (c) {
+        learned++;
+        if (c.interval >= 7) mature++;
+      }
+    });
+    return {
+      total: words.length,
+      learned,
+      mature,
+      due: this.dueCards(words).length,
+      newToday: this.stats.learnedDates[this.today()] || 0,
+      streak: this.stats.streak || 0,
+      totalReviews: this.stats.totalReviews || 0,
+    };
+  },
+
+  reset() {
+    localStorage.removeItem(SRS_KEY);
+    localStorage.removeItem(STATS_KEY);
+    this.data = {};
+    this.stats = { learnedDates: {}, totalReviews: 0 };
+  },
+};
+
+SRS.load();
+
+/* ============================================================
+   Озвучка греческого через Web Speech API (SpeechSynthesis).
+   Работает офлайн в большинстве браузеров. Если греческого
+   голоса нет — мягко деградируем (кнопка просто молчит).
+   ============================================================ */
+
+const Speech = {
+  voice: null,
+  ready: false,
+  supported: typeof window !== "undefined" && "speechSynthesis" in window,
+
+  init() {
+    if (!this.supported) return;
+    const pick = () => {
+      const voices = window.speechSynthesis.getVoices();
+      // Ищем греческий голос (el-GR / el)
+      this.voice =
+        voices.find((v) => /^el(-|_|$)/i.test(v.lang)) ||
+        voices.find((v) => /greek/i.test(v.name)) ||
+        null;
+      this.ready = voices.length > 0;
+    };
+    pick();
+    // Голоса часто грузятся асинхронно
+    window.speechSynthesis.onvoiceschanged = pick;
+  },
+
+  hasGreek() {
+    return this.supported && !!this.voice;
+  },
+
+  // Произнести греческий текст. rate < 1 = медленнее.
+  say(text, rate = 0.9) {
+    if (!this.supported) return false;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "el-GR";
+    if (this.voice) u.voice = this.voice;
+    u.rate = rate;
+    u.pitch = 1;
+    window.speechSynthesis.speak(u);
+    return true;
+  },
+
+  stop() {
+    if (this.supported) window.speechSynthesis.cancel();
+  },
+};
+
+Speech.init();
+
+/* ============================================================
+   Ελληνικά A1 — главный контроллер приложения.
+   Без зависимостей. Рендер строками + делегирование событий.
+   ============================================================ */
+
+const App = {
+  view: "home",
+  params: {},
+  session: null,
+
+  root: null,
+
+  init() {
+    this.root = document.getElementById("app");
+    document.body.addEventListener("click", (e) => this.onClick(e));
+    document.body.addEventListener("input", (e) => this.onInput(e));
+    document.body.addEventListener("keydown", (e) => this.onKey(e));
+    this.go("home");
+  },
+
+  go(view, params = {}) {
+    this.view = view;
+    this.params = params;
+    this.session = null;
+    Speech.stop();
+    this.render();
+    window.scrollTo(0, 0);
+  },
+
+  /* ---------- УТИЛИТЫ ---------- */
+  shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  },
+
+  // Сравнение греческого без учёта ударений/регистра (для набора)
+  normGreek(s) {
+    return (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "") // снять диакритику
+      .replace(/ς/g, "σ")
+      .replace(/[;.,!·]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  },
+
+  esc(s) {
+    return (s || "").replace(/[&<>"]/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])
+    );
+  },
+
+  speakBtn(text, label = "🔊") {
+    return `<button class="speak" data-say="${this.esc(text)}" title="Послушать">${label}</button>`;
+  },
+
+  /* ---------- РЕНДЕР ---------- */
+  render() {
+    const map = {
+      home: () => this.renderHome(),
+      alphabet: () => this.renderAlphabet(),
+      alphaQuiz: () => this.renderAlphaQuiz(),
+      review: () => this.renderReview(),
+      decks: () => this.renderDecks(),
+      practice: () => this.renderPractice(),
+      grammar: () => this.renderGrammar(),
+      progress: () => this.renderProgress(),
+    };
+    this.root.innerHTML =
+      this.renderNav() + `<main class="screen">${(map[this.view] || map.home)()}</main>`;
+    if (this.afterRender) { const f = this.afterRender; this.afterRender = null; f(); }
+  },
+
+  renderNav() {
+    const tabs = [
+      ["home", "🏠", "Главная"],
+      ["alphabet", "🔤", "Алфавит"],
+      ["review", "🧠", "Повтор"],
+      ["decks", "📚", "Темы"],
+      ["grammar", "📖", "Грамматика"],
+      ["progress", "📊", "Прогресс"],
+    ];
+    const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
+      : this.view === "practice" ? "decks" : this.view;
+    return `<nav class="nav">
+      <div class="brand" data-go="home">Ελληνικά <span>A1</span></div>
+      <div class="tabs">${tabs
+        .map(([v, ic, l]) =>
+          `<button class="tab ${root === v ? "active" : ""}" data-go="${v}"><span>${ic}</span>${l}</button>`
+        )
+        .join("")}</div>
+    </nav>`;
+  },
+
+  /* ---------- ГЛАВНАЯ ---------- */
+  renderHome() {
+    const s = SRS.summary(ALL_WORDS);
+    const pct = Math.round((s.learned / s.total) * 100);
+    const ttsWarn = Speech.hasGreek()
+      ? ""
+      : `<div class="banner">🔇 Греческий голос не найден в браузере. Текст и обучение работают полностью; для озвучки попробуйте Chrome/Edge или установите греческий голос в системе.</div>`;
+    return `
+      ${ttsWarn}
+      <header class="hero">
+        <h1>Γεια σου! 👋</h1>
+        <p class="sub">Тренажёр греческого с нуля до <b>A1</b> — фундамент для экзамена <b>A2</b> (гражданство Кипра).</p>
+      </header>
+
+      <section class="cards-row">
+        <div class="stat">
+          <div class="stat-num">${s.streak}🔥</div>
+          <div class="stat-lbl">дней подряд</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">${s.learned}/${s.total}</div>
+          <div class="stat-lbl">слов изучается</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">${s.due}</div>
+          <div class="stat-lbl">к повтору сегодня</div>
+        </div>
+      </section>
+
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <p class="muted center">Освоено ${pct}% словаря A1</p>
+
+      <section class="cta">
+        <button class="big-btn primary" data-go="review">
+          🧠 Заниматься сейчас
+          <small>${s.due} повторить · ${Math.max(0, 12 - s.newToday)} новых доступно</small>
+        </button>
+      </section>
+
+      <h3 class="section-title">План «с нуля» — 4 шага</h3>
+      <ol class="steps">
+        <li><b>Шаг 1.</b> Выучи <a data-go="alphabet">алфавит</a> — читать звуки и буквосочетания.</li>
+        <li><b>Шаг 2.</b> Каждый день делай <a data-go="review">повторение (SRS)</a> — 10–15 минут.</li>
+        <li><b>Шаг 3.</b> Прокачивай <a data-go="decks">темы</a>: аудирование, выбор, набор слов.</li>
+        <li><b>Шаг 4.</b> Загляни в <a data-go="grammar">грамматику</a>, когда слова начнут складываться.</li>
+      </ol>
+
+      <h3 class="section-title">Быстрый старт</h3>
+      <div class="grid">
+        <button class="tile" data-go="alphabet"><span class="tile-ic">🔤</span>Алфавит</button>
+        <button class="tile" data-go="decks"><span class="tile-ic">📚</span>Темы (${DECKS.length})</button>
+        <button class="tile" data-go="grammar"><span class="tile-ic">📖</span>Грамматика</button>
+        <button class="tile" data-go="progress"><span class="tile-ic">📊</span>Прогресс</button>
+      </div>
+    `;
+  },
+
+  /* ---------- АЛФАВИТ ---------- */
+  renderAlphabet() {
+    const letters = ALPHABET.map(
+      (l) => `
+      <button class="letter" data-say="${l.lower.replace('/ς','')}, ${l.example}">
+        <div class="letter-glyph">${l.upper} ${l.lower}</div>
+        <div class="letter-name">${l.name}</div>
+        <div class="letter-sound">${l.sound}</div>
+        <div class="letter-ex">${l.example} — ${l.exTr}</div>
+      </button>`
+    ).join("");
+
+    const digs = DIGRAPHS.map(
+      (d) => `
+      <button class="letter dig" data-say="${d.example}">
+        <div class="letter-glyph">${d.gr}</div>
+        <div class="letter-sound">${d.translit} · ${d.note}</div>
+        <div class="letter-ex">${d.example} — ${d.exTr}</div>
+      </button>`
+    ).join("");
+
+    return `
+      <header class="page-head">
+        <h2>🔤 Греческий алфавит</h2>
+        <button class="big-btn primary slim" data-go="alphaQuiz">▶ Тренировать буквы</button>
+      </header>
+      <p class="muted">24 буквы. Нажми на букву — услышишь название и пример. Сначала выучи узнавание, потом переходи к тренажёру.</p>
+      <div class="letter-grid">${letters}</div>
+
+      <h3 class="section-title">Буквосочетания (обязательно!)</h3>
+      <p class="muted">Без них слова читаются неправильно. Например, <b>ου</b> = «у», а <b>μπ</b> в начале = «б».</p>
+      <div class="letter-grid">${digs}</div>
+    `;
+  },
+
+  /* ---------- ТРЕНАЖЁР БУКВ ---------- */
+  renderAlphaQuiz() {
+    if (!this.session) {
+      const pool = this.shuffle(ALPHABET).slice(0, 10);
+      this.session = { pool, idx: 0, correct: 0, answered: false };
+    }
+    const s = this.session;
+    if (s.idx >= s.pool.length) {
+      return `
+        <div class="result">
+          <h2>Готово! 🎉</h2>
+          <p class="big-score">${s.correct} / ${s.pool.length}</p>
+          <p class="muted">правильных ответов по буквам</p>
+          <button class="big-btn primary" data-action="alpha-again">Ещё раунд</button>
+          <button class="big-btn ghost" data-go="alphabet">К алфавиту</button>
+        </div>`;
+    }
+    const cur = s.pool[s.idx];
+    // Варианты: какой звук/название у этой буквы (выбор из 4)
+    const options = this.shuffle([
+      cur,
+      ...this.shuffle(ALPHABET.filter((l) => l.upper !== cur.upper)).slice(0, 3),
+    ]);
+    const opts = options
+      .map(
+        (o) =>
+          `<button class="opt" data-alpha-opt="${o.upper}">${o.sound}<br><small>${o.example} — ${o.exTr}</small></button>`
+      )
+      .join("");
+    return `
+      <header class="page-head"><h2>Буква → звук</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <div class="quiz-prompt">
+        <div class="big-letter">${cur.upper} ${cur.lower}</div>
+        <div class="muted">${cur.name} ${this.speakBtn(cur.example)}</div>
+      </div>
+      <p class="muted center">Какой это звук?</p>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>
+    `;
+  },
+
+  /* ---------- ПОВТОРЕНИЕ (SRS) ---------- */
+  renderReview() {
+    if (!this.session) {
+      const queue = SRS.buildQueue(ALL_WORDS, 12);
+      this.session = { queue, idx: 0, flipped: false, done: 0, again: [] };
+    }
+    const s = this.session;
+    // Если основная очередь кончилась, добиваем "не помню"
+    let cur = s.queue[s.idx];
+    if (!cur && s.again.length) { s.queue = s.again; s.again = []; s.idx = 0; cur = s.queue[0]; }
+
+    if (!cur) {
+      const sum = SRS.summary(ALL_WORDS);
+      return `
+        <div class="result">
+          <h2>Сессия завершена 👏</h2>
+          <p class="muted">Повторено карточек: <b>${s.done}</b></p>
+          <p class="muted">Стрик: <b>${sum.streak} 🔥</b> · Всего изучается: <b>${sum.learned}/${sum.total}</b></p>
+          <button class="big-btn primary" data-action="review-again">Продолжить</button>
+          <button class="big-btn ghost" data-go="decks">Тренировать темы</button>
+        </div>`;
+    }
+    const isNew = SRS.isNew(cur.id);
+    const front = `
+      <div class="card-tag">${isNew ? "🆕 новое слово" : "🔁 повторение"} · ${cur.deckTitle}</div>
+      <div class="flash-gr">${cur.gr} ${this.speakBtn(cur.gr)}</div>
+      <div class="flash-tr">[${cur.tr}]</div>`;
+    const back = s.flipped
+      ? `<div class="flash-ru">${cur.ru}</div>`
+      : `<button class="reveal" data-action="flip">Показать перевод</button>`;
+    const controls = s.flipped
+      ? `<div class="grades">
+          <button class="grade g0" data-grade="0">Не помню<small>снова</small></button>
+          <button class="grade g1" data-grade="1">Трудно<small>скоро</small></button>
+          <button class="grade g2" data-grade="2">Хорошо<small>+дни</small></button>
+          <button class="grade g3" data-grade="3">Легко<small>+нед.</small></button>
+        </div>`
+      : "";
+    return `
+      <header class="page-head"><h2>🧠 Повторение</h2><div class="counter">осталось ${s.queue.length - s.idx + s.again.length}</div></header>
+      <div class="flashcard">${front}${back}</div>
+      ${controls}
+      <p class="muted center small">Оцени честно: чем хуже помнишь — тем раньше слово вернётся.</p>
+    `;
+  },
+
+  /* ---------- СПИСОК ТЕМ ---------- */
+  renderDecks() {
+    const tiles = DECKS.map((d) => {
+      const sum = SRS.summary(d.words);
+      const pct = Math.round((sum.learned / sum.total) * 100);
+      return `
+        <button class="deck-tile" data-deck="${d.id}">
+          <div class="deck-ic">${d.icon}</div>
+          <div class="deck-body">
+            <div class="deck-title">${d.title}</div>
+            <div class="deck-meta">${d.words.length} слов · освоено ${pct}%</div>
+            <div class="progress-bar mini"><div class="progress-fill" style="width:${pct}%"></div></div>
+          </div>
+        </button>`;
+    }).join("");
+    return `
+      <header class="page-head"><h2>📚 Темы</h2></header>
+      <p class="muted">Бытовые темы экзамена A2. Выбери тему — внутри слова, аудирование, выбор и набор.</p>
+      <div class="deck-list">${tiles}</div>
+    `;
+  },
+
+  /* ---------- ТЕМА: ПРОСМОТР + РЕЖИМЫ ---------- */
+  renderPractice() {
+    const deck = DECKS.find((d) => d.id === this.params.deck);
+    if (!deck) return this.renderDecks();
+    const mode = this.params.mode || "list";
+
+    if (mode === "list") {
+      const rows = deck.words
+        .map(
+          (w) => `
+        <div class="word-row">
+          <div class="w-gr">${w.gr} ${this.speakBtn(w.gr)}</div>
+          <div class="w-tr">[${w.tr}]</div>
+          <div class="w-ru">${w.ru}</div>
+        </div>`
+        )
+        .join("");
+      return `
+        <header class="page-head"><h2>${deck.icon} ${deck.title}</h2><button class="back" data-go="decks">← Темы</button></header>
+        <div class="mode-row">
+          <button class="mode-btn" data-mode="learn"><span>🧠</span>Карточки</button>
+          <button class="mode-btn" data-mode="choice"><span>✅</span>Выбор</button>
+          <button class="mode-btn" data-mode="listen"><span>👂</span>Аудио</button>
+          <button class="mode-btn" data-mode="type"><span>⌨️</span>Набор</button>
+          <button class="mode-btn hot" data-mode="dictation"><span>🎧</span>Диктант</button>
+        </div>
+        <div class="word-list">${rows}</div>
+      `;
+    }
+    return this.renderDeckMode(deck, mode);
+  },
+
+  renderDeckMode(deck, mode) {
+    if (!this.session) {
+      this.session = { pool: this.shuffle(deck.words), idx: 0, correct: 0, answered: false, input: "" };
+    }
+    const s = this.session;
+    const titleByMode = { learn: "🧠 Карточки", choice: "✅ Выбор перевода", listen: "👂 Аудирование", type: "⌨️ Набор по-гречески", dictation: "🎧 Диктант (на слух)" };
+
+    if (s.idx >= s.pool.length) {
+      return `
+        <div class="result">
+          <h2>Тема пройдена! 🎉</h2>
+          <p class="big-score">${s.correct} / ${s.pool.length}</p>
+          <button class="big-btn primary" data-action="mode-again">Ещё раз</button>
+          <button class="big-btn ghost" data-deck="${deck.id}" data-mode="list">К теме</button>
+          <button class="big-btn ghost" data-go="decks">Все темы</button>
+        </div>`;
+    }
+    const cur = s.pool[s.idx];
+    const head = `<header class="page-head"><h2>${titleByMode[mode]}</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>`;
+
+    if (mode === "learn") {
+      const body = s.answered
+        ? `<div class="flash-ru">${cur.ru}</div>
+           <div class="grades simple">
+             <button class="grade g0" data-deck-next="0">Не знал</button>
+             <button class="grade g2" data-deck-next="1">Знал</button>
+           </div>`
+        : `<button class="reveal" data-action="deck-flip">Показать перевод</button>`;
+      return `${head}
+        <div class="flashcard">
+          <div class="card-tag">${deck.title}</div>
+          <div class="flash-gr">${cur.gr} ${this.speakBtn(cur.gr)}</div>
+          <div class="flash-tr">[${cur.tr}]</div>
+          ${body}
+        </div>`;
+    }
+
+    if (mode === "choice" || mode === "listen") {
+      const opts = this.shuffle([
+        cur,
+        ...this.shuffle(deck.words.filter((w) => w.id !== cur.id)).slice(0, 3),
+      ]);
+      const prompt =
+        mode === "listen"
+          ? `<div class="quiz-prompt listen">
+               <button class="play-big" data-say="${this.esc(cur.gr)}">🔊 Слушать</button>
+               <button class="play-slow" data-say-slow="${this.esc(cur.gr)}">🐢 Медленно</button>
+             </div>
+             <p class="muted center">Что ты услышал?</p>`
+          : `<div class="quiz-prompt">
+               <div class="big-letter sm">${cur.gr} ${this.speakBtn(cur.gr)}</div>
+               <div class="muted">[${cur.tr}]</div>
+             </div>
+             <p class="muted center">Выбери перевод</p>`;
+      const buttons = opts
+        .map((o) => `<button class="opt" data-choice="${o.id}">${o.ru}</button>`)
+        .join("");
+      this.afterRender = mode === "listen" ? () => Speech.say(cur.gr) : null;
+      return `${head}${prompt}<div class="opts">${buttons}</div><div id="fb" class="feedback"></div>`;
+    }
+
+    if (mode === "type" || mode === "dictation") {
+      const prompt =
+        mode === "dictation"
+          ? `<div class="quiz-prompt listen">
+               <button class="play-big" data-say="${this.esc(cur.gr)}">🔊 Повторить</button>
+               <button class="play-slow" data-say-slow="${this.esc(cur.gr)}">🐢 Медленно</button>
+               <div class="muted small dict-hint">Слушай и запиши по-гречески</div>
+             </div>`
+          : `<div class="quiz-prompt">
+               <div class="type-ru">${cur.ru}</div>
+               <div class="muted small">подсказка: [${cur.tr}]</div>
+             </div>`;
+      // В диктанте звук проигрывается сам при показе карточки
+      this.afterRender = () => {
+        if (mode === "dictation") Speech.say(cur.gr);
+        const i = document.getElementById("typeInput");
+        if (i) i.focus();
+      };
+      return `${head}
+        ${prompt}
+        <input id="typeInput" class="type-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+               placeholder="Напиши по-гречески (ударения можно не ставить)" value="${this.esc(s.input)}">
+        <div class="kbd-hint">Нужны греческие буквы? Включи раскладку Ελληνικά или используй экранную клавиатуру ниже.</div>
+        <div class="gkbd">${this.greekKeyboard()}</div>
+        <button class="big-btn primary" data-action="type-check">Проверить</button>
+        <div id="fb" class="feedback"></div>`;
+    }
+    return this.renderDecks();
+  },
+
+  greekKeyboard() {
+    const rows = ["ασδφγηξκλ", "ζχψωβνμ", "ερτυθιοπ"];
+    return rows
+      .map(
+        (r) =>
+          `<div class="gkbd-row">${r
+            .split("")
+            .map((c) => `<button class="gkey" data-key="${c}">${c}</button>`)
+            .join("")}<button class="gkey wide" data-key=" ">␣</button><button class="gkey wide" data-key="BACK">⌫</button></div>`
+      )
+      .join("");
+  },
+
+  /* ---------- ГРАММАТИКА ---------- */
+  renderGrammar() {
+    const items = GRAMMAR.map(
+      (g) => `<details class="gram"><summary>${g.title}</summary><div class="gram-body">${g.body.replace(/\n/g, "<br>")}</div></details>`
+    ).join("");
+    return `
+      <header class="page-head"><h2>📖 Мини-грамматика A1</h2></header>
+      <p class="muted">Самое нужное на старте. Не зубри — просто понимай, как слова соединяются.</p>
+      ${items}
+    `;
+  },
+
+  /* ---------- ПРОГРЕСС ---------- */
+  renderProgress() {
+    const s = SRS.summary(ALL_WORDS);
+    const perDeck = DECKS.map((d) => {
+      const ds = SRS.summary(d.words);
+      const pct = Math.round((ds.learned / ds.total) * 100);
+      return `<div class="word-row">
+        <div class="w-gr">${d.icon} ${d.title}</div>
+        <div class="w-ru">${ds.learned}/${ds.total}</div>
+        <div class="progress-bar mini" style="flex:1"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join("");
+    // мини-календарь активности (последние 14 дней)
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const cnt = SRS.stats.learnedDates[key] || 0;
+      days.push(`<div class="hday ${cnt ? "on" : ""}" title="${key}: ${cnt} новых">${d.getDate()}</div>`);
+    }
+    return `
+      <header class="page-head"><h2>📊 Прогресс</h2></header>
+      <section class="cards-row">
+        <div class="stat"><div class="stat-num">${s.streak}🔥</div><div class="stat-lbl">дней подряд</div></div>
+        <div class="stat"><div class="stat-num">${s.learned}/${s.total}</div><div class="stat-lbl">слов</div></div>
+        <div class="stat"><div class="stat-num">${s.mature}</div><div class="stat-lbl">закреплено</div></div>
+        <div class="stat"><div class="stat-num">${s.totalReviews}</div><div class="stat-lbl">повторов всего</div></div>
+      </section>
+      <h3 class="section-title">Активность (14 дней)</h3>
+      <div class="heat">${days.join("")}</div>
+      <h3 class="section-title">По темам</h3>
+      <div class="word-list">${perDeck}</div>
+      <button class="big-btn ghost danger" data-action="reset">Сбросить весь прогресс</button>
+    `;
+  },
+
+  /* ---------- СОБЫТИЯ ---------- */
+  onClick(e) {
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key]");
+    if (!t) return;
+
+    if (t.dataset.go) return this.go(t.dataset.go);
+
+    if (t.dataset.say !== undefined) { Speech.say(t.dataset.say); return; }
+    if (t.dataset.saySlow !== undefined) { Speech.say(t.dataset.saySlow, 0.6); return; }
+
+    if (t.dataset.deck && !t.dataset.mode) return this.go("practice", { deck: t.dataset.deck, mode: "list" });
+    if (t.dataset.deck && t.dataset.mode) return this.go("practice", { deck: t.dataset.deck, mode: t.dataset.mode });
+    if (t.dataset.mode) return this.go("practice", { deck: this.params.deck, mode: t.dataset.mode });
+
+    const a = t.dataset.action;
+    if (a) return this.action(a, t);
+
+    if (t.dataset.alphaOpt) return this.alphaAnswer(t.dataset.alphaOpt, t);
+    if (t.dataset.grade !== undefined) return this.reviewGrade(parseInt(t.dataset.grade, 10));
+    if (t.dataset.deckNext !== undefined) return this.deckLearnNext(parseInt(t.dataset.deckNext, 10));
+    if (t.dataset.choice) return this.choiceAnswer(t.dataset.choice, t);
+    if (t.dataset.key) return this.kbdKey(t.dataset.key);
+  },
+
+  onInput(e) {
+    if (e.target.id === "typeInput") this.session.input = e.target.value;
+  },
+
+  onKey(e) {
+    if (e.key === "Enter" && e.target.id === "typeInput") { e.preventDefault(); this.typeCheck(); }
+    if (this.view === "review" && this.session && !this.session.flipped && e.code === "Space") {
+      e.preventDefault(); this.action("flip");
+    }
+  },
+
+  action(name, el) {
+    switch (name) {
+      case "flip": this.session.flipped = true; return this.render();
+      case "review-again": this.session = null; return this.render();
+      case "alpha-again": this.session = null; return this.render();
+      case "mode-again": this.session = null; return this.render();
+      case "deck-flip": this.session.answered = true; return this.render();
+      case "type-check": return this.typeCheck();
+      case "reset":
+        if (confirm("Сбросить весь прогресс и стрик? Это нельзя отменить.")) { SRS.reset(); this.go("home"); }
+        return;
+    }
+  },
+
+  /* --- логика тренажёра букв --- */
+  alphaAnswer(upper, el) {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    const fb = document.getElementById("fb");
+    const ok = upper === cur.upper;
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.alphaOpt === cur.upper) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    Speech.say(cur.example);
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Это " + cur.upper + " " + cur.lower + " — " + cur.sound}</div>
+      <button class="big-btn primary" data-action="alpha-next">Дальше →</button>`;
+    this.afterRender = () => {};
+    // навешиваем next
+    fb.querySelector("[data-action='alpha-next']").addEventListener("click", () => {
+      s.idx++; s.answered = false; this.render();
+    });
+  },
+
+  /* --- SRS оценка --- */
+  reviewGrade(q) {
+    const s = this.session;
+    const cur = s.queue[s.idx];
+    SRS.grade(cur.id, q);
+    s.done++;
+    if (q === 0) s.again.push(cur); // вернуть в конце сессии
+    s.idx++;
+    s.flipped = false;
+    this.render();
+  },
+
+  /* --- карточки внутри темы --- */
+  deckLearnNext(knew) {
+    const s = this.session;
+    if (knew) s.correct++;
+    s.idx++; s.answered = false;
+    this.render();
+  },
+
+  /* --- выбор/аудио ответ --- */
+  choiceAnswer(id, el) {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    const ok = id === cur.id;
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.choice === cur.id) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ " + cur.gr + " — " + cur.ru}</div>
+      <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+  },
+
+  /* --- экранная клавиатура --- */
+  kbdKey(k) {
+    const inp = document.getElementById("typeInput");
+    if (!inp) return;
+    if (k === "BACK") inp.value = inp.value.slice(0, -1);
+    else inp.value += k;
+    this.session.input = inp.value;
+    inp.focus();
+  },
+
+  /* --- проверка набора --- */
+  typeCheck() {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    const inp = document.getElementById("typeInput");
+    const val = inp ? inp.value : s.input;
+    const ok = this.normGreek(val) === this.normGreek(cur.gr);
+    if (ok) s.correct++;
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
+        ${ok ? "✓ Верно! " + cur.gr : "✗ Правильно: <b>" + cur.gr + "</b>"} ${this.speakBtn(cur.gr)}
+        <div class="answer-ru">${cur.ru} · [${cur.tr}]</div>
+      </div>
+      <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
+    if (inp) inp.disabled = true;
+    Speech.say(cur.gr);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.input = ""; this.render(); });
+  },
+};
+
+document.addEventListener("DOMContentLoaded", () => App.init());
+
+  </script>
+</body>
+</html>
