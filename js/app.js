@@ -151,6 +151,7 @@ const App = {
       exams: () => this.renderExamsList(),
       exam: () => this.renderExam(),
       progress: () => this.renderProgress(),
+      coverage: () => this.renderCoverage(),
     };
     this.root.innerHTML =
       this.renderNav() + `<main class="screen">${(map[this.view] || map.home)()}</main>`;
@@ -169,6 +170,7 @@ const App = {
       ["reading", "📕", "Чтение"],
       ["exams", "📝", "Экзамены"],
       ["progress", "📊", "Прогресс"],
+      ["coverage", "ℹ️", "Методика"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
@@ -1261,6 +1263,82 @@ const App = {
     if (q.audio) Speech.say(q.audio);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
     this.afterAnswer();
+  },
+
+  /* ---------- МЕТОДИКА И ПОКРЫТИЕ (живой расчёт) ---------- */
+  grTokens(text) { return this.normGreek(text).split(" ").filter(Boolean); },
+
+  renderCoverage() {
+    const words = ALL_WORDS.length, themes = DECKS.length, lessons = GRAMMAR_LESSONS.length;
+    const texts = (typeof READING_TEXTS !== "undefined") ? READING_TEXTS.length : 0;
+    const exams = (typeof EXAM_READINGS !== "undefined") ? EXAM_READINGS.length : 0;
+    let exCount = 0, exTopics = 0;
+    GRAMMAR_LESSONS.forEach((g) => { if (GrammarEx.has(g.id)) { exTopics++; exCount += GrammarEx.gen(g.id).length; } });
+    const speakN = this.buildSpeaking().length;
+
+    // множества нормализованных словоформ
+    const deckSet = new Set(); ALL_WORDS.forEach((w) => this.grTokens(w.gr).forEach((t) => deckSet.add(t)));
+    const matSet = new Set();
+    const addText = (s) => this.grTokens(s).forEach((t) => matSet.add(t));
+    if (typeof READING_TEXTS !== "undefined") READING_TEXTS.forEach((t) => { t.sents.forEach((p) => addText(p[0])); Object.keys(t.gloss || {}).forEach((k) => addText(k)); });
+    if (typeof WRITING_ORDER !== "undefined") WRITING_ORDER.forEach((s) => addText(s.tokens.join(" ")));
+    if (typeof WRITING_GAPS !== "undefined") WRITING_GAPS.forEach((g) => addText(g.parts.join(" " + g.answer + " ")));
+    if (typeof EXAM_READINGS !== "undefined") EXAM_READINGS.forEach((r) => addText(r.gr));
+    GRAMMAR_LESSONS.forEach((g) => addText(g.body));
+
+    const inMat = ALL_WORDS.filter((w) => this.grTokens(w.gr).some((t) => matSet.has(t))).length;
+    const synergy = Math.round(100 * inMat / words);
+
+    // официальный A1
+    const allSet = new Set([...deckSet, ...matSet]);
+    const off = (typeof OFFICIAL_A1 !== "undefined") ? OFFICIAL_A1 : [];
+    const offDeck = off.length ? Math.round(100 * off.filter((h) => deckSet.has(h)).length / off.length) : 0;
+    const offAll = off.length ? Math.round(100 * off.filter((h) => allSet.has(h)).length / off.length) : 0;
+
+    const themeRows = DECKS.map((d) => `<div class="word-row"><div class="w-gr">${d.icon} ${d.title}</div><div class="w-ru">${d.words.length} сл.</div></div>`).join("");
+    const exRows = GRAMMAR_LESSONS.filter((g) => GrammarEx.has(g.id)).map((g) =>
+      `<div class="word-row"><div class="w-gr">${GrammarEx.icon(g.id)} ${g.title.replace(/^\d+\.\s*/, "")}</div><div class="w-ru">${GrammarEx.gen(g.id).length} упр.</div></div>`).join("");
+
+    return `
+      <header class="page-head"><h2>ℹ️ Методика и покрытие</h2></header>
+      <p class="muted small">Считается вживую из контента — всегда актуально.</p>
+
+      <section class="cards-row">
+        <div class="stat"><div class="stat-num">${words}</div><div class="stat-lbl">слов</div></div>
+        <div class="stat"><div class="stat-num">${themes}</div><div class="stat-lbl">тем</div></div>
+        <div class="stat"><div class="stat-num">${exCount}</div><div class="stat-lbl">упражнений</div></div>
+      </section>
+      <section class="cards-row">
+        <div class="stat"><div class="stat-num">${lessons}</div><div class="stat-lbl">уроков</div></div>
+        <div class="stat"><div class="stat-num">${texts}</div><div class="stat-lbl">текстов</div></div>
+        <div class="stat"><div class="stat-num">${exams}</div><div class="stat-lbl">экзаменов</div></div>
+      </section>
+
+      <h3 class="section-title">Покрытие официального A1 (ΚΕΓ)</h3>
+      <p class="muted small">Эталон — глоссарий ΚΛΙΚ Α1 (${off.length} лемм). Реальное ядро ~800–1000.</p>
+      <div class="word-row"><div class="w-gr">Словарём (темы)</div><div class="w-ru"><b>${offDeck}%</b></div></div>
+      <div class="word-row"><div class="w-gr">Со всем контентом</div><div class="w-ru"><b>${offAll}%</b></div></div>
+
+      <h3 class="section-title">Синергия «слово ↔ материалы»</h3>
+      <p class="muted small">Доля слов, встречающихся в текстах/упражнениях/экзаменах/грамматике (контекст → удержание).</p>
+      <div class="progress-bar"><div class="progress-fill" style="width:${synergy}%"></div></div>
+      <p class="muted center"><b>${synergy}%</b> слов живут в материалах · 🗣️ говорение: ${speakN} фраз</p>
+
+      <h3 class="section-title">Методология (5 опор)</h3>
+      <ol class="steps">
+        <li>Алфавит → звук в первую очередь.</li>
+        <li>Интервальные повторения (SRS, SM-2) — ядро удержания.</li>
+        <li>Понятный ввод — graded-тексты A0→A1 с тап-переводом.</li>
+        <li>Продукция — письмо, говорение, упражнения по грамматике.</li>
+        <li>Самопроверка — пробные экзамены формата ΚΕΓ.</li>
+      </ol>
+
+      <h3 class="section-title">Слова по темам (${themes})</h3>
+      <div class="word-list">${themeRows}</div>
+
+      <h3 class="section-title">Упражнения по темам грамматики (${exTopics})</h3>
+      <div class="word-list">${exRows}</div>
+    `;
   },
 
   /* ---------- ПРОГРЕСС ---------- */
