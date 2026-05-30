@@ -122,6 +122,8 @@ const App = {
       grammar: () => this.renderGrammar(),
       trainer: () => this.renderTrainer(),
       writing: () => this.renderWriting(),
+      exams: () => this.renderExamsList(),
+      exam: () => this.renderExam(),
       progress: () => this.renderProgress(),
     };
     this.root.innerHTML =
@@ -189,6 +191,10 @@ const App = {
         <button class="big-btn primary" data-go="review">
           🧠 Заниматься сейчас
           <small>${s.due} повторить · ${Math.max(0, 12 - s.newToday)} новых доступно</small>
+        </button>
+        <button class="big-btn" data-go="exams">
+          📝 Пробные экзамены A1
+          <small>${EXAM_READINGS.length} мини-тестов в формате экзамена</small>
         </button>
       </section>
 
@@ -758,6 +764,136 @@ const App = {
       <div id="reveal">${reveal}</div>`;
   },
 
+  /* ---------- ЭКЗАМЕНЫ ---------- */
+  examBest() {
+    try { return JSON.parse(localStorage.getItem("greekA1_exam_best")) || {}; }
+    catch { return {}; }
+  },
+  saveExamBest(n, pct) {
+    const b = this.examBest();
+    if (b[n] == null || pct > b[n]) { b[n] = pct; localStorage.setItem("greekA1_exam_best", JSON.stringify(b)); }
+  },
+
+  renderExamsList() {
+    const best = this.examBest();
+    const tiles = EXAM_READINGS.map((r, i) => {
+      const b = best[i];
+      const meta = b != null
+        ? `лучший результат: <b>${b}%</b> ${b >= 60 ? "✅ сдан" : "❌ ещё разок"}`
+        : "ещё не пройден";
+      return `<button class="deck-tile" data-exam="${i}">
+        <div class="deck-ic">📝</div>
+        <div class="deck-body"><div class="deck-title">Экзамен ${i + 1} · ${r.theme}</div>
+        <div class="deck-meta">${meta}</div></div>
+      </button>`;
+    }).join("");
+    return `
+      <header class="page-head"><h2>📝 Пробные экзамены A1</h2></header>
+      <p class="muted">Формат как на экзамене: чтение, лексика, грамматика, аудио и письмо. Зачёт — от 60%. Можно пересдавать: вопросы каждый раз обновляются.</p>
+      <div class="deck-list">${tiles}</div>
+    `;
+  },
+
+  // Сборка одного экзамена из текста + общих банков
+  buildExam(n) {
+    const R = EXAM_READINGS[n % EXAM_READINGS.length];
+    const qs = [];
+    const otherRu = (ru, k) => this.shuffle(ALL_WORDS.filter((x) => x.ru !== ru)).slice(0, k).map((x) => x.ru);
+    const uniq = (arr) => [...new Set(arr)];
+
+    // Чтение
+    R.q.forEach((q) => qs.push({ section: "Чтение", passage: R.gr, passageRu: R.ru, prompt: q.ask, options: this.shuffle(q.options.slice()), answer: q.answer }));
+    // Лексика (4): что значит слово
+    this.shuffle(ALL_WORDS).slice(0, 4).forEach((w) => {
+      const opts = uniq([w.ru, ...otherRu(w.ru, 3)]);
+      qs.push({ section: "Лексика", prompt: `Что значит «${w.gr}»?`, audio: w.gr, options: this.shuffle(opts), answer: w.ru });
+    });
+    // Грамматика (4): вставь слово
+    this.shuffle(WRITING_GAPS).slice(0, 4).forEach((g) => {
+      qs.push({ section: "Грамматика", prompt: `${g.parts[0]}<span class="blank">_____</span>${g.parts[1]} <span class="muted small">(${g.ru})</span>`, options: this.shuffle(g.options.slice()), answer: g.answer });
+    });
+    // Аудио (3): услышь и выбери перевод (текст скрыт)
+    this.shuffle(ALL_WORDS).slice(0, 3).forEach((w) => {
+      const opts = uniq([w.ru, ...otherRu(w.ru, 3)]);
+      qs.push({ section: "Аудио", prompt: "Прослушай и выбери перевод:", audio: w.gr, hideAudioText: true, autoplay: true, options: this.shuffle(opts), answer: w.ru });
+    });
+    // Письмо (2): выбери правильное предложение
+    this.shuffle(WRITING_ORDER).slice(0, 2).forEach((sn) => {
+      const correct = sn.tokens.join(" ");
+      const scrambles = new Set();
+      let guard = 0;
+      while (scrambles.size < 2 && guard++ < 30) {
+        const x = this.shuffle(sn.tokens).join(" ");
+        if (x !== correct) scrambles.add(x);
+      }
+      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sn.ru}»`, options: this.shuffle([correct, ...scrambles]), answer: correct });
+    });
+    return qs;
+  },
+
+  renderExam() {
+    const n = parseInt(this.params.n, 10) || 0;
+    if (!this.session || this.session.n !== n) this.session = { n, qs: this.buildExam(n), idx: 0, correct: 0, sect: {} };
+    const s = this.session;
+
+    if (s.idx >= s.qs.length) {
+      const pct = Math.round((100 * s.correct) / s.qs.length);
+      this.saveExamBest(n, pct);
+      const pass = pct >= 60;
+      const rows = Object.keys(s.sect).map((k) =>
+        `<div class="word-row"><div class="w-gr">${k}</div><div class="w-ru">${s.sect[k].c}/${s.sect[k].t}</div></div>`).join("");
+      return `
+        <div class="result">
+          <h2>${pass ? "Сдан! 🎉" : "Почти 💪"}</h2>
+          <p class="big-score ${pass ? "" : "fail"}">${pct}%</p>
+          <p class="muted">${s.correct} из ${s.qs.length} правильно · зачёт от 60%</p>
+        </div>
+        <div class="word-list">${rows}</div>
+        <button class="big-btn primary" data-exam="${n}">Пересдать</button>
+        <button class="big-btn ghost" data-go="exams">К списку экзаменов</button>`;
+    }
+
+    const q = s.qs[s.idx];
+    const passage = q.passage
+      ? `<details class="passage" open><summary>📖 Текст</summary><div class="passage-gr">${q.passage}</div><div class="passage-ru muted small">${q.passageRu}</div></details>`
+      : "";
+    const audio = q.audio
+      ? `<div class="quiz-prompt listen">
+           <button class="play-big" data-say="${this.esc(q.audio)}">🔊 Слушать</button>
+           <button class="play-slow" data-say-slow="${this.esc(q.audio)}">🐢 Медленно</button>
+         </div>`
+      : "";
+    if (q.autoplay) this.afterRender = () => Speech.say(q.audio);
+    const opts = q.options.map((o) => `<button class="opt" data-exopt="${this.esc(o)}">${o}</button>`).join("");
+    return `
+      <header class="page-head"><h2>Экзамен ${n + 1}</h2><div class="counter">${s.idx + 1}/${s.qs.length}</div></header>
+      <div class="exam-sec">${q.section}</div>
+      ${passage}${audio}
+      <div class="exam-q">${q.prompt}</div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>`;
+  },
+
+  examAnswer(opt, el) {
+    const s = this.session;
+    const q = s.qs[s.idx];
+    const ok = opt === q.answer;
+    if (ok) s.correct++;
+    if (!s.sect[q.section]) s.sect[q.section] = { c: 0, t: 0 };
+    s.sect[q.section].t++; if (ok) s.sect[q.section].c++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.exopt === q.answer) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    const reveal = q.hideAudioText ? `<div class="answer-ru">${q.audio}</div>` : "";
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + q.answer + "</b>"}${reveal}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
+    if (q.audio) Speech.say(q.audio);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+  },
+
   /* ---------- ПРОГРЕСС ---------- */
   renderProgress() {
     const s = SRS.summary(ALL_WORDS);
@@ -796,10 +932,13 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt]");
     if (!t) return;
 
     if (t.dataset.go) return this.go(t.dataset.go);
+
+    if (t.dataset.exam !== undefined) return this.go("exam", { n: t.dataset.exam });
+    if (t.dataset.exopt !== undefined) return this.examAnswer(t.dataset.exopt, t);
 
     if (t.dataset.wmode) return this.go("writing", { mode: t.dataset.wmode });
     if (t.dataset.wtoken) return this.wToken(t.dataset.wtoken);
