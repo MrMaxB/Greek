@@ -2811,6 +2811,7 @@ const App = {
       grammar: () => this.renderGrammar(),
       trainer: () => this.renderTrainer(),
       writing: () => this.renderWriting(),
+      speaking: () => this.renderSpeaking(),
       reading: () => this.renderReadingList(),
       read: () => this.renderRead(),
       exams: () => this.renderExamsList(),
@@ -2830,6 +2831,7 @@ const App = {
       ["decks", "📚", "Темы"],
       ["grammar", "📖", "Грамматика"],
       ["writing", "✍️", "Письмо"],
+      ["speaking", "🗣️", "Говорение"],
       ["reading", "📕", "Чтение"],
       ["exams", "📝", "Экзамены"],
       ["progress", "📊", "Прогресс"],
@@ -3483,6 +3485,108 @@ const App = {
       <div id="reveal">${reveal}</div>`;
   },
 
+  /* ---------- ГОВОРЕНИЕ (фразы вслух + распознавание) ---------- */
+  // Греческие числительные → цифра (распознавание возвращает цифры)
+  NUM: {
+    "μηδεν":"0","ενα":"1","μια":"1","δυο":"2","τρια":"3","τρεις":"3","τεσσερα":"4","τεσσερις":"4",
+    "πεντε":"5","εξι":"6","εφτα":"7","επτα":"7","οχτω":"8","οκτω":"8","εννια":"9","εννεα":"9","δεκα":"10",
+    "εντεκα":"11","δωδεκα":"12","εικοσι":"20","τριαντα":"30","σαραντα":"40","πενηντα":"50","εξηντα":"60",
+    "εβδομηντα":"70","ογδοντα":"80","ενενηντα":"90","εκατο":"100","χιλια":"1000",
+  },
+  speechTokens(text) {
+    const toks = (text || "").match(/\d+|[Ͱ-Ͽἀ-῿]+/g) || [];
+    return toks.map((t) => {
+      if (/^\d+$/.test(t)) return t;
+      const ng = this.normGreek(t);
+      return this.NUM[ng] || this.phoneticGreek(t);
+    }).filter(Boolean);
+  },
+  // Совпало ли произнесённое с целью (с учётом чисел и омофонов)
+  phraseMatch(target, alts) {
+    const tt = this.speechTokens(target);
+    const tjoin = tt.join(" ");
+    return alts.some((a) => {
+      const ht = this.speechTokens(a);
+      if (ht.join(" ") === tjoin) return true;
+      return tt.length > 0 && tt.every((x) => ht.includes(x));
+    });
+  },
+
+  buildSpeaking() {
+    if (this._speaking) return this._speaking;
+    const out = [];
+    const seen = new Set();
+    const add = (gr, ru) => { const k = this.normGreek(gr); if (gr && !seen.has(k)) { seen.add(k); out.push({ gr, ru }); } };
+    const ph = DECKS.find((d) => d.id === "phrases"); if (ph) ph.words.forEach((w) => add(w.gr, w.ru));
+    const gr = DECKS.find((d) => d.id === "greetings"); if (gr) gr.words.forEach((w) => add(w.gr, w.ru));
+    if (typeof WRITING_ORDER !== "undefined") WRITING_ORDER.forEach((s) => add(s.tokens.join(" "), s.ru));
+    this._speaking = out;
+    return out;
+  },
+
+  renderSpeaking() {
+    if (!this.session) {
+      if (!Recog.supported) {
+        return `<header class="page-head"><h2>🗣️ Говорение</h2></header>
+          <div class="banner">🎤 Распознавание речи не поддерживается этим браузером (на iPhone его нет). Открой сайт в <b>Chrome</b> на Android или компьютере.</div>`;
+      }
+      this.session = { pool: this.shuffle(this.buildSpeaking()), idx: 0, correct: 0, scored: false };
+    }
+    const s = this.session;
+    if (s.idx >= s.pool.length) {
+      return `<div class="result"><h2>Готово! 🎉</h2><p class="big-score">${s.correct} / ${s.pool.length}</p>
+        <p class="muted">фраз произнесено верно</p>
+        <button class="big-btn primary" data-action="spk-again">Ещё раунд</button>
+        <button class="big-btn ghost" data-go="home">На главную</button></div>`;
+    }
+    const cur = s.pool[s.idx];
+    return `
+      <header class="page-head"><h2>🗣️ Говорение</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <p class="muted small">Прочитай фразу вслух по-гречески. Нажми 🔊 послушать образец, потом 🎤 и говори.</p>
+      <div class="quiz-prompt">
+        <div class="flash-gr">${cur.gr} ${this.speakBtn(cur.gr)}</div>
+        <div class="muted">${cur.ru}</div>
+      </div>
+      <button class="play-slow" data-say-slow="${this.esc(cur.gr)}">🐢 Медленно</button>
+      <button class="mic-btn" data-action="spk-start">🎤 Произнести фразу</button>
+      <div id="fb" class="feedback"></div>`;
+  },
+
+  speakStartPhrase() {
+    const cur = this.session.pool[this.session.idx];
+    const mic = document.querySelector(".mic-btn");
+    const fb = document.getElementById("fb");
+    Recog.listen(
+      (alts) => this.speakPhraseResult(alts, cur),
+      (code) => {
+        if (mic) { mic.classList.remove("rec"); mic.innerHTML = "🎤 Произнести фразу"; mic.disabled = false; }
+        const msg = code === "not-allowed" || code === "service-not-allowed"
+          ? "Доступ к микрофону запрещён. Разреши его в браузере."
+          : code === "nomatch" ? "Не расслышал. Чётче и ещё раз." : "Не получилось. Ещё раз.";
+        if (fb) fb.innerHTML = `<div class="bad-msg">${msg}</div>`;
+      },
+      () => { if (mic) { mic.classList.add("rec"); mic.innerHTML = "🔴 Слушаю… говори"; mic.disabled = true; } if (fb) fb.innerHTML = ""; }
+    );
+  },
+
+  speakPhraseResult(alts, cur) {
+    const s = this.session;
+    const mic = document.querySelector(".mic-btn");
+    if (mic) { mic.classList.remove("rec"); mic.innerHTML = "🎤 Сказать снова"; mic.disabled = false; }
+    const ok = this.phraseMatch(cur.gr, alts);
+    if (ok && !s.scored) s.correct++;
+    s.scored = true;
+    const heard = alts[0] || "—";
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
+        ${ok ? "✓ Отлично!" : "✗ Почти"} ${this.speakBtn(cur.gr)}
+        <div class="answer-ru">Услышал: «${this.esc(heard)}»</div>
+      </div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Результат →" : "Дальше →"}</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.scored = false; this.render(); });
+    this.afterAnswer();
+  },
+
   /* ---------- ЧТЕНИЕ (graded readers) ---------- */
   readingDone() {
     try { return JSON.parse(localStorage.getItem("greekA1_reading_done")) || {}; }
@@ -3886,6 +3990,8 @@ const App = {
       case "type-check": return this.typeCheck();
       case "speak-start": return this.speakStart();
       case "speak-next": this.session.idx++; return this.render();
+      case "spk-start": return this.speakStartPhrase();
+      case "spk-again": this.session = null; return this.render();
       case "worder-check": return this.worderCheck();
       case "compose-check": return this.composeCheck();
       case "compose-new": this.session = null; return this.render();
