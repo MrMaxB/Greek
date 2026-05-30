@@ -26,49 +26,55 @@ body {
   color: var(--ink);
   line-height: 1.5;
 }
-#app { max-width: 760px; margin: 0 auto; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+#app { max-width: 760px; margin: 0 auto; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .muted { color: var(--muted); }
 .center { text-align: center; }
 .small { font-size: .85rem; }
 
-/* ---------- NAV ---------- */
-/* Верхняя слим-шапка */
+/* ---------- NAV (тонкая шапка + бургер-меню) ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 50;
   background: var(--blue); color: #fff;
-  padding: 12px 16px; box-shadow: 0 2px 12px rgba(0,0,0,.12);
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 7px 12px; box-shadow: 0 2px 12px rgba(0,0,0,.12);
+  display: flex; align-items: center; gap: 10px;
 }
-.brand { font-size: 1.2rem; font-weight: 800; letter-spacing: .5px; }
+.burger { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 8px 6px; flex: 0 0 auto; }
+.burger span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; transition: .2s; }
+.burger:active span { background: var(--gold); }
+.brand { font-size: 1.1rem; font-weight: 800; letter-spacing: .3px; flex: 1; }
+.brand span { color: var(--gold); }
 .acct-chip {
   background: rgba(255,255,255,.16); color: #fff; border: 1px solid rgba(255,255,255,.35);
-  border-radius: 99px; padding: 6px 14px; font-weight: 700; font-size: .82rem;
-  max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border-radius: 99px; padding: 5px 12px; font-weight: 700; font-size: .8rem;
+  max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 0 auto;
 }
 .acct-chip:active { background: rgba(255,255,255,.28); }
-.brand span { color: var(--gold); }
 
-/* Нижняя панель вкладок — фиксированная, без скролла */
-.tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
-  max-width: 760px; margin: 0 auto;
-  display: flex; background: var(--card);
-  border-top: 1px solid var(--line);
-  box-shadow: 0 -2px 14px rgba(13,59,102,.08);
-  padding-bottom: env(safe-area-inset-bottom);
+/* Выезжающее меню */
+.menu-backdrop {
+  position: fixed; inset: 0; z-index: 79; background: rgba(8,20,40,.45);
+  opacity: 0; pointer-events: none; transition: opacity .22s ease;
 }
-.tab {
-  flex: 1 1 0; min-width: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 7px 2px 6px; color: var(--muted); font-weight: 600;
+.menu-backdrop.open { opacity: 1; pointer-events: auto; }
+.menu {
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 80;
+  width: 270px; max-width: 82%; background: var(--card);
+  transform: translateX(-100%); transition: transform .22s ease;
+  box-shadow: 2px 0 28px rgba(8,20,40,.22);
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  overflow-y: auto; display: flex; flex-direction: column;
 }
-.tab-ic { font-size: 1.2rem; line-height: 1; padding: 4px 14px; border-radius: 99px; transition: background .15s, color .15s; }
-.tab-lbl { font-size: .6rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .15s; }
-.tab.active { color: var(--blue-2); }
-.tab.active .tab-ic { background: #e7f0fb; }
-.tab:active .tab-ic { background: #dceafa; }
+.menu.open { transform: translateX(0); }
+.menu-head { font-weight: 800; color: var(--blue); padding: 8px 20px 12px; font-size: 1.15rem; }
+.menu-item {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  padding: 13px 20px; font-weight: 600; color: var(--ink); font-size: 1rem;
+}
+.menu-item .mi-ic { font-size: 1.25rem; width: 26px; text-align: center; }
+.menu-item.active { background: #eef4fb; color: var(--blue-2); box-shadow: inset 4px 0 0 var(--gold); }
+.menu-item:active { background: #e6eef8; }
 
 .screen { padding: 14px 14px; }
 

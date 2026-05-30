@@ -31,6 +31,7 @@ const App = {
     this.view = view;
     this.params = params;
     this.session = null;
+    this.menuOpen = false;
     Speech.stop();
     this.writeHash();
     this.render();
@@ -63,6 +64,7 @@ const App = {
     this.view = view;
     this.params = params;
     this.session = null;
+    this.menuOpen = false;
     Speech.stop();
     this.render();
     window.scrollTo(0, 0);
@@ -144,24 +146,41 @@ const App = {
   },
 
   renderNav() {
-    const tabs = [
+    const items = [
       ["home", "🏠", "Главная"],
       ["alphabet", "🔤", "Алфавит"],
       ["review", "🧠", "Повтор"],
       ["decks", "📚", "Темы"],
-      ["grammar", "📖", "Грамм."],
+      ["grammar", "📖", "Грамматика"],
       ["writing", "✍️", "Письмо"],
+      ["exams", "📝", "Экзамены"],
       ["progress", "📊", "Прогресс"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
-      : this.view === "trainer" ? "grammar" : this.view;
-    return `<header class="topbar"><div class="brand" data-go="home">Ελληνικά <span>A1</span></div>${this.renderTopAccount()}</header>
-      <nav class="tabbar">${tabs
-        .map(([v, ic, l]) =>
-          `<button class="tab ${root === v ? "active" : ""}" data-go="${v}"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`
-        )
-        .join("")}</nav>`;
+      : this.view === "trainer" ? "grammar"
+      : this.view === "exam" ? "exams" : this.view;
+    const menu = items.map(([v, ic, l]) =>
+      `<button class="menu-item ${root === v ? "active" : ""}" data-go="${v}"><span class="mi-ic">${ic}</span>${l}</button>`
+    ).join("");
+    return `<header class="topbar">
+        <button class="burger" data-action="menu-toggle" aria-label="Меню"><span></span><span></span><span></span></button>
+        <div class="brand" data-go="home">Ελληνικά <span>A1</span></div>
+        ${this.renderTopAccount()}
+      </header>
+      <div class="menu-backdrop" data-action="menu-close"></div>
+      <nav class="menu">
+        <div class="menu-head">Меню</div>
+        ${menu}
+      </nav>`;
+  },
+
+  toggleMenu(open) {
+    this.menuOpen = open != null ? open : !this.menuOpen;
+    const m = document.querySelector(".menu");
+    const b = document.querySelector(".menu-backdrop");
+    if (m) m.classList.toggle("open", this.menuOpen);
+    if (b) b.classList.toggle("open", this.menuOpen);
   },
 
   /* ---------- ГЛАВНАЯ ---------- */
@@ -1050,6 +1069,8 @@ const App = {
       case "wr-again": this.session = null; return this.render();
       case "cloud-login": if (window.Cloud && window.Cloud.login) window.Cloud.login(); return;
       case "cloud-logout": if (window.Cloud && window.Cloud.logout) window.Cloud.logout(); return;
+      case "menu-toggle": return this.toggleMenu();
+      case "menu-close": return this.toggleMenu(false);
       case "reset":
         if (confirm("Сбросить весь прогресс и стрик? Это нельзя отменить.")) { SRS.reset(); this.go("home"); }
         return;
