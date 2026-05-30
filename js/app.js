@@ -678,11 +678,14 @@ const App = {
     if (s.idx >= s.pool.length) return this.wResult(s, "верных предложений");
     const cur = s.pool[s.idx];
     if (s.bank === null) { s.bank = this.shuffle(cur.tokens.map((t, i) => ({ i, t }))); s.built = []; }
+    // Канонически первый токен показываем со строчной буквы, чтобы заглавная
+    // не выдавала его позицию (проверка регистронезависимая).
+    const disp = (i) => i === 0 ? cur.tokens[i].charAt(0).toLowerCase() + cur.tokens[i].slice(1) : cur.tokens[i];
     const builtHtml = s.built.length
-      ? s.built.map((i) => `<button class="tok built" data-wtoken="built:${i}">${cur.tokens[i]}</button>`).join("")
+      ? s.built.map((i) => `<button class="tok built" data-wtoken="built:${i}">${disp(i)}</button>`).join("")
       : `<span class="muted small">нажимай слова ниже, чтобы собрать фразу…</span>`;
     const bankHtml = s.bank.filter((b) => !s.built.includes(b.i))
-      .map((b) => `<button class="tok" data-wtoken="bank:${b.i}">${b.t}</button>`).join("");
+      .map((b) => `<button class="tok" data-wtoken="bank:${b.i}">${disp(b.i)}</button>`).join("");
     return `${this.wHead("🧩 Собери предложение", s)}
       <div class="quiz-prompt"><div class="type-ru">${cur.ru}</div></div>
       <div class="build-area">${builtHtml}</div>
