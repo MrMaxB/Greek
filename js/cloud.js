@@ -125,6 +125,14 @@ if (cfg && cfg.apiKey) {
       }
     };
     Cloud.logout = () => signOut(auth);
+    // Полный сброс облачного прогресса (перезапись пустым, минуя merge)
+    Cloud.reset = async () => {
+      if (!Cloud.user) return;
+      Cloud._applying = true;
+      try { await setDoc(doc(db, "progress", Cloud.user.uid), { srs: {}, stats: { learnedDates: {}, totalReviews: 0 }, exams: {}, reading: {}, _v: 1, _ts: Date.now() }); }
+      catch (e) { console.warn("Cloud reset error", e); }
+      Cloud._applying = false;
+    };
 
     getRedirectResult(auth).catch(() => {});
 

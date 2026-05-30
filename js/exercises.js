@@ -152,7 +152,13 @@ const GrammarEx = (() => {
     return out;
   }
   function decl(gender) {
-    const CASES = [["genS", "Родительный ед.", 2], ["accS", "Винительный ед.", 1], ["nomP", "Именительный мн.", 2], ["genP", "Родительный мн.", 3], ["accP", "Винительный мн.", 2]];
+    const CASES = [
+      ["genS", "Родительный ед. (кого? чего? чей?)", 2],
+      ["accS", "Винительный ед. (кого? что? после предлога)", 1],
+      ["nomP", "Именительный мн. (кто? что?)", 2],
+      ["genP", "Родительный мн. (кого? чего?)", 3],
+      ["accP", "Винительный мн. (кого? что?)", 2],
+    ];
     const list = gender ? DECLENSIONS.filter((d) => d.g === gender) : DECLENSIONS;
     const out = [];
     list.forEach((d) => {

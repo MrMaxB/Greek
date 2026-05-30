@@ -154,8 +154,34 @@ const App = {
       coverage: () => this.renderCoverage(),
     };
     this.root.innerHTML =
-      this.renderNav() + `<main class="screen">${(map[this.view] || map.home)()}</main>`;
+      this.renderNav() + `<main class="screen">${(map[this.view] || map.home)()}</main>` + this.wordbarHtml();
     if (this.afterRender) { const f = this.afterRender; this.afterRender = null; f(); }
+  },
+
+  // Глобальная панель перевода слова (тап по любому греческому слову)
+  wordbarHtml() {
+    return `<div id="wordbar" class="wordbar" hidden>
+      <button class="wb-spk" data-say="">🔊</button>
+      <div class="wb-body"><span class="wb-gr"></span><span class="wb-ru"></span></div>
+      <button class="wb-x" data-action="wordbar-close">✕</button>
+    </div>`;
+  },
+  // Общий словарь для тап-перевода (слова + общие + глоссарии чтения + формы)
+  globalGloss() {
+    if (this._gg) return this._gg;
+    const g = {};
+    ALL_WORDS.forEach((w) => { const k = this.normGreek(w.gr); if (k && !k.includes(" ")) g[k] = w.ru; });
+    if (typeof READING_COMMON !== "undefined") Object.entries(READING_COMMON).forEach(([k, v]) => { g[this.normGreek(k)] = v; });
+    if (typeof READING_TEXTS !== "undefined") READING_TEXTS.forEach((t) => Object.entries(t.gloss || {}).forEach(([k, v]) => { const nk = this.normGreek(k); if (!g[nk]) g[nk] = v; }));
+    if (typeof DECLENSIONS !== "undefined") DECLENSIONS.forEach((d) => Object.values(d.f).forEach((f) => f.split(" ").forEach((tok) => { const nk = this.normGreek(tok); if (nk && !g[nk]) g[nk] = d.ru; })));
+    if (typeof CONJUGATIONS !== "undefined") CONJUGATIONS.forEach((v) => Object.values(v.f).forEach((f) => { const nk = this.normGreek(f); if (!g[nk]) g[nk] = v.ru; }));
+    this._gg = g;
+    return g;
+  },
+  // Обернуть греческие слова в тап-спаны (для теории/упражнений)
+  wrapGreek(html) {
+    return (html || "").replace(/[Ͱ-Ͽἀ-῿]+/g, (m) =>
+      `<span class="rword" data-rw="${this.esc(this.normGreek(m))}" data-ro="${this.esc(m)}">${m}</span>`);
   },
 
   renderNav() {
@@ -570,21 +596,14 @@ const App = {
   renderGrammar() {
     const items = GRAMMAR_LESSONS.map((g) => {
       const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
-      const exBtn = n ? `<button class="big-btn primary slim gex-launch" data-gex="${g.id}">▶ Упражнения (${n})</button>` : "";
-      return `<details class="gram"><summary><span class="gram-ic">${GrammarEx.icon(g.id)}</span> ${g.title}</summary>
-        <div class="gram-body">${g.body}${exBtn}</div></details>`;
+      const exBtn = n ? `<button class="gex-go" data-gex="${g.id}">▶ ${n}</button>` : "";
+      return `<details class="gram"><summary><span class="gram-ic">${GrammarEx.icon(g.id)}</span><span class="gram-ttl">${g.title}</span>${exBtn}</summary>
+        <div class="gram-body">${this.wrapGreek(g.body)}</div></details>`;
     }).join("");
     return `
       <header class="page-head"><h2>📖 Грамматика A1</h2></header>
-      <p class="muted">У каждой темы — теория и набор упражнений (от простого к сложному). Раскрой урок и жми «▶ Упражнения».</p>
-
-      <div class="train-row">
-        <button class="train-btn" data-train="decl"><span>🧩</span><b>Склонения</b><small>32 слова · все падежи</small></button>
-        <button class="train-btn" data-train="conj"><span>🔀</span><b>Спряжения</b><small>28 глаголов · наст. время</small></button>
-      </div>
-
-      <h3 class="section-title">📚 Темы (${GRAMMAR_LESSONS.length})</h3>
-      ${items}
+      <p class="muted">У каждой темы — теория и упражнения. Жми <b>«▶ N»</b> справа, чтобы сразу начать (теорию — тапни по названию).</p>
+      <div class="gram-list">${items}</div>
     `;
   },
 
@@ -670,7 +689,7 @@ const App = {
     return `
       <header class="page-head"><h2>${GrammarEx.icon(s.id)} ${title}</h2><div class="counter">${s.idx + 1}/${s.qs.length}</div></header>
       <button class="back" data-go="grammar">← Грамматика</button>
-      <div class="exam-q">${q.q}</div>
+      <div class="exam-q">${this.wrapGreek(q.q)}</div>
       <div class="opts">${opts}</div>
       <div id="fb" class="feedback"></div>`;
   },
@@ -1047,16 +1066,11 @@ const App = {
       <button class="big-btn primary slim" data-action="read-all">🔊 Озвучить весь текст</button>
       <p class="muted small">Тапни слово — перевод и звук. Тапни 🇷🇺 у строки — перевод предложения.</p>
       <div class="reader">${sents}</div>
-      ${readBtn}
-      <div id="wordbar" class="wordbar" hidden>
-        <button class="wb-spk" data-say="">🔊</button>
-        <div class="wb-body"><span class="wb-gr"></span><span class="wb-ru"></span></div>
-        <button class="wb-x" data-action="wordbar-close">✕</button>
-      </div>`;
+      ${readBtn}`;
   },
 
   showWord(norm, orig) {
-    const tr = (this._gloss && this._gloss[norm]) || "";
+    const tr = (this._gloss && this._gloss[norm]) || this.globalGloss()[norm] || "";
     const bar = document.getElementById("wordbar");
     if (!bar) return;
     bar.querySelector(".wb-gr").textContent = orig;
@@ -1401,7 +1415,7 @@ const App = {
     const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt]");
     if (!t) return;
 
-    if (t.dataset.gex !== undefined) return this.go("gex", { topic: t.dataset.gex });
+    if (t.dataset.gex !== undefined) { e.preventDefault(); return this.go("gex", { topic: t.dataset.gex }); }
     if (t.dataset.gexopt !== undefined) return this.gexAnswer(t.dataset.gexopt, t);
 
     if (t.dataset.rw !== undefined) return this.showWord(t.dataset.rw, t.dataset.ro);
@@ -1480,7 +1494,14 @@ const App = {
       }
       case "wordbar-close": { const b = document.getElementById("wordbar"); if (b) b.hidden = true; return; }
       case "reset":
-        if (confirm("Сбросить весь прогресс и стрик? Это нельзя отменить.")) { SRS.reset(); this.go("home"); }
+        if (confirm("Сбросить весь прогресс (слова, экзамены, чтение, стрик)? Это нельзя отменить.")) {
+          SRS.reset();
+          localStorage.removeItem("greekA1_exam_best");
+          localStorage.removeItem("greekA1_reading_done");
+          if (window.Cloud && window.Cloud.reset) window.Cloud.reset();
+          this._gg = null;
+          this.go("home");
+        }
         return;
     }
   },

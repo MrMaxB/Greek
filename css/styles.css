@@ -303,10 +303,12 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 
 /* ---------- GRAMMAR ---------- */
 .gram { background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; box-shadow: var(--shadow); overflow: hidden; }
-.gram summary { padding: 16px; font-weight: 700; cursor: pointer; color: var(--blue); list-style: none; }
+.gram summary { display: flex; align-items: center; gap: 8px; padding: 13px 14px; font-weight: 700; cursor: pointer; color: var(--blue); list-style: none; }
 .gram summary::-webkit-details-marker { display: none; }
-.gram summary::before { content: "▸ "; }
-.gram[open] summary::before { content: "▾ "; }
+.gram-ic { flex: 0 0 auto; }
+.gram-ttl { flex: 1; }
+.gex-go { flex: 0 0 auto; background: var(--blue-2); color: #fff; border-radius: 10px; padding: 7px 13px; font-weight: 800; font-size: .85rem; }
+.gex-go:active { transform: scale(.96); }
 .gram-body { padding: 0 16px 16px; color: var(--ink); }
 .gram-body b { color: var(--blue-2); }
 .gram-ic { display: inline-block; width: 1.5em; text-align: center; }

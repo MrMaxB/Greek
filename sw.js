@@ -4,7 +4,7 @@
    (с обязательной ревалидацией), офлайн — отдаём из кэша.
    Обновляется сам: skipWaiting + clients.claim.
    ============================================================ */
-const CACHE = "greek-a1-cache-v1";
+const CACHE = "greek-a1-cache-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 
