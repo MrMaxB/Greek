@@ -49,6 +49,20 @@ const App = {
       .trim();
   },
 
+  // Фонетическая нормализация для голоса: омофоны → один звук.
+  // Так «звучит верно» засчитывается даже при ином написании.
+  phoneticGreek(s) {
+    let x = this.normGreek(s);
+    x = x
+      .replace(/ει|οι|υι/g, "ι")   // ει/οι/υι звучат как «и»
+      .replace(/αι/g, "ε")          // αι звучит как «э»
+      .replace(/[ηυ]/g, "ι")        // η, υ → «и»
+      .replace(/ω/g, "ο")           // ω → «о»
+      .replace(/μπ/g, "б").replace(/ντ/g, "д") // звонкие сочетания
+      .replace(/(.)\1+/g, "$1");    // двойные буквы → одна (σσ→σ)
+    return x;
+  },
+
   esc(s) {
     return (s || "").replace(/[&<>"]/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])
@@ -325,6 +339,7 @@ const App = {
           <button class="mode-btn" data-mode="listen"><span>👂</span>Аудио</button>
           <button class="mode-btn" data-mode="type"><span>⌨️</span>Набор</button>
           <button class="mode-btn hot" data-mode="dictation"><span>🎧</span>Диктант</button>
+          <button class="mode-btn hot" data-mode="speak"><span>🎤</span>Голос</button>
         </div>
         <div class="word-list">${rows}</div>
       `;
@@ -337,7 +352,7 @@ const App = {
       this.session = { pool: this.shuffle(deck.words), idx: 0, correct: 0, answered: false, input: "" };
     }
     const s = this.session;
-    const titleByMode = { learn: "🧠 Карточки", choice: "✅ Выбор перевода", listen: "👂 Аудирование", type: "⌨️ Набор по-гречески", dictation: "🎧 Диктант (на слух)" };
+    const titleByMode = { learn: "🧠 Карточки", choice: "✅ Выбор перевода", listen: "👂 Аудирование", type: "⌨️ Набор по-гречески", dictation: "🎧 Диктант (на слух)", speak: "🎤 Произношение" };
 
     if (s.idx >= s.pool.length) {
       return `
@@ -391,6 +406,22 @@ const App = {
         .join("");
       this.afterRender = mode === "listen" ? () => Speech.say(cur.gr) : null;
       return `${head}${prompt}<div class="opts">${buttons}</div><div id="fb" class="feedback"></div>`;
+    }
+
+    if (mode === "speak") {
+      const ok = Recog.supported;
+      const body = ok
+        ? `<button class="mic-btn" data-action="speak-start">🎤 Произнести</button>
+           <p class="muted center small">Нажми и чётко скажи слово вслух. Браузер спросит доступ к микрофону — разреши.</p>`
+        : `<div class="banner">🎤 Распознавание речи не поддерживается этим браузером (на iPhone его нет). Открой сайт в <b>Chrome</b> на Android или компьютере. Пока можешь слушать образец и повторять вслух.</div>
+           <button class="big-btn primary" data-action="speak-next">Дальше →</button>`;
+      return `${head}
+        <div class="quiz-prompt">
+          <div class="big-letter sm">${cur.gr} ${this.speakBtn(cur.gr)}</div>
+          <div class="muted">[${cur.tr}] · ${cur.ru}</div>
+        </div>
+        ${body}
+        <div id="fb" class="feedback"></div>`;
     }
 
     if (mode === "type" || mode === "dictation") {
@@ -593,6 +624,8 @@ const App = {
       case "trainer-again": this.session = null; return this.render();
       case "deck-flip": this.session.answered = true; return this.render();
       case "type-check": return this.typeCheck();
+      case "speak-start": return this.speakStart();
+      case "speak-next": this.session.idx++; return this.render();
       case "reset":
         if (confirm("Сбросить весь прогресс и стрик? Это нельзя отменить.")) { SRS.reset(); this.go("home"); }
         return;
@@ -704,6 +737,56 @@ const App = {
     if (inp) inp.disabled = true;
     Speech.say(cur.gr);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.input = ""; this.render(); });
+  },
+
+  /* --- произношение: запись и проверка --- */
+  speakStart() {
+    const cur = this.session.pool[this.session.idx];
+    const mic = document.querySelector(".mic-btn");
+    const fb = document.getElementById("fb");
+    Recog.listen(
+      (alts) => this.speakResult(alts, cur),
+      (code) => {
+        if (mic) { mic.classList.remove("rec"); mic.innerHTML = "🎤 Произнести"; mic.disabled = false; }
+        const msg = code === "not-allowed" || code === "service-not-allowed"
+          ? "Доступ к микрофону запрещён. Разреши его в настройках браузера."
+          : code === "nomatch"
+          ? "Не расслышал. Попробуй ещё раз, чётче."
+          : "Не получилось записать. Попробуй ещё раз.";
+        if (fb) fb.innerHTML = `<div class="bad-msg">${msg}</div>`;
+      },
+      () => {
+        if (mic) { mic.classList.add("rec"); mic.innerHTML = "🔴 Слушаю… говори"; mic.disabled = true; }
+        if (fb) fb.innerHTML = "";
+      }
+    );
+  },
+
+  speakResult(alts, cur) {
+    const s = this.session;
+    const mic = document.querySelector(".mic-btn");
+    if (mic) { mic.classList.remove("rec"); mic.innerHTML = "🎤 Сказать снова"; mic.disabled = false; }
+    const target = this.phoneticGreek(cur.gr);
+    const targetWords = target.split(" ").filter(Boolean);
+    const heardNorm = alts.map((a) => this.phoneticGreek(a));
+    // Совпадение: точное ИЛИ все слова цели присутствуют в одном из вариантов
+    const ok = heardNorm.some((h) => {
+      if (h === target) return true;
+      const hw = h.split(" ").filter(Boolean);
+      return targetWords.every((w) => hw.includes(w));
+    });
+    if (ok && !s._scored) s.correct++;
+    s._scored = true; // не двойной счёт при повторных попытках одного слова
+    const heardShow = alts[0] || "—";
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `
+      <div class="${ok ? "ok-msg" : "bad-msg"}">
+        ${ok ? "✓ Отлично, верно!" : "✗ Похоже, не то"} ${this.speakBtn(cur.gr)}
+        <div class="answer-ru">Услышал: «${this.esc(heardShow)}» · нужно: <b>${cur.gr}</b></div>
+      </div>
+      <button class="big-btn primary" id="nextBtn">${ok ? "Дальше →" : "Дальше (пропустить) →"}</button>`;
+    Speech.say(cur.gr);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s._scored = false; this.render(); });
   },
 };
 

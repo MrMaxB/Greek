@@ -132,6 +132,10 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .big-letter.sm { font-size: 2rem; }
 .play-big { background: linear-gradient(135deg, var(--blue-2), var(--blue)); color: #fff; border-radius: 14px; padding: 16px 24px; font-size: 1.1rem; font-weight: 700; margin: 4px; }
 .play-slow { background: #eaf3fc; color: var(--blue-2); border-radius: 14px; padding: 16px 18px; font-weight: 700; margin: 4px; }
+.mic-btn { display: block; width: 100%; background: linear-gradient(135deg, #1faa59, #0d7a3f); color: #fff; border-radius: 16px; padding: 20px; font-size: 1.15rem; font-weight: 800; box-shadow: var(--shadow); margin: 12px 0 4px; }
+.mic-btn:disabled { opacity: 1; }
+.mic-btn.rec { background: linear-gradient(135deg, #e4572e, #b23a18); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(228,87,46,.5); } 50% { box-shadow: 0 0 0 14px rgba(228,87,46,0); } }
 .opts { display: grid; gap: 10px; margin: 8px 0; }
 .opt {
   background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px;

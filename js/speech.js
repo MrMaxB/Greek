@@ -48,3 +48,40 @@ const Speech = {
 };
 
 Speech.init();
+
+/* ============================================================
+   Распознавание речи (SpeechRecognition).
+   Работает в Chrome/Edge и Android Chrome (нужен HTTPS + микрофон).
+   В Safari/iOS не поддерживается — Recog.supported === false.
+   ============================================================ */
+const Recog = {
+  SR: typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null,
+  get supported() { return !!this.SR; },
+  busy: false,
+
+  // onResult(alternatives[]), onError(code), onStart()
+  listen(onResult, onError, onStart) {
+    if (!this.SR) { onError && onError("unsupported"); return; }
+    if (this.busy) return;
+    this.busy = true;
+    let rec;
+    try { rec = new this.SR(); }
+    catch (e) { this.busy = false; onError && onError("init"); return; }
+    rec.lang = "el-GR";
+    rec.interimResults = false;
+    rec.maxAlternatives = 5;
+    let got = false;
+    rec.onstart = () => onStart && onStart();
+    rec.onresult = (ev) => {
+      got = true;
+      const res = ev.results[0];
+      const alts = [];
+      for (let i = 0; i < res.length; i++) alts.push(res[i].transcript);
+      onResult && onResult(alts);
+    };
+    rec.onerror = (ev) => { this.busy = false; onError && onError(ev.error || "error"); };
+    rec.onend = () => { this.busy = false; if (!got) onError && onError("nomatch"); };
+    try { rec.start(); }
+    catch (e) { this.busy = false; onError && onError("start"); }
+  },
+};
