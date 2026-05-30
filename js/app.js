@@ -589,7 +589,7 @@ const App = {
     const askable = isDecl ? slots : slots.filter((s) => s.key !== "s1");
 
     if (!this.session) {
-      const tasks = this.shuffle(data).slice(0, 10).map((entry) => {
+      const tasks = this.shuffle(data).slice(0, 16).map((entry) => {
         const slot = askable[Math.floor(Math.random() * askable.length)];
         return { entry, slot };
       });
