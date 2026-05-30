@@ -142,6 +142,7 @@ const App = {
       decks: () => this.renderDecks(),
       practice: () => this.renderPractice(),
       grammar: () => this.renderGrammar(),
+      lesson: () => this.renderLesson(),
       trainer: () => this.renderTrainer(),
       gex: () => this.renderGex(),
       writing: () => this.renderWriting(),
@@ -201,6 +202,7 @@ const App = {
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
       : this.view === "practice" ? "decks"
       : this.view === "trainer" ? "grammar"
+      : this.view === "lesson" ? "grammar"
       : this.view === "gex" ? "grammar"
       : this.view === "exam" ? "exams"
       : this.view === "read" ? "reading" : this.view;
@@ -592,18 +594,37 @@ const App = {
       .join("");
   },
 
-  /* ---------- ГРАММАТИКА (теория + упражнения у каждой темы) ---------- */
+  /* ---------- ГРАММАТИКА: список тем → полная страница урока ---------- */
   renderGrammar() {
-    const items = GRAMMAR_LESSONS.map((g) => {
+    const rows = GRAMMAR_LESSONS.map((g) => {
       const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
-      const exBtn = n ? `<button class="gex-go" data-gex="${g.id}">▶ ${n}</button>` : "";
-      return `<details class="gram"><summary><span class="gram-ic">${GrammarEx.icon(g.id)}</span><span class="gram-ttl">${g.title}</span>${exBtn}</summary>
-        <div class="gram-body">${this.wrapGreek(g.body)}</div></details>`;
+      return `<button class="lesson-row" data-lesson="${g.id}">
+        <span class="lesson-ic">${GrammarEx.icon(g.id)}</span>
+        <span class="lesson-ttl">${g.title}</span>
+        ${n ? `<span class="lesson-n">${n} упр.</span>` : ""}
+        <span class="lesson-arr">›</span>
+      </button>`;
     }).join("");
     return `
       <header class="page-head"><h2>📖 Грамматика A1</h2></header>
-      <p class="muted">У каждой темы — теория и упражнения. Жми <b>«▶ N»</b> справа, чтобы сразу начать (теорию — тапни по названию).</p>
-      <div class="gram-list">${items}</div>
+      <p class="muted">Выбери тему — полное объяснение с примерами и упражнения. Любое греческое слово можно тапнуть для перевода.</p>
+      <div class="lesson-list">${rows}</div>
+    `;
+  },
+
+  renderLesson() {
+    const i = GRAMMAR_LESSONS.findIndex((g) => g.id === this.params.id);
+    const g = GRAMMAR_LESSONS[i];
+    if (!g) return this.renderGrammar();
+    const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
+    const next = GRAMMAR_LESSONS[i + 1];
+    return `
+      <header class="page-head"><h2>${GrammarEx.icon(g.id)} ${g.title}</h2><button class="back" data-go="grammar">← Темы</button></header>
+      <article class="lesson">${this.wrapGreek(g.body)}</article>
+      <div class="lesson-actions">
+        ${n ? `<button class="big-btn primary" data-gex="${g.id}">▶ Упражнения (${n})</button>` : ""}
+        ${next ? `<button class="big-btn ghost" data-lesson="${next.id}">Дальше: ${next.title.replace(/^\d+\.\s*/, "")} →</button>` : `<button class="big-btn ghost" data-go="grammar">К списку тем</button>`}
+      </div>
     `;
   },
 
@@ -1412,9 +1433,10 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson]");
     if (!t) return;
 
+    if (t.dataset.lesson !== undefined) return this.go("lesson", { id: t.dataset.lesson });
     if (t.dataset.gex !== undefined) { e.preventDefault(); return this.go("gex", { topic: t.dataset.gex }); }
     if (t.dataset.gexopt !== undefined) return this.gexAnswer(t.dataset.gexopt, t);
 

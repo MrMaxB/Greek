@@ -302,6 +302,25 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .wb-x { color: #cfe0f2; font-size: 1.3rem; padding: 6px 8px; flex: 0 0 auto; }
 
 /* ---------- GRAMMAR ---------- */
+/* список тем */
+.lesson-list { display: flex; flex-direction: column; gap: 8px; }
+.lesson-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); transition: transform .08s, border-color .15s; }
+.lesson-row:active { transform: scale(.99); border-color: var(--sky); }
+.lesson-ic { font-size: 1.4rem; flex: 0 0 auto; width: 1.6em; text-align: center; }
+.lesson-ttl { flex: 1; font-weight: 700; color: var(--ink); }
+.lesson-n { font-size: .75rem; color: var(--blue-2); background: #eef4fb; border-radius: 99px; padding: 3px 9px; flex: 0 0 auto; }
+.lesson-arr { color: var(--muted); font-size: 1.4rem; flex: 0 0 auto; }
+/* полная страница урока */
+.lesson { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 22px; box-shadow: var(--shadow); }
+.lesson p { font-size: 1.05rem; line-height: 1.75; margin: 12px 0; }
+.lesson ul, .lesson ol { margin: 12px 0; padding-left: 22px; }
+.lesson li { margin: 8px 0; line-height: 1.6; }
+.lesson b { color: var(--blue-2); }
+.lesson i { color: var(--blue); font-style: normal; background: #eef4fb; padding: 1px 6px; border-radius: 5px; }
+.lesson .gtab { width: 100%; margin: 14px 0; font-size: .98rem; }
+.lesson .gtab th, .lesson .gtab td { padding: 9px 11px; }
+.lesson-actions { margin-top: 16px; }
+
 .gram { background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; box-shadow: var(--shadow); overflow: hidden; }
 .gram summary { display: flex; align-items: center; gap: 8px; padding: 13px 14px; font-weight: 700; cursor: pointer; color: var(--blue); list-style: none; }
 .gram summary::-webkit-details-marker { display: none; }
