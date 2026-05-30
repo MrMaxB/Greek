@@ -192,6 +192,8 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 
 .word-list { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
 .word-row { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.w-audio { flex: 0 0 auto; }
+.w-audio .speak { margin: 0; padding: 6px 10px; font-size: 1rem; }
 .w-gr { font-weight: 700; color: var(--blue); flex: 1.4; }
 .w-tr { color: var(--muted); flex: 1; font-size: .85rem; }
 .w-ru { flex: 1.2; }
@@ -206,6 +208,20 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .gkey { background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-width: 30px; padding: 10px 6px; font-size: 1.05rem; font-weight: 700; color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 .gkey.wide { min-width: 48px; }
 .gkey:active { background: #e6eef8; }
+
+/* ---------- WRITING ---------- */
+.build-area { min-height: 54px; border: 2px dashed var(--sky); border-radius: 12px; padding: 10px; margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #f7fbff; }
+.bank-area { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.tok { background: var(--card); border: 1.5px solid var(--blue-2); color: var(--blue); border-radius: 10px; padding: 9px 13px; font-size: 1.05rem; font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.tok.built { background: var(--blue-2); color: #fff; border-color: var(--blue-2); }
+.tok:active { transform: scale(.96); }
+.gap-sentence { font-size: 1.4rem; font-weight: 700; color: var(--blue); line-height: 1.7; }
+.gap-sentence .blank { color: var(--gold); letter-spacing: 1px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.chip { background: #eef4fb; border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; font-weight: 700; color: var(--blue); }
+.chip.done { background: #e8f8ee; border-color: var(--ok); color: #137a3f; }
+.chip.done::before { content: "✓ "; }
+.type-input.area { min-height: 110px; text-align: left; font-size: 1.15rem; resize: vertical; line-height: 1.5; }
 
 /* ---------- GRAMMAR ---------- */
 .gram { background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; box-shadow: var(--shadow); overflow: hidden; }

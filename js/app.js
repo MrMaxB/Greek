@@ -15,10 +15,47 @@ const App = {
     document.body.addEventListener("click", (e) => this.onClick(e));
     document.body.addEventListener("input", (e) => this.onInput(e));
     document.body.addEventListener("keydown", (e) => this.onKey(e));
-    this.go("home");
+    window.addEventListener("hashchange", () => this.onHashChange());
+    // Стартуем с того экрана, что в URL (устойчиво к F5)
+    const { view, params } = this.readHash();
+    this.view = view;
+    this.params = params;
+    this.render();
   },
 
   go(view, params = {}) {
+    this.view = view;
+    this.params = params;
+    this.session = null;
+    Speech.stop();
+    this.writeHash();
+    this.render();
+    window.scrollTo(0, 0);
+  },
+
+  // URL <-> состояние экрана
+  writeHash() {
+    let h = "#" + this.view;
+    const keys = Object.keys(this.params);
+    if (keys.length) h += "?" + keys.map((k) => k + "=" + encodeURIComponent(this.params[k])).join("&");
+    if (("#" + (location.hash.replace(/^#/, "") || "home")) !== ("#" + (h.replace(/^#/, "") || "home"))) {
+      if (location.hash !== h) { this.suppressHash = true; location.hash = h; }
+    }
+  },
+
+  readHash() {
+    const raw = (location.hash || "").replace(/^#/, "");
+    if (!raw) return { view: "home", params: {} };
+    const [view, qs] = raw.split("?");
+    const params = {};
+    if (qs) qs.split("&").forEach((p) => { const [k, v] = p.split("="); if (k) params[k] = decodeURIComponent(v || ""); });
+    return { view: view || "home", params };
+  },
+
+  // Назад/вперёд браузера и ручная правка URL
+  onHashChange() {
+    if (this.suppressHash) { this.suppressHash = false; return; }
+    const { view, params } = this.readHash();
     this.view = view;
     this.params = params;
     this.session = null;
@@ -84,6 +121,7 @@ const App = {
       practice: () => this.renderPractice(),
       grammar: () => this.renderGrammar(),
       trainer: () => this.renderTrainer(),
+      writing: () => this.renderWriting(),
       progress: () => this.renderProgress(),
     };
     this.root.innerHTML =
@@ -98,6 +136,7 @@ const App = {
       ["review", "🧠", "Повтор"],
       ["decks", "📚", "Темы"],
       ["grammar", "📖", "Грамматика"],
+      ["writing", "✍️", "Письмо"],
       ["progress", "📊", "Прогресс"],
     ];
     const root = ["alphaQuiz"].includes(this.view) ? "alphabet"
@@ -117,9 +156,12 @@ const App = {
   renderHome() {
     const s = SRS.summary(ALL_WORDS);
     const pct = Math.round((s.learned / s.total) * 100);
-    const ttsWarn = Speech.hasGreek()
+    // Баннер только если синтез речи реально не поддерживается.
+    // (Раньше проверяли наличие именованного el-GR голоса — мобильный
+    //  Chrome его не показывает в списке, но озвучивает по запросу.)
+    const ttsWarn = Speech.supported
       ? ""
-      : `<div class="banner">🔇 Греческий голос не найден в браузере. Текст и обучение работают полностью; для озвучки попробуйте Chrome/Edge или установите греческий голос в системе.</div>`;
+      : `<div class="banner">🔇 Этот браузер не умеет озвучивать текст. Всё обучение работает; для аудио откройте сайт в Chrome или Edge.</div>`;
     return `
       ${ttsWarn}
       <header class="hero">
@@ -325,7 +367,8 @@ const App = {
         .map(
           (w) => `
         <div class="word-row">
-          <div class="w-gr">${w.gr} ${this.speakBtn(w.gr)}</div>
+          <span class="w-audio">${this.speakBtn(w.gr)}</span>
+          <div class="w-gr">${w.gr}</div>
           <div class="w-tr">[${w.tr}]</div>
           <div class="w-ru">${w.ru}</div>
         </div>`
@@ -481,7 +524,7 @@ const App = {
         <button class="train-btn" data-train="conj"><span>🔀</span><b>Спряжения</b><small>глаголы в наст. времени</small></button>
       </div>
 
-      <h3 class="section-title">📚 Теория (15 уроков)</h3>
+      <h3 class="section-title">📚 Теория (${GRAMMAR_LESSONS.length} уроков)</h3>
       ${items}
     `;
   },
@@ -541,6 +584,182 @@ const App = {
     `;
   },
 
+  /* ---------- ПИСЬМО (авто-упражнения) ---------- */
+  renderWriting() {
+    const mode = this.params.mode || "menu";
+    if (mode === "menu") {
+      const tile = (m, ic, t, d) =>
+        `<button class="deck-tile" data-wmode="${m}"><div class="deck-ic">${ic}</div><div class="deck-body"><div class="deck-title">${t}</div><div class="deck-meta">${d}</div></div></button>`;
+      return `
+        <header class="page-head"><h2>✍️ Письмо</h2></header>
+        <p class="muted">Письменные упражнения A1 — проверяются автоматически.</p>
+        <div class="deck-list">
+          ${tile("worder", "🧩", "Собери предложение", "порядок слов из блоков")}
+          ${tile("gap", "✏️", "Вставь слово", "пропущенное слово · грамматика")}
+          ${tile("compose", "📝", "Текст из слов", "составь предложения из изученных слов")}
+          ${tile("self", "🪪", "О себе", "ответь по-гречески, сверься с образцом")}
+        </div>`;
+    }
+    if (mode === "worder") return this.renderWOrder();
+    if (mode === "gap") return this.renderWGap();
+    if (mode === "compose") return this.renderWCompose();
+    if (mode === "self") return this.renderWSelf();
+    return this.renderWriting();
+  },
+
+  wHead(title, s) {
+    return `<header class="page-head"><h2>${title}</h2><div class="counter">${Math.min(s.idx + 1, s.pool.length)}/${s.pool.length}</div></header>
+      <button class="back" data-go="writing">← Письмо</button>`;
+  },
+
+  wResult(s, label) {
+    return `<div class="result">
+      <h2>Готово! 🎉</h2><p class="big-score">${s.correct} / ${s.pool.length}</p>
+      <p class="muted">${label}</p>
+      <button class="big-btn primary" data-action="wr-again">Ещё раунд</button>
+      <button class="big-btn ghost" data-go="writing">К письму</button>
+    </div>`;
+  },
+
+  // Собери предложение (порядок слов)
+  renderWOrder() {
+    if (!this.session) this.session = { pool: this.shuffle(WRITING_ORDER), idx: 0, correct: 0, bank: null, built: [] };
+    const s = this.session;
+    if (s.idx >= s.pool.length) return this.wResult(s, "верных предложений");
+    const cur = s.pool[s.idx];
+    if (s.bank === null) { s.bank = this.shuffle(cur.tokens.map((t, i) => ({ i, t }))); s.built = []; }
+    const builtHtml = s.built.length
+      ? s.built.map((i) => `<button class="tok built" data-wtoken="built:${i}">${cur.tokens[i]}</button>`).join("")
+      : `<span class="muted small">нажимай слова ниже, чтобы собрать фразу…</span>`;
+    const bankHtml = s.bank.filter((b) => !s.built.includes(b.i))
+      .map((b) => `<button class="tok" data-wtoken="bank:${b.i}">${b.t}</button>`).join("");
+    return `${this.wHead("🧩 Собери предложение", s)}
+      <div class="quiz-prompt"><div class="type-ru">${cur.ru}</div></div>
+      <div class="build-area">${builtHtml}</div>
+      <div class="bank-area">${bankHtml}</div>
+      <button class="big-btn primary" data-action="worder-check">Проверить</button>
+      <div id="fb" class="feedback"></div>`;
+  },
+
+  wToken(spec) {
+    const s = this.session;
+    const [kind, iStr] = spec.split(":");
+    const i = parseInt(iStr, 10);
+    if (kind === "bank") s.built.push(i);
+    else s.built = s.built.filter((x) => x !== i);
+    this.render();
+  },
+
+  worderCheck() {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    const built = s.built.map((i) => cur.tokens[i]).join(" ");
+    const ok = this.normGreek(built) === this.normGreek(cur.tokens.join(" "));
+    if (ok && !s._scored) s.correct++;
+    s._scored = true;
+    const right = cur.tokens.join(" ");
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + right : "✗ Правильно: <b>" + right + "</b>"} ${this.speakBtn(right)}</div>
+      <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
+    Speech.say(right);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.bank = null; s.built = []; s._scored = false; this.render(); });
+  },
+
+  // Вставь слово
+  renderWGap() {
+    if (!this.session) this.session = { pool: this.shuffle(WRITING_GAPS), idx: 0, correct: 0 };
+    const s = this.session;
+    if (s.idx >= s.pool.length) return this.wResult(s, "верных ответов");
+    const cur = s.pool[s.idx];
+    const opts = this.shuffle(cur.options).map((o) => `<button class="opt" data-wgap="${this.esc(o)}">${o}</button>`).join("");
+    return `${this.wHead("✏️ Вставь слово", s)}
+      <div class="quiz-prompt">
+        <div class="gap-sentence">${cur.parts[0]}<span class="blank">_____</span>${cur.parts[1]}</div>
+        <div class="muted small">${cur.ru}</div>
+      </div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>`;
+  },
+
+  wGapAnswer(opt, el) {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    const ok = opt === cur.answer;
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.wgap === cur.answer) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    const full = cur.parts[0] + cur.answer + cur.parts[1];
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ " + cur.answer} ${this.speakBtn(full)}<div class="answer-ru">${full}</div></div>
+      <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
+    Speech.say(full);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+  },
+
+  // Текст из изученных слов
+  renderWCompose() {
+    if (!this.session) {
+      const learned = ALL_WORDS.filter((w) => !SRS.isNew(w.id) && /^[Α-Ωα-ωΆ-Ώά-ώ]+$/.test(w.gr)).map((w) => w.gr);
+      const src = learned.length >= 5 ? learned : WRITING_STARTER_WORDS;
+      this.session = { targets: this.shuffle(src).slice(0, 5), text: "" };
+    }
+    const s = this.session;
+    const chips = s.targets.map((t) => `<span class="chip" id="chip-${this.esc(t)}">${t} ${this.speakBtn(t)}</span>`).join("");
+    return `
+      <header class="page-head"><h2>📝 Текст из слов</h2></header>
+      <button class="back" data-go="writing">← Письмо</button>
+      <p class="muted">Напиши 2–3 предложения по-гречески, используя <b>все</b> эти слова:</p>
+      <div class="chips">${chips}</div>
+      <textarea id="composeText" class="type-input area" placeholder="Πιши здесь…">${this.esc(s.text)}</textarea>
+      <button class="big-btn primary" data-action="compose-check">Проверить</button>
+      <button class="big-btn ghost" data-action="compose-new">Другие слова</button>
+      <div id="fb" class="feedback"></div>`;
+  },
+
+  composeCheck() {
+    const s = this.session;
+    const inp = document.getElementById("composeText");
+    const text = inp ? inp.value : "";
+    s.text = text;
+    const norm = this.normGreek(text);
+    const used = [], missing = [];
+    s.targets.forEach((t) => {
+      const nt = this.normGreek(t);
+      const stem = nt.slice(0, Math.max(4, nt.length - 2));
+      (norm.includes(stem) ? used : missing).push(t);
+    });
+    s.targets.forEach((t) => {
+      const chip = document.getElementById("chip-" + t);
+      if (chip) chip.classList.toggle("done", used.includes(t));
+    });
+    const allUsed = missing.length === 0;
+    const hasText = norm.length > 3;
+    const fb = document.getElementById("fb");
+    fb.innerHTML = allUsed && hasText
+      ? `<div class="ok-msg">✓ Отлично! Использованы все ${used.length} слов(а). Так держать!</div>`
+      : `<div class="bad-msg">Использовано ${used.length}/${s.targets.length}. Осталось вставить: <b>${missing.join(", ") || "—"}</b>${hasText ? "" : " (и напиши хоть пару слов)"}</div>`;
+  },
+
+  // О себе (подсказка + образец)
+  renderWSelf() {
+    if (!this.session) this.session = { pool: this.shuffle(WRITING_SELF), idx: 0, revealed: false, text: "" };
+    const s = this.session;
+    if (s.idx >= s.pool.length) return `<div class="result"><h2>Готово! 🎉</h2><p class="muted">Ты ответил на все вопросы о себе.</p><button class="big-btn primary" data-action="wr-again">Ещё раз</button><button class="big-btn ghost" data-go="writing">К письму</button></div>`;
+    const cur = s.pool[s.idx];
+    const reveal = s.revealed
+      ? `<div class="ok-msg" style="text-align:left">Образец: <b>${cur.model}</b> ${this.speakBtn(cur.model)}</div>
+         <button class="big-btn primary" data-action="self-next">Дальше →</button>`
+      : `<button class="big-btn primary" data-action="self-reveal">Показать образец</button>`;
+    return `<header class="page-head"><h2>🪪 О себе</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <button class="back" data-go="writing">← Письмо</button>
+      <div class="quiz-prompt"><div class="type-ru">${cur.ask}</div></div>
+      <textarea id="selfText" class="type-input area" placeholder="Напиши ответ по-гречески…">${this.esc(s.text)}</textarea>
+      <div id="reveal">${reveal}</div>`;
+  },
+
   /* ---------- ПРОГРЕСС ---------- */
   renderProgress() {
     const s = SRS.summary(ALL_WORDS);
@@ -579,10 +798,14 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap]");
     if (!t) return;
 
     if (t.dataset.go) return this.go(t.dataset.go);
+
+    if (t.dataset.wmode) return this.go("writing", { mode: t.dataset.wmode });
+    if (t.dataset.wtoken) return this.wToken(t.dataset.wtoken);
+    if (t.dataset.wgap !== undefined) return this.wGapAnswer(t.dataset.wgap, t);
 
     if (t.dataset.say !== undefined) { Speech.say(t.dataset.say); return; }
     if (t.dataset.saySlow !== undefined) { Speech.say(t.dataset.saySlow, 0.6); return; }
@@ -606,6 +829,7 @@ const App = {
 
   onInput(e) {
     if (e.target.id === "typeInput") this.session.input = e.target.value;
+    if (e.target.id === "composeText" || e.target.id === "selfText") this.session.text = e.target.value;
   },
 
   onKey(e) {
@@ -626,6 +850,12 @@ const App = {
       case "type-check": return this.typeCheck();
       case "speak-start": return this.speakStart();
       case "speak-next": this.session.idx++; return this.render();
+      case "worder-check": return this.worderCheck();
+      case "compose-check": return this.composeCheck();
+      case "compose-new": this.session = null; return this.render();
+      case "self-reveal": this.session.revealed = true; return this.render();
+      case "self-next": this.session.idx++; this.session.revealed = false; this.session.text = ""; return this.render();
+      case "wr-again": this.session = null; return this.render();
       case "reset":
         if (confirm("Сбросить весь прогресс и стрик? Это нельзя отменить.")) { SRS.reset(); this.go("home"); }
         return;
