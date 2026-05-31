@@ -3685,6 +3685,9 @@ const READING_COMMON = {
   "ρα": "окончание -ρα", "ου": "оконч. -ου (род.) / буквосоч. «у»", "αι": "буквосочетание αι («э»)",
   "μπ": "буквосочетание μπ («б»)", "ντ": "буквосочетание ντ («д»)",
   "ονομαστική": "именительный падеж", "αιτιατική": "винительный падеж",
+  // — добор из экзаменов —
+  "χριστούγεννα": "Рождество", "λέγεται": "зовут / называется", "ψήνω": "запекаю / жарю",
+  "ψήνει": "запекает", "ανθίζουν": "цветут", "ρεξ": "Рекс (кличка)",
 };
 
 /* level: "A0" | "A0+" | "A1" — порядок = сложность */
@@ -5017,6 +5020,123 @@ const EXAM_READINGS = [
       { ask: "Πόσες μέρες θα μείνουν; (Сколько дней останутся?)", options: ["Δέκα", "Πέντε", "Είκοσι"], answer: "Δέκα" },
     ],
   },
+  {
+    theme: "Рождество",
+    gr: "Τα Χριστούγεννα είναι η αγαπημένη μου γιορτή. Όλη η οικογένεια τρώει μαζί. Στολίζουμε το δέντρο και δίνουμε δώρα.",
+    ru: "Рождество — мой любимый праздник. Вся семья ест вместе. Украшаем ёлку и дарим подарки.",
+    q: [
+      { ask: "Ποια γιορτή του αρέσει; (Какой праздник нравится?)", options: ["Τα Χριστούγεννα", "Το Πάσχα", "Τα γενέθλια"], answer: "Τα Χριστούγεννα" },
+      { ask: "Τι στολίζουν; (Что украшают?)", options: ["Το δέντρο", "Το σπίτι", "Το τραπέζι"], answer: "Το δέντρο" },
+    ],
+  },
+  {
+    theme: "Транспорт",
+    gr: "Κάθε πρωί πηγαίνω στη δουλειά με το λεωφορείο. Το ταξίδι κρατάει είκοσι λεπτά. Μερικές φορές πηγαίνω με τα πόδια.",
+    ru: "Каждое утро еду на работу на автобусе. Поездка длится двадцать минут. Иногда хожу пешком.",
+    q: [
+      { ask: "Πώς πηγαίνει στη δουλειά; (Как добирается до работы?)", options: ["Με το λεωφορείο", "Με το αυτοκίνητο", "Με το ποδήλατο"], answer: "Με το λεωφορείο" },
+      { ask: "Πόσο κρατάει το ταξίδι; (Сколько длится поездка?)", options: ["Είκοσι λεπτά", "Μία ώρα", "Πέντε λεπτά"], answer: "Είκοσι λεπτά" },
+    ],
+  },
+  {
+    theme: "Друзья",
+    gr: "Η καλύτερή μου φίλη λέγεται Μαρία. Τη γνωρίζω δέκα χρόνια. Είναι ψηλή, με μαύρα μαλλιά, και πάντα χαμογελάει.",
+    ru: "Мою лучшую подругу зовут Мария. Я знаю её десять лет. Она высокая, с чёрными волосами, и всегда улыбается.",
+    q: [
+      { ask: "Πώς λέγεται η φίλη; (Как зовут подругу?)", options: ["Μαρία", "Άννα", "Ελένη"], answer: "Μαρία" },
+      { ask: "Τι μαλλιά έχει; (Какие у неё волосы?)", options: ["Μαύρα", "Ξανθά", "Κόκκινα"], answer: "Μαύρα" },
+    ],
+  },
+  {
+    theme: "Изучение греческого",
+    gr: "Μαθαίνω ελληνικά εδώ και έναν χρόνο. Κάνω μάθημα δύο φορές την εβδομάδα. Τα ελληνικά είναι δύσκολα, αλλά μου αρέσουν πολύ.",
+    ru: "Учу греческий уже год. Занимаюсь два раза в неделю. Греческий трудный, но мне очень нравится.",
+    q: [
+      { ask: "Πόσο καιρό μαθαίνει ελληνικά; (Как долго учит греческий?)", options: ["Έναν χρόνο", "Έναν μήνα", "Δέκα χρόνια"], answer: "Έναν χρόνο" },
+      { ask: "Πόσες φορές την εβδομάδα; (Сколько раз в неделю?)", options: ["Δύο", "Τρεις", "Μία"], answer: "Δύο" },
+    ],
+  },
+  {
+    theme: "Готовлю ужин",
+    gr: "Απόψε μαγειρεύω για τους φίλους μου. Φτιάχνω μια σαλάτα, ψήνω κοτόπουλο και αγοράζω κρασί. Ελπίζω να τους αρέσει.",
+    ru: "Сегодня вечером готовлю для друзей. Делаю салат, запекаю курицу и покупаю вино. Надеюсь, им понравится.",
+    q: [
+      { ask: "Τι ψήνει; (Что запекает?)", options: ["Κοτόπουλο", "Ψάρι", "Κρέας"], answer: "Κοτόπουλο" },
+      { ask: "Για ποιον μαγειρεύει; (Для кого готовит?)", options: ["Για τους φίλους", "Για την οικογένεια", "Για το αφεντικό"], answer: "Για τους φίλους" },
+    ],
+  },
+  {
+    theme: "В кино",
+    gr: "Θέλεις να πάμε σινεμά το Σάββατο; Παίζει μια καλή ταινία. Μπορούμε να φάμε κάτι μετά. Η ταινία αρχίζει στις οχτώ.",
+    ru: "Хочешь пойти в кино в субботу? Идёт хороший фильм. Можем поесть что-нибудь после. Фильм начинается в восемь.",
+    q: [
+      { ask: "Πού θέλει να πάνε; (Куда хочет пойти?)", options: ["Σινεμά", "Θέατρο", "Εστιατόριο"], answer: "Σινεμά" },
+      { ask: "Τι ώρα αρχίζει η ταινία; (Во сколько начинается фильм?)", options: ["Στις οχτώ", "Στις πέντε", "Στις δέκα"], answer: "Στις οχτώ" },
+    ],
+  },
+  {
+    theme: "Весна",
+    gr: "Μου αρέσει η άνοιξη. Ο καιρός είναι ωραίος, όχι πολύ ζεστός. Τα λουλούδια ανθίζουν και τα πουλιά τραγουδούν.",
+    ru: "Мне нравится весна. Погода хорошая, не очень жаркая. Цветы цветут, и птицы поют.",
+    q: [
+      { ask: "Ποια εποχή του αρέσει; (Какое время года нравится?)", options: ["Η άνοιξη", "Το καλοκαίρι", "Ο χειμώνας"], answer: "Η άνοιξη" },
+      { ask: "Πώς είναι ο καιρός; (Какая погода?)", options: ["Ωραίος", "Κρύος", "Πολύ ζεστός"], answer: "Ωραίος" },
+    ],
+  },
+  {
+    theme: "Спорт",
+    gr: "Μου αρέσει ο αθλητισμός. Παίζω ποδόσφαιρο κάθε Σάββατο με τους φίλους μου. Το βράδυ μερικές φορές κολυμπάω στη θάλασσα.",
+    ru: "Мне нравится спорт. Играю в футбол каждую субботу с друзьями. Вечером иногда плаваю в море.",
+    q: [
+      { ask: "Τι παίζει το Σάββατο; (Во что играет в субботу?)", options: ["Ποδόσφαιρο", "Μπάσκετ", "Τένις"], answer: "Ποδόσφαιρο" },
+      { ask: "Πού κολυμπάει; (Где плавает?)", options: ["Στη θάλασσα", "Στην πισίνα", "Στη λίμνη"], answer: "Στη θάλασσα" },
+    ],
+  },
+  {
+    theme: "На почте",
+    gr: "Πηγαίνω στο ταχυδρομείο να στείλω ένα γράμμα. Αγοράζω και γραμματόσημα. Το δέμα για τη μητέρα μου είναι μεγάλο.",
+    ru: "Иду на почту отправить письмо. Покупаю и марки. Посылка для моей мамы большая.",
+    q: [
+      { ask: "Τι στέλνει; (Что отправляет?)", options: ["Ένα γράμμα", "Ένα δώρο", "Ένα βιβλίο"], answer: "Ένα γράμμα" },
+      { ask: "Για ποιον είναι το δέμα; (Для кого посылка?)", options: ["Για τη μητέρα του", "Για τον φίλο του", "Για το αφεντικό"], answer: "Για τη μητέρα του" },
+    ],
+  },
+  {
+    theme: "Покупка одежды",
+    gr: "Ψάχνω ένα καινούριο παντελόνι. Μου αρέσει το μπλε χρώμα. Το νούμερό μου είναι σαράντα. Κοστίζει τριάντα ευρώ.",
+    ru: "Ищу новые брюки. Мне нравится синий цвет. Мой размер сороковой. Стоит тридцать евро.",
+    q: [
+      { ask: "Τι χρώμα του αρέσει; (Какой цвет нравится?)", options: ["Μπλε", "Κόκκινο", "Μαύρο"], answer: "Μπλε" },
+      { ask: "Πόσο κοστίζει; (Сколько стоит?)", options: ["Τριάντα ευρώ", "Σαράντα ευρώ", "Δέκα ευρώ"], answer: "Τριάντα ευρώ" },
+    ],
+  },
+  {
+    theme: "День рождения",
+    gr: "Σήμερα έχω γενέθλια. Γίνομαι τριάντα πέντε χρονών. Οι φίλοι μου έρχονται το βράδυ για πάρτι. Θα φάμε τούρτα.",
+    ru: "Сегодня у меня день рождения. Мне исполняется тридцать пять. Друзья придут вечером на вечеринку. Будем есть торт.",
+    q: [
+      { ask: "Πόσων χρονών γίνεται; (Сколько лет исполняется?)", options: ["Τριάντα πέντε", "Είκοσι πέντε", "Σαράντα"], answer: "Τριάντα πέντε" },
+      { ask: "Τι θα φάνε; (Что будут есть?)", options: ["Τούρτα", "Παγωτό", "Φρούτα"], answer: "Τούρτα" },
+    ],
+  },
+  {
+    theme: "Домашний питомец",
+    gr: "Έχω έναν σκύλο. Τον λένε Ρεξ. Είναι μικρός και άσπρος. Κάθε μέρα παίζουμε στο πάρκο και τρέχουμε μαζί.",
+    ru: "У меня есть собака. Её зовут Рекс. Он маленький и белый. Каждый день играем в парке и бегаем вместе.",
+    q: [
+      { ask: "Τι ζώο έχει; (Какое животное у него?)", options: ["Σκύλο", "Γάτα", "Πουλί"], answer: "Σκύλο" },
+      { ask: "Πού παίζουν; (Где играют?)", options: ["Στο πάρκο", "Στο σπίτι", "Στη θάλασσα"], answer: "Στο πάρκο" },
+    ],
+  },
+  {
+    theme: "Выходной у моря",
+    gr: "Το Σάββατο πάω στη θάλασσα με την οικογένειά μου. Κάνουμε μπάνιο και τρώμε ψάρι σε μια ταβέρνα. Επιστρέφουμε το βράδυ.",
+    ru: "В субботу еду на море с семьёй. Купаемся и едим рыбу в таверне. Возвращаемся вечером.",
+    q: [
+      { ask: "Με ποιον πάει στη θάλασσα; (С кем едет на море?)", options: ["Με την οικογένεια", "Με τους φίλους", "Μόνος"], answer: "Με την οικογένεια" },
+      { ask: "Τι τρώνε; (Что они едят?)", options: ["Ψάρι", "Κρέας", "Σαλάτα"], answer: "Ψάρι" },
+    ],
+  },
 ];
 
 /* ============================================================
@@ -5333,6 +5453,7 @@ const App = {
     this.params = params;
     this.session = null;
     this.menuOpen = false;
+    this.stopExamTimer();
     Speech.stop();
     this.writeHash();
     this.render();
@@ -6719,7 +6840,7 @@ const App = {
     }).join("");
     return `
       <header class="page-head"><h2>📝 Пробные экзамены A1</h2></header>
-      <p class="muted">Формат как на экзамене: чтение, лексика, грамматика, аудио и письмо. Зачёт — от 60%. Можно пересдавать: вопросы каждый раз обновляются.</p>
+      <p class="muted">Формат как на экзамене: чтение, лексика, грамматика, аудио (слова и фразы) и письмо (выбор + набор с клавиатуры). Идёт ⏱ хронометраж. Зачёт — от 60%. Можно пересдавать: вопросы каждый раз обновляются.</p>
       <div class="deck-list">${tiles}</div>
     `;
   },
@@ -6754,41 +6875,71 @@ const App = {
 
     // Чтение
     R.q.forEach((q) => qs.push({ section: "Чтение", passage: R.gr, passageRu: R.ru, prompt: q.ask, options: this.shuffle(q.options.slice()), answer: q.answer }));
-    // Лексика (4): что значит слово
-    this.shuffle(ALL_WORDS).slice(0, 4).forEach((w) => {
+    // Лексика (3): что значит слово
+    this.shuffle(ALL_WORDS).slice(0, 3).forEach((w) => {
       const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Лексика", prompt: `Что значит «${w.gr}»?`, audio: w.gr, options: this.shuffle(opts), answer: w.ru });
     });
-    // Грамматика (4): вставь слово
-    this.shuffle(WRITING_GAPS).slice(0, 4).forEach((g) => {
+    // Грамматика (3): вставь слово
+    this.shuffle(WRITING_GAPS).slice(0, 3).forEach((g) => {
       qs.push({ section: "Грамматика", prompt: `${g.parts[0]}<span class="blank">_____</span>${g.parts[1]} <span class="muted small">(${g.ru})</span>`, options: this.shuffle(g.options.slice()), answer: g.answer });
     });
-    // Аудио (3): услышь и выбери перевод (текст скрыт)
-    this.shuffle(ALL_WORDS).slice(0, 3).forEach((w) => {
+    // Аудио — слово (2): услышь и выбери перевод (текст скрыт)
+    this.shuffle(ALL_WORDS).slice(0, 2).forEach((w) => {
       const opts = uniq([w.ru, ...distract(w, 3)]);
-      qs.push({ section: "Аудио", prompt: "Прослушай и выбери перевод:", audio: w.gr, hideAudioText: true, autoplay: true, options: this.shuffle(opts), answer: w.ru });
+      qs.push({ section: "Аудио", prompt: "Прослушай слово и выбери перевод:", audio: w.gr, hideAudioText: true, autoplay: true, options: this.shuffle(opts), answer: w.ru });
     });
-    // Письмо (2): выбери правильное предложение (все варианты в едином виде)
-    this.shuffle(WRITING_ORDER).slice(0, 2).forEach((sn) => {
-      const starter = sn.tokens[0];
-      const correct = this.presentSentence(sn.tokens, starter);
+    // Аудио — фраза (1): услышь предложение и выбери смысл
+    const sPool = this.shuffle(WRITING_ORDER);
+    const sa = sPool[0];
+    if (sa) {
+      const sentGr = sa.tokens.join(" ");
+      const others = this.shuffle(WRITING_ORDER.filter((x) => x.ru !== sa.ru)).slice(0, 2).map((x) => x.ru);
+      qs.push({ section: "Аудио (фраза)", prompt: "Прослушай фразу и выбери перевод:", audio: sentGr, hideAudioText: true, autoplay: true, options: this.shuffle(uniq([sa.ru, ...others])), answer: sa.ru });
+    }
+    // Письмо — выбор (1): выбери правильное предложение (все варианты в едином виде)
+    const sw = sPool[1] || sPool[0];
+    if (sw) {
+      const starter = sw.tokens[0];
+      const correct = this.presentSentence(sw.tokens, starter);
       const opts = new Set([correct]);
       let guard = 0;
       while (opts.size < 3 && guard++ < 40) {
-        const perm = this.shuffle(sn.tokens);
-        if (perm.join(" ") !== sn.tokens.join(" ")) opts.add(this.presentSentence(perm, starter));
+        const perm = this.shuffle(sw.tokens);
+        if (perm.join(" ") !== sw.tokens.join(" ")) opts.add(this.presentSentence(perm, starter));
       }
-      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sn.ru}»`, options: this.shuffle([...opts]), answer: correct });
-    });
+      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sw.ru}»`, options: this.shuffle([...opts]), answer: correct });
+    }
+    // Письмо — ввод (1): набери предложение по-гречески с клавиатуры
+    const st = sPool[2] || sPool[0];
+    if (st) {
+      qs.push({ section: "Письмо (ввод)", input: true, prompt: `Напиши по-гречески: «${st.ru}»`, hint: st.tokens.length + " слов(а)", answer: st.tokens.join(" "), alt: st.alt || [] });
+    }
     return qs;
   },
 
+  fmtMS(ms) {
+    const t = Math.max(0, Math.floor(ms / 1000));
+    return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+  },
+  startExamTimer() {
+    if (this._exTimer) return;
+    this._exTimer = setInterval(() => {
+      const el = document.getElementById("ex-timer");
+      if (!el || !this.session || !this.session.startTs) return;
+      el.textContent = this.fmtMS(Date.now() - this.session.startTs);
+    }, 1000);
+  },
+  stopExamTimer() { if (this._exTimer) { clearInterval(this._exTimer); this._exTimer = null; } },
+
   renderExam() {
     const n = parseInt(this.params.n, 10) || 0;
-    if (!this.session || this.session.n !== n) this.session = { n, qs: this.buildExam(n), idx: 0, correct: 0, sect: {} };
+    if (!this.session || this.session.n !== n) { this.stopExamTimer(); this.session = { n, qs: this.buildExam(n), idx: 0, correct: 0, sect: {}, startTs: Date.now() }; }
     const s = this.session;
 
     if (s.idx >= s.qs.length) {
+      this.stopExamTimer();
+      if (!s.endTs) s.endTs = Date.now();
       const pct = Math.round((100 * s.correct) / s.qs.length);
       this.saveExamBest(n, pct);
       const pass = pct >= 60;
@@ -6798,7 +6949,7 @@ const App = {
         <div class="result">
           <h2>${pass ? "Сдан! 🎉" : "Почти 💪"}</h2>
           <p class="big-score ${pass ? "" : "fail"}">${pct}%</p>
-          <p class="muted">${s.correct} из ${s.qs.length} правильно · зачёт от 60%</p>
+          <p class="muted">${s.correct} из ${s.qs.length} правильно · зачёт от 60% · ⏱ ${this.fmtMS(s.endTs - s.startTs)}</p>
         </div>
         <div class="word-list">${rows}</div>
         <button class="big-btn primary" data-exam="${n}">Пересдать</button>
@@ -6819,15 +6970,37 @@ const App = {
            <button class="play-slow" data-say-slow="${this.esc(q.audio)}">🐢 Медленно</button>
          </div>`
       : "";
-    if (q.autoplay) this.afterRender = () => Speech.say(q.audio);
-    const opts = q.options.map((o) => `<button class="opt" data-exopt="${this.esc(o)}">${o}</button>`).join("");
+    this.afterRender = () => { if (q.autoplay) Speech.say(q.audio); this.startExamTimer(); };
+    const body = q.input
+      ? `<input id="typeInput" class="type-input" autocomplete="off" autocapitalize="off" placeholder="Набери по-гречески…" value="${this.esc(s.input || "")}">
+         <div class="muted small">${q.hint || ""}</div>
+         ${this.greekKeyboard()}
+         <button class="big-btn primary" data-action="exam-type-check">Проверить</button>`
+      : `<div class="opts">${q.options.map((o) => `<button class="opt" data-exopt="${this.esc(o)}">${o}</button>`).join("")}</div>`;
     return `
-      <header class="page-head"><h2>Экзамен ${n + 1}</h2><div class="counter">${s.idx + 1}/${s.qs.length}</div></header>
+      <header class="page-head"><h2>Экзамен ${n + 1}</h2><div class="counter">⏱ <span id="ex-timer">${this.fmtMS(Date.now() - s.startTs)}</span> · ${s.idx + 1}/${s.qs.length}</div></header>
       <div class="exam-sec">${q.section}</div>
       ${passage}${audio}
       <div class="exam-q">${q.prompt}</div>
-      <div class="opts">${opts}</div>
+      ${body}
       <div id="fb" class="feedback"></div>`;
+  },
+
+  examTypeCheck() {
+    const s = this.session;
+    const q = s.qs[s.idx];
+    const inp = document.getElementById("typeInput");
+    const val = inp ? inp.value : (s.input || "");
+    const ok = [q.answer, ...(q.alt || [])].some((c) => this.normGreek(val) === this.normGreek(c));
+    if (ok) s.correct++;
+    if (!s.sect[q.section]) s.sect[q.section] = { c: 0, t: 0 };
+    s.sect[q.section].t++; if (ok) s.sect[q.section].c++;
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + q.answer + "</b>"} ${this.speakBtn(q.answer)}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
+    Speech.say(q.answer);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.input = ""; this.render(); });
+    this.afterAnswer();
   },
 
   examAnswer(opt, el) {
@@ -7063,6 +7236,7 @@ const App = {
       case "trainer-again": this.session = null; return this.render();
       case "deck-flip": this.session.answered = true; return this.render();
       case "type-check": return this.typeCheck();
+      case "exam-type-check": return this.examTypeCheck();
       case "speak-start": return this.speakStart();
       case "speak-next": this.session.idx++; return this.render();
       case "spk-start": return this.speakStartPhrase();

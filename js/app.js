@@ -66,6 +66,7 @@ const App = {
     this.params = params;
     this.session = null;
     this.menuOpen = false;
+    this.stopExamTimer();
     Speech.stop();
     this.writeHash();
     this.render();
@@ -1453,7 +1454,7 @@ const App = {
     }).join("");
     return `
       <header class="page-head"><h2>📝 Пробные экзамены A1</h2></header>
-      <p class="muted">Формат как на экзамене: чтение, лексика, грамматика, аудио и письмо. Зачёт — от 60%. Можно пересдавать: вопросы каждый раз обновляются.</p>
+      <p class="muted">Формат как на экзамене: чтение, лексика, грамматика, аудио (слова и фразы) и письмо (выбор + набор с клавиатуры). Идёт ⏱ хронометраж. Зачёт — от 60%. Можно пересдавать: вопросы каждый раз обновляются.</p>
       <div class="deck-list">${tiles}</div>
     `;
   },
@@ -1488,41 +1489,71 @@ const App = {
 
     // Чтение
     R.q.forEach((q) => qs.push({ section: "Чтение", passage: R.gr, passageRu: R.ru, prompt: q.ask, options: this.shuffle(q.options.slice()), answer: q.answer }));
-    // Лексика (4): что значит слово
-    this.shuffle(ALL_WORDS).slice(0, 4).forEach((w) => {
+    // Лексика (3): что значит слово
+    this.shuffle(ALL_WORDS).slice(0, 3).forEach((w) => {
       const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Лексика", prompt: `Что значит «${w.gr}»?`, audio: w.gr, options: this.shuffle(opts), answer: w.ru });
     });
-    // Грамматика (4): вставь слово
-    this.shuffle(WRITING_GAPS).slice(0, 4).forEach((g) => {
+    // Грамматика (3): вставь слово
+    this.shuffle(WRITING_GAPS).slice(0, 3).forEach((g) => {
       qs.push({ section: "Грамматика", prompt: `${g.parts[0]}<span class="blank">_____</span>${g.parts[1]} <span class="muted small">(${g.ru})</span>`, options: this.shuffle(g.options.slice()), answer: g.answer });
     });
-    // Аудио (3): услышь и выбери перевод (текст скрыт)
-    this.shuffle(ALL_WORDS).slice(0, 3).forEach((w) => {
+    // Аудио — слово (2): услышь и выбери перевод (текст скрыт)
+    this.shuffle(ALL_WORDS).slice(0, 2).forEach((w) => {
       const opts = uniq([w.ru, ...distract(w, 3)]);
-      qs.push({ section: "Аудио", prompt: "Прослушай и выбери перевод:", audio: w.gr, hideAudioText: true, autoplay: true, options: this.shuffle(opts), answer: w.ru });
+      qs.push({ section: "Аудио", prompt: "Прослушай слово и выбери перевод:", audio: w.gr, hideAudioText: true, autoplay: true, options: this.shuffle(opts), answer: w.ru });
     });
-    // Письмо (2): выбери правильное предложение (все варианты в едином виде)
-    this.shuffle(WRITING_ORDER).slice(0, 2).forEach((sn) => {
-      const starter = sn.tokens[0];
-      const correct = this.presentSentence(sn.tokens, starter);
+    // Аудио — фраза (1): услышь предложение и выбери смысл
+    const sPool = this.shuffle(WRITING_ORDER);
+    const sa = sPool[0];
+    if (sa) {
+      const sentGr = sa.tokens.join(" ");
+      const others = this.shuffle(WRITING_ORDER.filter((x) => x.ru !== sa.ru)).slice(0, 2).map((x) => x.ru);
+      qs.push({ section: "Аудио (фраза)", prompt: "Прослушай фразу и выбери перевод:", audio: sentGr, hideAudioText: true, autoplay: true, options: this.shuffle(uniq([sa.ru, ...others])), answer: sa.ru });
+    }
+    // Письмо — выбор (1): выбери правильное предложение (все варианты в едином виде)
+    const sw = sPool[1] || sPool[0];
+    if (sw) {
+      const starter = sw.tokens[0];
+      const correct = this.presentSentence(sw.tokens, starter);
       const opts = new Set([correct]);
       let guard = 0;
       while (opts.size < 3 && guard++ < 40) {
-        const perm = this.shuffle(sn.tokens);
-        if (perm.join(" ") !== sn.tokens.join(" ")) opts.add(this.presentSentence(perm, starter));
+        const perm = this.shuffle(sw.tokens);
+        if (perm.join(" ") !== sw.tokens.join(" ")) opts.add(this.presentSentence(perm, starter));
       }
-      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sn.ru}»`, options: this.shuffle([...opts]), answer: correct });
-    });
+      qs.push({ section: "Письмо", prompt: `Выбери правильное предложение: «${sw.ru}»`, options: this.shuffle([...opts]), answer: correct });
+    }
+    // Письмо — ввод (1): набери предложение по-гречески с клавиатуры
+    const st = sPool[2] || sPool[0];
+    if (st) {
+      qs.push({ section: "Письмо (ввод)", input: true, prompt: `Напиши по-гречески: «${st.ru}»`, hint: st.tokens.length + " слов(а)", answer: st.tokens.join(" "), alt: st.alt || [] });
+    }
     return qs;
   },
 
+  fmtMS(ms) {
+    const t = Math.max(0, Math.floor(ms / 1000));
+    return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+  },
+  startExamTimer() {
+    if (this._exTimer) return;
+    this._exTimer = setInterval(() => {
+      const el = document.getElementById("ex-timer");
+      if (!el || !this.session || !this.session.startTs) return;
+      el.textContent = this.fmtMS(Date.now() - this.session.startTs);
+    }, 1000);
+  },
+  stopExamTimer() { if (this._exTimer) { clearInterval(this._exTimer); this._exTimer = null; } },
+
   renderExam() {
     const n = parseInt(this.params.n, 10) || 0;
-    if (!this.session || this.session.n !== n) this.session = { n, qs: this.buildExam(n), idx: 0, correct: 0, sect: {} };
+    if (!this.session || this.session.n !== n) { this.stopExamTimer(); this.session = { n, qs: this.buildExam(n), idx: 0, correct: 0, sect: {}, startTs: Date.now() }; }
     const s = this.session;
 
     if (s.idx >= s.qs.length) {
+      this.stopExamTimer();
+      if (!s.endTs) s.endTs = Date.now();
       const pct = Math.round((100 * s.correct) / s.qs.length);
       this.saveExamBest(n, pct);
       const pass = pct >= 60;
@@ -1532,7 +1563,7 @@ const App = {
         <div class="result">
           <h2>${pass ? "Сдан! 🎉" : "Почти 💪"}</h2>
           <p class="big-score ${pass ? "" : "fail"}">${pct}%</p>
-          <p class="muted">${s.correct} из ${s.qs.length} правильно · зачёт от 60%</p>
+          <p class="muted">${s.correct} из ${s.qs.length} правильно · зачёт от 60% · ⏱ ${this.fmtMS(s.endTs - s.startTs)}</p>
         </div>
         <div class="word-list">${rows}</div>
         <button class="big-btn primary" data-exam="${n}">Пересдать</button>
@@ -1553,15 +1584,37 @@ const App = {
            <button class="play-slow" data-say-slow="${this.esc(q.audio)}">🐢 Медленно</button>
          </div>`
       : "";
-    if (q.autoplay) this.afterRender = () => Speech.say(q.audio);
-    const opts = q.options.map((o) => `<button class="opt" data-exopt="${this.esc(o)}">${o}</button>`).join("");
+    this.afterRender = () => { if (q.autoplay) Speech.say(q.audio); this.startExamTimer(); };
+    const body = q.input
+      ? `<input id="typeInput" class="type-input" autocomplete="off" autocapitalize="off" placeholder="Набери по-гречески…" value="${this.esc(s.input || "")}">
+         <div class="muted small">${q.hint || ""}</div>
+         ${this.greekKeyboard()}
+         <button class="big-btn primary" data-action="exam-type-check">Проверить</button>`
+      : `<div class="opts">${q.options.map((o) => `<button class="opt" data-exopt="${this.esc(o)}">${o}</button>`).join("")}</div>`;
     return `
-      <header class="page-head"><h2>Экзамен ${n + 1}</h2><div class="counter">${s.idx + 1}/${s.qs.length}</div></header>
+      <header class="page-head"><h2>Экзамен ${n + 1}</h2><div class="counter">⏱ <span id="ex-timer">${this.fmtMS(Date.now() - s.startTs)}</span> · ${s.idx + 1}/${s.qs.length}</div></header>
       <div class="exam-sec">${q.section}</div>
       ${passage}${audio}
       <div class="exam-q">${q.prompt}</div>
-      <div class="opts">${opts}</div>
+      ${body}
       <div id="fb" class="feedback"></div>`;
+  },
+
+  examTypeCheck() {
+    const s = this.session;
+    const q = s.qs[s.idx];
+    const inp = document.getElementById("typeInput");
+    const val = inp ? inp.value : (s.input || "");
+    const ok = [q.answer, ...(q.alt || [])].some((c) => this.normGreek(val) === this.normGreek(c));
+    if (ok) s.correct++;
+    if (!s.sect[q.section]) s.sect[q.section] = { c: 0, t: 0 };
+    s.sect[q.section].t++; if (ok) s.sect[q.section].c++;
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + q.answer + "</b>"} ${this.speakBtn(q.answer)}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
+    Speech.say(q.answer);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.input = ""; this.render(); });
+    this.afterAnswer();
   },
 
   examAnswer(opt, el) {
@@ -1797,6 +1850,7 @@ const App = {
       case "trainer-again": this.session = null; return this.render();
       case "deck-flip": this.session.answered = true; return this.render();
       case "type-check": return this.typeCheck();
+      case "exam-type-check": return this.examTypeCheck();
       case "speak-start": return this.speakStart();
       case "speak-next": this.session.idx++; return this.render();
       case "spk-start": return this.speakStartPhrase();
