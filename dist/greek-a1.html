@@ -2689,6 +2689,32 @@ const WRITING_SELF = [
   { ask: "Почему ты учишь греческий?",              model: "Μαθαίνω ελληνικά για την Κύπρο." },
 ];
 
+// Свободное письмо: тема → пишешь 2–3 предложения, потом сверяешь с образцом
+const WRITING_OPEN = [
+  { ask: "Опиши свой обычный день (2–3 предложения).", model: "Κάθε μέρα ξυπνάω στις εφτά, πίνω καφέ και πηγαίνω στη δουλειά. Το βράδυ διαβάζω." },
+  { ask: "Расскажи о своей семье.", model: "Έχω μια μικρή οικογένεια. Ο πατέρας μου είναι γιατρός και η μητέρα μου δασκάλα." },
+  { ask: "Что тебе нравится делать в свободное время?", model: "Μου αρέσει να ακούω μουσική και να διαβάζω βιβλία." },
+  { ask: "Опиши свой город.", model: "Μένω στη Λεμεσό. Είναι μια όμορφη πόλη κοντά στη θάλασσα." },
+  { ask: "Что ты ел сегодня?", model: "Το πρωί έφαγα ψωμί με τυρί και ήπια καφέ." },
+  { ask: "Куда ты хочешь поехать летом?", model: "Το καλοκαίρι θέλω να πάω στην Ελλάδα, στη θάλασσα." },
+  { ask: "Опиши своего друга.", model: "Ο φίλος μου είναι ψηλός και καλός. Του αρέσει το ποδόσφαιρο." },
+  { ask: "Напиши короткую записку: позови друга в кафе.", model: "Γεια σου! Πάμε για καφέ αύριο στις πέντε; Περιμένω απάντηση." },
+];
+
+// Вопрос-ответ для говорения: вопрос (греч.) + перевод + образец ответа
+const SPEAKING_Q = [
+  ["Πώς σε λένε;", "Как тебя зовут?", "Με λένε Μαξ."],
+  ["Από πού είσαι;", "Откуда ты?", "Είμαι από τη Ρωσία."],
+  ["Πόσων χρονών είσαι;", "Сколько тебе лет?", "Είμαι σαράντα χρονών."],
+  ["Πού μένεις;", "Где ты живёшь?", "Μένω στην Κύπρο."],
+  ["Τι δουλειά κάνεις;", "Кем ты работаешь?", "Δουλεύω σε μια εταιρεία."],
+  ["Τι σου αρέσει;", "Что тебе нравится?", "Μου αρέσει ο καφές και η θάλασσα."],
+  ["Τι ώρα ξυπνάς;", "Во сколько встаёшь?", "Ξυπνάω στις εφτά."],
+  ["Έχεις οικογένεια;", "У тебя есть семья?", "Ναι, έχω γυναίκα και δύο παιδιά."],
+  ["Γιατί μαθαίνεις ελληνικά;", "Почему учишь греческий?", "Μαθαίνω ελληνικά για την Κύπρο."],
+  ["Τι κάνεις το Σαββατοκύριακο;", "Что делаешь на выходных?", "Πάω στη θάλασσα με τους φίλους."],
+];
+
 // Стартовый набор слов для режима «текст из слов»,
 // если у пользователя ещё мало изученных карточек.
 const WRITING_STARTER_WORDS = [
@@ -4601,12 +4627,13 @@ const App = {
           ${tile("gap", "✏️", "Вставь слово", "пропущенное слово · грамматика")}
           ${tile("compose", "📝", "Текст из слов", "составь предложения из изученных слов")}
           ${tile("self", "🪪", "О себе", "ответь по-гречески, сверься с образцом")}
+          ${tile("open", "📋", "Свободное письмо", "напиши 2–3 предложения на тему")}
         </div>`;
     }
     if (mode === "worder") return this.renderWOrder();
     if (mode === "gap") return this.renderWGap();
     if (mode === "compose") return this.renderWCompose();
-    if (mode === "self") return this.renderWSelf();
+    if (mode === "self" || mode === "open") return this.renderWSelf();
     return this.renderWriting();
   },
 
@@ -4754,18 +4781,21 @@ const App = {
 
   // О себе (подсказка + образец)
   renderWSelf() {
-    if (!this.session) this.session = { pool: this.shuffle(WRITING_SELF), idx: 0, revealed: false, text: "" };
+    const open = this.params.mode === "open";
+    const pool0 = open ? WRITING_OPEN : WRITING_SELF;
+    const title = open ? "📋 Свободное письмо" : "🪪 О себе";
+    if (!this.session) this.session = { pool: this.shuffle(pool0), idx: 0, revealed: false, text: "" };
     const s = this.session;
-    if (s.idx >= s.pool.length) return `<div class="result"><h2>Готово! 🎉</h2><p class="muted">Ты ответил на все вопросы о себе.</p><button class="big-btn primary" data-action="wr-again">Ещё раз</button><button class="big-btn ghost" data-go="writing">К письму</button></div>`;
+    if (s.idx >= s.pool.length) return `<div class="result"><h2>Готово! 🎉</h2><p class="muted">Все задания пройдены.</p><button class="big-btn primary" data-action="wr-again">Ещё раз</button><button class="big-btn ghost" data-go="writing">К письму</button></div>`;
     const cur = s.pool[s.idx];
     const reveal = s.revealed
       ? `<div class="ok-msg" style="text-align:left">Образец: <b>${cur.model}</b> ${this.speakBtn(cur.model)}</div>
          <button class="big-btn primary" data-action="self-next">Дальше →</button>`
       : `<button class="big-btn primary" data-action="self-reveal">Показать образец</button>`;
-    return `<header class="page-head"><h2>🪪 О себе</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+    return `<header class="page-head"><h2>${title}</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
       <button class="back" data-go="writing">← Письмо</button>
       <div class="quiz-prompt"><div class="type-ru">${cur.ask}</div></div>
-      <textarea id="selfText" class="type-input area" placeholder="Напиши ответ по-гречески…">${this.esc(s.text)}</textarea>
+      <textarea id="selfText" class="type-input area" placeholder="Напиши по-гречески (2–3 предложения)…">${this.esc(s.text)}</textarea>
       <div id="reveal">${reveal}</div>`;
   },
 
@@ -4809,11 +4839,22 @@ const App = {
   },
 
   renderSpeaking() {
+    if (!Recog.supported) {
+      return `<header class="page-head"><h2>🗣️ Говорение</h2></header>
+        <div class="banner">🎤 Распознавание речи не поддерживается этим браузером (на iPhone его нет). Открой сайт в <b>Chrome</b> на Android или компьютере.</div>`;
+    }
+    const mode = this.params.mode;
+    if (!mode) {
+      const tile = (m, ic, t, d) => `<button class="deck-tile" data-spkmode="${m}"><div class="deck-ic">${ic}</div><div class="deck-body"><div class="deck-title">${t}</div><div class="deck-meta">${d}</div></div></button>`;
+      return `<header class="page-head"><h2>🗣️ Говорение</h2></header>
+        <p class="muted">Тренируй речь: повторяй фразы или отвечай на вопросы своими словами.</p>
+        <div class="deck-list">
+          ${tile("phrases", "🔊", "Фразы вслух", "читаешь фразу — приложение сверяет")}
+          ${tile("qa", "💬", "Вопрос-ответ", "отвечаешь свободно, потом образец")}
+        </div>`;
+    }
+    if (mode === "qa") return this.renderSpeakQA();
     if (!this.session) {
-      if (!Recog.supported) {
-        return `<header class="page-head"><h2>🗣️ Говорение</h2></header>
-          <div class="banner">🎤 Распознавание речи не поддерживается этим браузером (на iPhone его нет). Открой сайт в <b>Chrome</b> на Android или компьютере.</div>`;
-      }
       this.session = { pool: this.shuffle(this.buildSpeaking()), idx: 0, correct: 0, scored: false };
     }
     const s = this.session;
@@ -4868,6 +4909,50 @@ const App = {
       </div>
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Результат →" : "Дальше →"}</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.scored = false; this.render(); });
+    this.afterAnswer();
+  },
+
+  // Открытый вопрос-ответ: говоришь свободно, потом образец
+  renderSpeakQA() {
+    if (!this.session) this.session = { pool: this.shuffle(SPEAKING_Q.slice()), idx: 0 };
+    const s = this.session;
+    if (s.idx >= s.pool.length) {
+      return `<div class="result"><h2>Готово! 🎉</h2><p class="muted">Ты ответил на все вопросы.</p>
+        <button class="big-btn primary" data-action="spkq-again">Ещё раз</button>
+        <button class="big-btn ghost" data-go="speaking">К говорению</button></div>`;
+    }
+    const [q, ru] = s.pool[s.idx];
+    return `
+      <header class="page-head"><h2>💬 Вопрос-ответ</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <button class="back" data-go="speaking">← Говорение</button>
+      <p class="muted small">Послушай вопрос и ответь по-гречески своими словами. Потом сверься с образцом.</p>
+      <div class="quiz-prompt"><div class="flash-gr">${q} ${this.speakBtn(q)}</div><div class="muted">${ru}</div></div>
+      <button class="mic-btn" data-action="spkq-start">🎤 Ответить</button>
+      <div id="fb" class="feedback"></div>`;
+  },
+  speakQAStart() {
+    const cur = this.session.pool[this.session.idx];
+    const mic = document.querySelector(".mic-btn");
+    const fb = document.getElementById("fb");
+    Recog.listen(
+      (alts) => this.speakQAResult(alts, cur),
+      () => { if (mic) { mic.classList.remove("rec"); mic.innerHTML = "🎤 Ответить снова"; mic.disabled = false; } if (fb) fb.innerHTML = `<div class="bad-msg">Не расслышал. Ещё раз.</div>`; },
+      () => { if (mic) { mic.classList.add("rec"); mic.innerHTML = "🔴 Слушаю…"; mic.disabled = true; } if (fb) fb.innerHTML = ""; }
+    );
+  },
+  speakQAResult(alts, cur) {
+    const s = this.session;
+    const mic = document.querySelector(".mic-btn");
+    if (mic) { mic.classList.remove("rec"); mic.innerHTML = "🎤 Ответить снова"; mic.disabled = false; }
+    const heard = alts[0] || "—";
+    const model = cur[2];
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="ok-msg" style="text-align:left">
+        🗣 Ты сказал: «${this.esc(heard)}»
+        <div class="answer-ru">Образец: <b>${model}</b> ${this.speakBtn(model)}</div>
+      </div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
     this.afterAnswer();
   },
 
@@ -5292,13 +5377,14 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode]");
     if (!t) return;
 
     if (t.dataset.lesson !== undefined) return this.go("lesson", { id: t.dataset.lesson });
     if (t.dataset.gex !== undefined) { e.preventDefault(); return this.go("gex", { topic: t.dataset.gex }); }
     if (t.dataset.gexopt !== undefined) return this.gexAnswer(t.dataset.gexopt, t);
     if (t.dataset.mistakeopt !== undefined) return this.mistakesAnswer(t.dataset.mistakeopt, t);
+    if (t.dataset.spkmode !== undefined) return this.go("speaking", { mode: t.dataset.spkmode });
 
     if (t.dataset.rw !== undefined) return this.showWord(t.dataset.rw, t.dataset.ro);
     if (t.dataset.rtr !== undefined) return this.rTrans(t.dataset.rtr);
@@ -5361,6 +5447,8 @@ const App = {
       case "speak-next": this.session.idx++; return this.render();
       case "spk-start": return this.speakStartPhrase();
       case "spk-again": this.session = null; return this.render();
+      case "spkq-start": return this.speakQAStart();
+      case "spkq-again": this.session = null; return this.render();
       case "worder-check": return this.worderCheck();
       case "compose-check": return this.composeCheck();
       case "compose-new": this.session = null; return this.render();
