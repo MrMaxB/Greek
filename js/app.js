@@ -905,7 +905,10 @@ const App = {
     const s = this.session;
     const cur = s.pool[s.idx];
     const built = s.built.map((i) => cur.tokens[i]).join(" ");
-    const ok = this.normGreek(built) === this.normGreek(cur.tokens.join(" "));
+    // Принимаем канонический порядок ИЛИ любой из явно заданных равноправных
+    // вариантов (cur.alt) — напр. наречие времени в начале/в конце фразы.
+    const cands = [cur.tokens.join(" "), ...(cur.alt || [])];
+    const ok = cands.some((c) => this.normGreek(built) === this.normGreek(c));
     if (ok && !s._scored) s.correct++;
     s._scored = true;
     const right = cur.tokens.join(" ");

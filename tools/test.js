@@ -92,7 +92,15 @@ X.WRITING_GAPS.forEach((g, i) => {
   if (!g.options.includes(g.answer)) E(`gap#${i}: ответ не среди вариантов`);
   if (!g.parts || g.parts.length !== 2) E(`gap#${i}: parts ≠ 2`);
 });
-X.WRITING_ORDER.forEach((s, i) => { if (!s.tokens || s.tokens.length < 2 || !s.ru) E(`order#${i}: плохая запись`); });
+X.WRITING_ORDER.forEach((s, i) => {
+  if (!s.tokens || s.tokens.length < 2 || !s.ru) E(`order#${i}: плохая запись`);
+  // alt-порядок должен быть перестановкой тех же слов (защита от опечаток)
+  if (s.alt) {
+    const key = (a) => a.map((t) => t.toLowerCase()).sort().join("|");
+    const base = key(s.tokens);
+    s.alt.forEach((a) => { if (key(a.split(/\s+/)) !== base) E(`order#${i}: alt не является перестановкой токенов: "${a}"`); });
+  }
+});
 X.WRITING_SELF.forEach((s, i) => { if (!s.ask || !s.model) E(`self#${i}: нет ask/model`); });
 
 /* ---- чтение ---- */
