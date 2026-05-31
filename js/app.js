@@ -639,6 +639,12 @@ const App = {
     return `
       <header class="page-head"><h2>📖 Грамматика A1</h2></header>
       <p class="muted">Выбери тему — полное объяснение с примерами и упражнения. Любое греческое слово можно тапнуть для перевода.</p>
+      <div class="mix-cta">
+        <button class="big-btn primary" data-train="decl">🧩 Микс склонений
+          <small>все рода и падежи вразнобой — ${DECLENSIONS.length} слов</small></button>
+        <button class="big-btn primary" data-train="conj">🔀 Микс спряжений
+          <small>глаголы и лица вразнобой — ${CONJUGATIONS.length} слов</small></button>
+      </div>
       <div class="lesson-list">${rows}</div>
     `;
   },
@@ -649,11 +655,17 @@ const App = {
     if (!g) return this.renderGrammar();
     const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
     const next = GRAMMAR_LESSONS[i + 1];
+    // На уроках склонений/спряжений предлагаем «микс вразнобой»
+    const mix = ["cases", "decl-m", "decl-f", "decl-n"].includes(g.id)
+      ? `<button class="big-btn" data-train="decl">🧩 Микс склонений (все рода вразнобой)</button>`
+      : ["verb-a", "verb-b", "conj"].includes(g.id)
+      ? `<button class="big-btn" data-train="conj">🔀 Микс спряжений (вразнобой)</button>` : "";
     return `
       <header class="page-head"><h2>${GrammarEx.icon(g.id)} ${g.title}</h2><button class="back" data-go="grammar">← Темы</button></header>
       <article class="lesson">${this.wrapGreek(g.body)}</article>
       <div class="lesson-actions">
         ${n ? `<button class="big-btn primary" data-gex="${g.id}">▶ Упражнения (${n})</button>` : ""}
+        ${mix}
         ${next ? `<button class="big-btn ghost" data-lesson="${next.id}">Дальше: ${next.title.replace(/^\d+\.\s*/, "")} →</button>` : `<button class="big-btn ghost" data-go="grammar">К списку тем</button>`}
       </div>
     `;

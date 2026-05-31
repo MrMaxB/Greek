@@ -341,6 +341,9 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .gtab { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: .9rem; }
 .gtab th, .gtab td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; }
 .gtab th { background: var(--blue); color: #fff; font-weight: 600; }
+.gtab th .rword { color: #fff; border-bottom-color: rgba(255,255,255,.55); }
+.mix-cta { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 18px; }
+.mix-cta .big-btn { flex: 1 1 220px; margin: 0; }
 .gtab td:first-child { color: var(--muted); white-space: nowrap; }
 .gtab b { color: var(--blue-2); }
 
