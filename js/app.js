@@ -206,6 +206,29 @@ const App = {
     this._gg = g;
     return g;
   },
+  // Приблизительный резолв: точное совпадение → иначе лемма с той же основой
+  // (самый длинный общий префикс). Покрывает падежные/родовые формы:
+  // καλή→καλός, πυρετό→πυρετός, πράγματα→πράγμα.
+  glossStems() {
+    if (this._stems) return this._stems;
+    this._stems = Object.entries(this.globalGloss()).filter(([k]) => k.length >= 3);
+    return this._stems;
+  },
+  resolveGloss(norm) {
+    const g = this.globalGloss();
+    if (g[norm]) return g[norm];
+    if (!norm || norm.length < 3) return "";
+    let best = null, bestLen = 0;
+    for (const [k, ru] of this.glossStems()) {
+      let i = 0; const m = Math.min(k.length, norm.length);
+      while (i < m && k[i] === norm[i]) i++;
+      if (i < 3) continue;                      // общая основа слишком короткая
+      if (i < k.length - 3 || i < norm.length - 4) continue; // хвосты должны быть короткими
+      if (Math.abs(k.length - norm.length) > 5) continue;
+      if (i > bestLen) { bestLen = i; best = ru; }
+    }
+    return best ? best + " (форма)" : "";
+  },
   // Обернуть греческие слова в тап-спаны (для теории/упражнений)
   wrapGreek(html) {
     return (html || "").replace(/[Ͱ-Ͽἀ-῿]+/g, (m) =>
@@ -1353,7 +1376,7 @@ const App = {
   },
 
   showWord(norm, orig) {
-    const tr = (this._gloss && this._gloss[norm]) || this.globalGloss()[norm] || "";
+    const tr = (this._gloss && this._gloss[norm]) || this.resolveGloss(norm);
     const bar = document.getElementById("wordbar");
     if (!bar) return;
     bar.querySelector(".wb-gr").textContent = orig;

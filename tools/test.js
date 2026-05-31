@@ -118,7 +118,12 @@ X.READING_TEXTS.forEach((t) => {
     GK(p[0]).forEach((wd) => { wordsTotal++; if (!g[norm(wd)]) uncovered++; });
   });
 });
-if (uncovered / wordsTotal > 0.05) W(`чтение: без тап-перевода ${uncovered}/${wordsTotal} (${Math.round(100 * uncovered / wordsTotal)}%)`);
+// Полный чек тап-перевода (с морфологическим фолбэком) — tools/glosscheck.js
+try {
+  require("child_process").execSync("node " + __dirname + "/glosscheck.js", { stdio: "ignore" });
+} catch (e) {
+  E("есть слова в материалах без тап-перевода — запусти `node tools/glosscheck.js` и добей их в READING_COMMON");
+}
 
 /* ---- экзамены ---- */
 X.EXAM_READINGS.forEach((r, i) => {
