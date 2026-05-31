@@ -163,6 +163,7 @@ const App = {
   render() {
     const map = {
       home: () => this.renderHome(),
+      track: () => this.renderTrack(),
       alphabet: () => this.renderAlphabet(),
       alphaQuiz: () => this.renderAlphaQuiz(),
       review: () => this.renderReview(),
@@ -239,6 +240,7 @@ const App = {
   renderNav() {
     const items = [
       ["home", "🏠", "Главная"],
+      ["track", "🗺️", "Путь"],
       ["alphabet", "🔤", "Алфавит"],
       ["review", "🧠", "Повтор"],
       ["decks", "📚", "Темы"],
@@ -316,7 +318,15 @@ const App = {
       <p class="muted center">Освоено ${pct}% словаря A1</p>
 
       <section class="cta">
-        <button class="big-btn primary" data-go="review">
+        ${(() => {
+          const tr = this.buildTrack(); const tsd = this.trackState().day;
+          const cur = tr[Math.min(tsd, tr.length) - 1];
+          return `<button class="big-btn primary" data-go="track">
+            🗺️ Путь к A1 — День ${Math.min(tsd, tr.length)} из ${tr.length}
+            <small>${tsd > tr.length ? "курс пройден 🎓" : cur.title}</small>
+          </button>`;
+        })()}
+        <button class="big-btn" data-go="review">
           🧠 Заниматься сейчас
           <small>${s.due} повторить · ${Math.max(0, 12 - s.newToday)} новых доступно</small>
         </button>
@@ -349,6 +359,168 @@ const App = {
         <button class="tile" data-go="progress"><span class="tile-ic">📊</span>Прогресс</button>
       </div>
     `;
+  },
+
+  /* ---------- ПУТЬ (учебный трек по дням) ---------- */
+  // Трек собирается из существующего контента: алфавит → грамматика по
+  // порядку + темы + чтение + продуктивные задания, с экзаменами-чекпоинтами.
+  buildTrack() {
+    if (this._track) return this._track;
+    const ord = { "A0": 0, "A0+": 1, "A1": 2 };
+    const reading = (typeof READING_TEXTS !== "undefined") ? [...READING_TEXTS].sort((a, b) => (ord[a.level] - ord[b.level])) : [];
+    const lessons = GRAMMAR_LESSONS, decks = DECKS, exams = EXAM_READINGS;
+    const days = [];
+    const D = (title, focus, tasks, extra) => days.push(Object.assign({ title, focus, tasks }, extra || {}));
+    const stripN = (s) => s.replace(/^\d+\.\s*/, "");
+
+    D("Алфавит: буквы и звуки", "Старт", [
+      { t: "go", ref: "alphabet", label: "Изучи 24 буквы (нажми — услышишь)" },
+      { t: "go", ref: "alphaQuiz", label: "Тренажёр узнавания букв" },
+    ]);
+    D("Буквосочетания и первые слова", "Старт", [
+      { t: "go", ref: "alphabet", label: "Буквосочетания: μπ, ντ, αι, ει…" },
+      { t: "go", ref: "alphaQuiz", label: "Тренажёр букв" },
+      reading[0] ? { t: "read", ref: reading[0].id, label: "Первый текст (A0): " + reading[0].titleRu } : { t: "go", ref: "reading", label: "Открой чтение" },
+    ]);
+
+    const CONTENT = Math.ceil(decks.length / 2);
+    let ri = 1, exi = 0;
+    for (let i = 0; i < CONTENT; i++) {
+      const tasks = [{ t: "review", label: "SRS-повторение (10–15 мин)" }];
+      const li = Math.floor(i * lessons.length / CONTENT);
+      const prevLi = i === 0 ? -1 : Math.floor((i - 1) * lessons.length / CONTENT);
+      const newLesson = li !== prevLi;
+      if (newLesson) tasks.push({ t: "lesson", ref: lessons[li].id, label: "Грамматика: " + stripN(lessons[li].title) });
+      const d1 = decks[2 * i], d2 = decks[2 * i + 1];
+      if (d1) tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title });
+      if (d2) tasks.push({ t: "deck", ref: d2.id, label: "Тема: " + d2.title });
+      if (reading[ri]) { tasks.push({ t: "read", ref: reading[ri].id, label: "Чтение: " + reading[ri].titleRu }); ri++; }
+      tasks.push(i % 3 === 0 ? { t: "go", ref: "writing", label: "Письмо: собери предложение" }
+        : i % 3 === 1 ? { t: "go", ref: "speaking", label: "Говорение: фразы или диалог" }
+          : { t: "go", ref: "writing", label: "Письмо: вставь слово / о себе" });
+      D(newLesson ? stripN(lessons[li].title) : (d1 ? d1.title : "Практика"), "Грамматика · темы · чтение", tasks);
+      if ((i + 1) % 6 === 0 && exams[exi]) {
+        D("Контрольный экзамен", "Проверка", [
+          { t: "review", label: "SRS-повторение" },
+          { t: "exam", ref: exi, label: "Пробный экзамен: " + exams[exi].theme },
+        ], { checkpoint: true });
+        exi = (exi + 1) % exams.length;
+      }
+    }
+    D("Финал: итоговый пробный экзамен A1", "Финал", [
+      { t: "review", label: "Финальное повторение" },
+      { t: "exam", ref: 0, label: "Итоговый экзамен" },
+      { t: "go", ref: "speaking", label: "Диалоги вслух" },
+    ], { checkpoint: true });
+
+    days.forEach((d, i) => { d.week = Math.floor(i / 5) + 1; });
+    this._track = days;
+    return days;
+  },
+
+  trackState() {
+    if (this._ts) return this._ts;
+    try { this._ts = JSON.parse(localStorage.getItem("greekA1_track")) || null; } catch { this._ts = null; }
+    if (!this._ts || typeof this._ts.day !== "number") this._ts = { day: 1, done: {} };
+    if (!this._ts.done) this._ts.done = {};
+    return this._ts;
+  },
+  saveTrackState() {
+    localStorage.setItem("greekA1_track", JSON.stringify(this.trackState()));
+    if (window.Cloud && window.Cloud.push) window.Cloud.push();
+  },
+  trackViewDay() {
+    const ts = this.trackState();
+    const total = this.buildTrack().length;
+    let v = this.params.day ? parseInt(this.params.day, 10) : ts.day;
+    return Math.max(1, Math.min(total, v));
+  },
+  toggleTrackTask(idx) {
+    const ts = this.trackState();
+    const day = this.trackViewDay();
+    const arr = ts.done[day] || [];
+    const k = parseInt(idx, 10);
+    ts.done[day] = arr.includes(k) ? arr.filter((x) => x !== k) : [...arr, k];
+    this.saveTrackState();
+    this.render();
+  },
+  trackDone() {
+    const ts = this.trackState();
+    const total = this.buildTrack().length;
+    const day = this.trackViewDay();
+    if (day === ts.day) ts.day = Math.min(total + 1, ts.day + 1);
+    this.saveTrackState();
+    this.go("track", ts.day > total ? {} : { day: String(ts.day) });
+  },
+  trackTaskBtn(task, idx, done) {
+    const map = {
+      review: ['data-go="review"', "🧠"], lesson: [`data-lesson="${task.ref}"`, "📖"],
+      deck: [`data-deck="${task.ref}"`, "📚"], read: [`data-read="${task.ref}"`, "📕"],
+      exam: [`data-exam="${task.ref}"`, "📝"],
+      go: [`data-go="${task.ref}"`, task.ref === "speaking" ? "🗣️" : task.ref === "writing" ? "✍️" : "▶"],
+    };
+    const [attr, ic] = map[task.t] || ['data-go="home"', "•"];
+    const checked = done.includes(idx);
+    return `<div class="tk ${checked ? "tk-done" : ""}">
+      <button class="tk-check" data-track-check="${idx}" aria-label="Отметить">${checked ? "✅" : "⬜"}</button>
+      <button class="tk-go" ${attr}><span class="tk-ic">${ic}</span><span>${task.label}</span></button>
+    </div>`;
+  },
+  renderTrack() {
+    const track = this.buildTrack();
+    const ts = this.trackState();
+    const total = track.length;
+    if (ts.day > total) {
+      return `<header class="page-head"><h2>🗺️ Путь к A1</h2></header>
+        <div class="result"><h2>Курс пройден! 🎓</h2>
+        <p class="muted">Ты прошёл все ${total} дней. Дальше — закрепляй: экзамены, диалоги, чтение, и готовься к A2.</p></div>
+        <button class="big-btn primary" data-go="exams">📝 Прорешать экзамены</button>
+        <button class="big-btn ghost" data-action="track-restart">Начать путь заново</button>`;
+    }
+    const view = this.trackViewDay();
+    const day = track[view - 1];
+    const done = ts.done[view] || [];
+    const allDone = day.tasks.every((_, i) => done.includes(i));
+    const pct = Math.round(100 * (ts.day - 1) / total);
+    const weeks = Math.ceil(total / 5);
+
+    const byWeek = {};
+    track.forEach((d, i) => { (byWeek[d.week] = byWeek[d.week] || []).push({ d, n: i + 1 }); });
+    const overview = Object.keys(byWeek).map((w) => {
+      const cur = byWeek[w].some((x) => x.n === ts.day);
+      const rows = byWeek[w].map(({ d, n }) =>
+        `<button class="track-row ${n < ts.day ? "done" : n === ts.day ? "cur" : ""}" data-track-day="${n}">
+          <span class="tr-mark">${n < ts.day ? "✅" : n === ts.day ? "▶" : (d.checkpoint ? "🏁" : "•")}</span>
+          День ${n}: ${d.title}</button>`).join("");
+      return `<details class="track-week" ${cur ? "open" : ""}><summary>Неделя ${w}</summary>${rows}</details>`;
+    }).join("");
+
+    return `
+      <header class="page-head"><h2>🗺️ Путь к A1</h2></header>
+      <p class="muted">Учись по порядку: каждый «день» — одна сессия на 20–40 минут. Весь путь — ${total} дней (~${weeks} недель, ≈3 месяца при 5 занятиях в неделю). Прогресс сохраняется и синхронизируется.</p>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <p class="muted center small">Пройдено ${ts.day - 1} из ${total} дней · ${pct}%</p>
+
+      <div class="track-day ${day.checkpoint ? "cp" : ""}">
+        <div class="td-head">
+          <button class="td-nav" data-track-day="${view - 1}" ${view <= 1 ? "disabled" : ""}>‹</button>
+          <div class="td-mid">
+            <div class="td-n">День ${view} · Неделя ${day.week}</div>
+            <div class="td-title">${day.checkpoint ? "🏁 " : ""}${day.title}</div>
+            <div class="muted small">${day.focus}</div>
+          </div>
+          <button class="td-nav" data-track-day="${view + 1}" ${view >= total ? "disabled" : ""}>›</button>
+        </div>
+        <div class="tk-list">${day.tasks.map((t, i) => this.trackTaskBtn(t, i, done)).join("")}</div>
+        ${view === ts.day
+        ? `<button class="big-btn primary" data-action="track-done">${allDone ? "✓ Готово — следующий день →" : "Отметить день пройденным →"}</button>`
+        : view < ts.day
+          ? `<div class="ok-msg">✓ Этот день уже пройден</div><button class="big-btn ghost" data-track-day="${ts.day}">К текущему дню (${ts.day}) →</button>`
+          : `<div class="muted small center">Сначала пройди день ${ts.day}.</div><button class="big-btn ghost" data-track-day="${ts.day}">К текущему дню →</button>`}
+      </div>
+
+      <h3 class="section-title">Все недели</h3>
+      <div class="track-weeks">${overview}</div>`;
   },
 
   /* ---------- АЛФАВИТ ---------- */
@@ -1777,9 +1949,11 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog],[data-track-day],[data-track-check]");
     if (!t) return;
 
+    if (t.dataset.trackDay !== undefined) return this.go("track", { day: t.dataset.trackDay });
+    if (t.dataset.trackCheck !== undefined) return this.toggleTrackTask(t.dataset.trackCheck);
     if (t.dataset.lesson !== undefined) return this.go("lesson", { id: t.dataset.lesson });
     if (t.dataset.gex !== undefined) { e.preventDefault(); return this.go("gex", { topic: t.dataset.gex }); }
     if (t.dataset.gexopt !== undefined) return this.gexAnswer(t.dataset.gexopt, t);
@@ -1853,6 +2027,8 @@ const App = {
       case "exam-type-check": return this.examTypeCheck();
       case "speak-start": return this.speakStart();
       case "speak-next": this.session.idx++; return this.render();
+      case "track-done": return this.trackDone();
+      case "track-restart": { this.trackState().day = 1; this.trackState().done = {}; this.saveTrackState(); return this.go("track"); }
       case "spk-start": return this.speakStartPhrase();
       case "spk-next": this.session.done++; this.session.idx++; this.session.scored = false; return this.render();
       case "spk-again": this.session = null; return this.render();

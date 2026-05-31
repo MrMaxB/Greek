@@ -358,6 +358,28 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .bubble.task { background: #fff7e0; align-self: stretch; max-width: 100%; color: var(--ink); }
 .bub-ru { font-size: .85rem; color: var(--muted); margin-top: 3px; }
 .reveal-gr { margin-top: 6px; font-weight: 600; color: var(--blue); }
+
+/* путь / учебный трек */
+.track-day { border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin: 12px 0; background: #fff; }
+.track-day.cp { background: #fff7e0; border-color: #f0d68a; }
+.td-head { display: flex; align-items: center; gap: 8px; }
+.td-mid { flex: 1; text-align: center; }
+.td-n { font-size: .8rem; color: var(--muted); }
+.td-title { font-size: 1.15rem; font-weight: 700; }
+.td-nav { width: 40px; height: 40px; border-radius: 10px; border: 1px solid #dbe3ec; background: #f4f7fb; font-size: 1.3rem; color: var(--blue); }
+.td-nav:disabled { opacity: .35; }
+.tk-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.tk { display: flex; align-items: stretch; gap: 8px; }
+.tk-check { width: 42px; border: none; background: transparent; font-size: 1.3rem; cursor: pointer; }
+.tk-go { flex: 1; display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 1rem; color: var(--ink); }
+.tk-go .tk-ic { font-size: 1.2rem; }
+.tk-done .tk-go { background: #eafaf0; border-color: #bfe9cd; color: #1a7d3a; }
+.track-week { margin: 6px 0; border: 1px solid #eef2f7; border-radius: 10px; padding: 4px 10px; }
+.track-week summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.track-row { display: block; width: 100%; text-align: left; padding: 8px 6px; border: none; background: transparent; border-top: 1px solid #f1f5f9; color: var(--ink); }
+.track-row .tr-mark { display: inline-block; width: 22px; }
+.track-row.cur { color: var(--blue); font-weight: 700; }
+.track-row.done { color: var(--muted); }
 .gtab td:first-child { color: var(--muted); white-space: nowrap; }
 .gtab b { color: var(--blue-2); }
 
