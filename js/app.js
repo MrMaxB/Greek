@@ -1072,41 +1072,45 @@ const App = {
   },
 
   renderSpeaking() {
-    if (!Recog.supported) {
-      return `<header class="page-head"><h2>🗣️ Говорение</h2></header>
-        <div class="banner">🎤 Распознавание речи не поддерживается этим браузером (на iPhone его нет). Открой сайт в <b>Chrome</b> на Android или компьютере.</div>`;
-    }
+    const noMic = !Recog.supported;
     const mode = this.params.mode;
     if (!mode) {
       const tile = (m, ic, t, d) => `<button class="deck-tile" data-spkmode="${m}"><div class="deck-ic">${ic}</div><div class="deck-body"><div class="deck-title">${t}</div><div class="deck-meta">${d}</div></div></button>`;
       return `<header class="page-head"><h2>🗣️ Говорение</h2></header>
-        <p class="muted">Тренируй речь: повторяй фразы или отвечай на вопросы своими словами.</p>
+        ${noMic ? `<div class="banner">🎤 В этом браузере нет распознавания речи (iPhone/Firefox). Тренировка работает в режиме «слушай образец и говори вслух»; для авто-проверки открой в <b>Chrome</b>.</div>` : ""}
+        <p class="muted">Тренируй речь: повторяй фразы, отвечай на вопросы или проходи диалоги-сценарии.</p>
         <div class="deck-list">
-          ${tile("phrases", "🔊", "Фразы вслух", "читаешь фразу — приложение сверяет")}
-          ${tile("qa", "💬", "Вопрос-ответ", "отвечаешь свободно, потом образец")}
+          ${tile("phrases", "🔊", "Фразы вслух", noMic ? "слушай образец и повторяй вслух" : "читаешь фразу — приложение сверяет")}
+          ${tile("qa", "💬", "Вопрос-ответ", "отвечаешь своими словами, потом образец")}
+          ${tile("dialog", "🎭", "Диалоги", `${SPEAKING_DIALOGS.length} сценариев: кафе, магазин, врач…`)}
         </div>`;
     }
     if (mode === "qa") return this.renderSpeakQA();
+    if (mode === "dialog") return this.renderSpeakDialog();
     if (!this.session) {
-      this.session = { pool: this.shuffle(this.buildSpeaking()), idx: 0, correct: 0, scored: false };
+      this.session = { pool: this.shuffle(this.buildSpeaking()), idx: 0, correct: 0, done: 0, scored: false };
     }
     const s = this.session;
     if (s.idx >= s.pool.length) {
-      return `<div class="result"><h2>Готово! 🎉</h2><p class="big-score">${s.correct} / ${s.pool.length}</p>
-        <p class="muted">фраз произнесено верно</p>
+      return `<div class="result"><h2>Готово! 🎉</h2>
+        <p class="big-score">${noMic ? s.done + " / " + s.pool.length : s.correct + " / " + s.pool.length}</p>
+        <p class="muted">${noMic ? "фраз проговорено" : "фраз произнесено верно"}</p>
         <button class="big-btn primary" data-action="spk-again">Ещё раунд</button>
-        <button class="big-btn ghost" data-go="home">На главную</button></div>`;
+        <button class="big-btn ghost" data-go="speaking">К говорению</button></div>`;
     }
     const cur = s.pool[s.idx];
     return `
-      <header class="page-head"><h2>🗣️ Говорение</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
-      <p class="muted small">Прочитай фразу вслух по-гречески. Нажми 🔊 послушать образец, потом 🎤 и говори.</p>
+      <header class="page-head"><h2>🗣️ Фразы вслух</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <button class="back" data-go="speaking">← Говорение</button>
+      <p class="muted small">${noMic ? "Послушай образец 🔊 и повтори вслух. Потом — дальше." : "Прочитай фразу вслух. Нажми 🔊 послушать, потом 🎤 и говори."}</p>
       <div class="quiz-prompt">
         <div class="flash-gr">${cur.gr} ${this.speakBtn(cur.gr)}</div>
         <div class="muted">${cur.ru}</div>
       </div>
       <button class="play-slow" data-say-slow="${this.esc(cur.gr)}">🐢 Медленно</button>
-      <button class="mic-btn" data-action="spk-start">🎤 Произнести фразу</button>
+      ${noMic
+        ? `<button class="big-btn primary" data-action="spk-next">✓ Сказал вслух — дальше →</button>`
+        : `<button class="mic-btn" data-action="spk-start">🎤 Произнести фразу</button>`}
       <div id="fb" class="feedback"></div>`;
   },
 
@@ -1127,6 +1131,18 @@ const App = {
     );
   },
 
+  // Пословная обратная связь: какие слова распознаны (зелёные), какие нет
+  phraseWordFeedback(target, alts) {
+    const heard = new Set();
+    (alts || []).forEach((a) => this.speechTokens(a).forEach((t) => heard.add(t)));
+    const words = target.match(/\d+|[Ͱ-Ͽἀ-῿]+/g) || [];
+    return words.map((w) => {
+      const tok = this.speechTokens(w)[0];
+      const ok = tok && heard.has(tok);
+      return `<span class="wfb ${ok ? "wfb-ok" : "wfb-no"}">${w}</span>`;
+    }).join(" ");
+  },
+
   speakPhraseResult(alts, cur) {
     const s = this.session;
     const mic = document.querySelector(".mic-btn");
@@ -1137,7 +1153,8 @@ const App = {
     const heard = alts[0] || "—";
     const fb = document.getElementById("fb");
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
-        ${ok ? "✓ Отлично!" : "✗ Почти"} ${this.speakBtn(cur.gr)}
+        ${ok ? "✓ Отлично!" : "✗ Почти — смотри, где разошлось:"} ${this.speakBtn(cur.gr)}
+        <div class="wfb-line">${this.phraseWordFeedback(cur.gr, alts)}</div>
         <div class="answer-ru">Услышал: «${this.esc(heard)}»</div>
       </div>
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Результат →" : "Дальше →"}</button>`;
@@ -1155,13 +1172,27 @@ const App = {
         <button class="big-btn ghost" data-go="speaking">К говорению</button></div>`;
     }
     const [q, ru] = s.pool[s.idx];
+    const noMic = !Recog.supported;
     return `
       <header class="page-head"><h2>💬 Вопрос-ответ</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
       <button class="back" data-go="speaking">← Говорение</button>
       <p class="muted small">Послушай вопрос и ответь по-гречески своими словами. Потом сверься с образцом.</p>
       <div class="quiz-prompt"><div class="flash-gr">${q} ${this.speakBtn(q)}</div><div class="muted">${ru}</div></div>
-      <button class="mic-btn" data-action="spkq-start">🎤 Ответить</button>
+      ${noMic
+        ? `<button class="big-btn primary" data-action="spkq-reveal">💡 Показать образец</button>`
+        : `<button class="mic-btn" data-action="spkq-start">🎤 Ответить</button>`}
       <div id="fb" class="feedback"></div>`;
+  },
+  // Без микрофона: показать образец и перейти дальше
+  speakQAReveal() {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="ok-msg" style="text-align:left">
+        Образец: <b>${cur[2]}</b> ${this.speakBtn(cur[2])}
+      </div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
   },
   speakQAStart() {
     const cur = this.session.pool[this.session.idx];
@@ -1187,6 +1218,65 @@ const App = {
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
     this.afterAnswer();
+  },
+
+  /* ---------- ГОВОРЕНИЕ: диалоги-сценарии ---------- */
+  renderSpeakDialog() {
+    const s = this.session;
+    if (!s || !s.d) {
+      const tiles = SPEAKING_DIALOGS.map((d) =>
+        `<button class="deck-tile" data-dialog="${d.id}"><div class="deck-ic">${d.icon}</div>
+          <div class="deck-body"><div class="deck-title">${d.title}</div>
+          <div class="deck-meta">${d.ru} · ${d.lines.length} реплик</div></div></button>`).join("");
+      return `<header class="page-head"><h2>🎭 Диалоги</h2></header>
+        <button class="back" data-go="speaking">← Говорение</button>
+        <p class="muted small">Выбери сценарий. Реплики собеседника звучат, твои — произносишь вслух (можно с подсказкой).</p>
+        <div class="deck-list">${tiles}</div>`;
+    }
+    const d = s.d;
+    if (s.idx >= d.lines.length) {
+      return `<div class="result"><h2>Сценарий пройден! 🎉</h2><p class="muted">«${d.title}»</p>
+        <button class="big-btn primary" data-action="dlg-restart">Ещё раз</button>
+        <button class="big-btn ghost" data-go="speaking">К другим диалогам</button></div>`;
+    }
+    const noMic = !Recog.supported;
+    const bub = (l, extra = "") => `<div class="bubble ${l.who === "u" ? "me" : "them"} ${extra}">
+        ${this.wrapGreek(l.gr)} ${this.speakBtn(l.gr)}<div class="bub-ru">${l.ru}</div></div>`;
+    const history = d.lines.slice(0, s.idx).map((l) => bub(l)).join("");
+    const cur = d.lines[s.idx];
+    let active;
+    if (cur.who === "p") {
+      active = `${bub(cur, "active")}
+        <button class="big-btn primary" data-action="dlg-next">Дальше →</button>`;
+      this.afterRender = () => Speech.say(cur.gr);
+    } else {
+      active = `<div class="bubble me task">🗣 Твоя реплика — скажи вслух:<div class="bub-ru">«${cur.ru}»</div>
+          ${s.reveal ? `<div class="reveal-gr">${this.wrapGreek(cur.gr)} ${this.speakBtn(cur.gr)}</div>` : ""}
+        </div>
+        ${!s.reveal ? `<button class="big-btn" data-action="dlg-reveal">💡 Подсказка / образец</button>` : ""}
+        ${!noMic ? `<button class="mic-btn" data-action="dlg-mic">🎤 Произнести</button>` : ""}
+        <button class="big-btn primary" data-action="dlg-next">${s.idx + 1 >= d.lines.length ? "Готово →" : "Дальше →"}</button>
+        <div id="fb" class="feedback"></div>`;
+    }
+    return `<header class="page-head"><h2>${d.icon} ${d.title}</h2><div class="counter">${s.idx + 1}/${d.lines.length}</div></header>
+      <button class="back" data-go="speaking">← Говорение</button>
+      <div class="chat">${history}${active}</div>`;
+  },
+  speakDialogMic() {
+    const s = this.session;
+    const cur = s.d.lines[s.idx];
+    const mic = document.querySelector(".mic-btn");
+    const fb = document.getElementById("fb");
+    Recog.listen(
+      (alts) => {
+        if (mic) { mic.classList.remove("rec"); mic.innerHTML = "🎤 Ещё раз"; mic.disabled = false; }
+        const ok = this.phraseMatch(cur.gr, alts);
+        fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Отлично!" : "Почти — где разошлось:"}
+          <div class="wfb-line">${this.phraseWordFeedback(cur.gr, alts)}</div></div>`;
+      },
+      () => { if (mic) { mic.classList.remove("rec"); mic.innerHTML = "🎤 Ещё раз"; mic.disabled = false; } if (fb) fb.innerHTML = `<div class="bad-msg">Не расслышал. Ещё раз.</div>`; },
+      () => { if (mic) { mic.classList.add("rec"); mic.innerHTML = "🔴 Слушаю…"; mic.disabled = true; } if (fb) fb.innerHTML = ""; }
+    );
   },
 
   /* ---------- ЧТЕНИЕ (graded readers) ---------- */
@@ -1611,7 +1701,7 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog]");
     if (!t) return;
 
     if (t.dataset.lesson !== undefined) return this.go("lesson", { id: t.dataset.lesson });
@@ -1619,6 +1709,13 @@ const App = {
     if (t.dataset.gexopt !== undefined) return this.gexAnswer(t.dataset.gexopt, t);
     if (t.dataset.mistakeopt !== undefined) return this.mistakesAnswer(t.dataset.mistakeopt, t);
     if (t.dataset.spkmode !== undefined) return this.go("speaking", { mode: t.dataset.spkmode });
+    if (t.dataset.dialog !== undefined) {
+      const d = SPEAKING_DIALOGS.find((x) => x.id === t.dataset.dialog);
+      this.view = "speaking"; this.params = { mode: "dialog" };
+      this.session = { d, idx: 0, reveal: false };
+      this.menuOpen = false; this.writeHash(); this.render(); window.scrollTo(0, 0);
+      return;
+    }
 
     if (t.dataset.rw !== undefined) return this.showWord(t.dataset.rw, t.dataset.ro);
     if (t.dataset.rtr !== undefined) return this.rTrans(t.dataset.rtr);
@@ -1680,9 +1777,15 @@ const App = {
       case "speak-start": return this.speakStart();
       case "speak-next": this.session.idx++; return this.render();
       case "spk-start": return this.speakStartPhrase();
+      case "spk-next": this.session.done++; this.session.idx++; this.session.scored = false; return this.render();
       case "spk-again": this.session = null; return this.render();
       case "spkq-start": return this.speakQAStart();
+      case "spkq-reveal": return this.speakQAReveal();
       case "spkq-again": this.session = null; return this.render();
+      case "dlg-next": this.session.idx++; this.session.reveal = false; return this.render();
+      case "dlg-reveal": this.session.reveal = true; return this.render();
+      case "dlg-mic": return this.speakDialogMic();
+      case "dlg-restart": this.session.idx = 0; this.session.reveal = false; return this.render();
       case "worder-check": return this.worderCheck();
       case "compose-check": return this.composeCheck();
       case "compose-new": this.session = null; return this.render();

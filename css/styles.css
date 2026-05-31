@@ -344,6 +344,20 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .gtab th .rword { color: #fff; border-bottom-color: rgba(255,255,255,.55); }
 .mix-cta { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 18px; }
 .mix-cta .big-btn { flex: 1 1 220px; margin: 0; }
+
+/* говорение: пословная обратная связь + диалоги */
+.wfb-line { margin: 6px 0; font-size: 1.15rem; line-height: 1.7; }
+.wfb { padding: 1px 5px; border-radius: 5px; }
+.wfb-ok { background: #d6f5dc; color: #1a7d3a; }
+.wfb-no { background: #fde2e2; color: #b3261e; text-decoration: line-through dotted; }
+.chat { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.bubble { max-width: 85%; padding: 10px 14px; border-radius: 16px; font-size: 1.1rem; }
+.bubble.them { align-self: flex-start; background: #eef2f7; border-bottom-left-radius: 4px; }
+.bubble.me { align-self: flex-end; background: #dceafa; border-bottom-right-radius: 4px; }
+.bubble.active { outline: 2px solid var(--sky); }
+.bubble.task { background: #fff7e0; align-self: stretch; max-width: 100%; color: var(--ink); }
+.bub-ru { font-size: .85rem; color: var(--muted); margin-top: 3px; }
+.reveal-gr { margin-top: 6px; font-weight: 600; color: var(--blue); }
 .gtab td:first-child { color: var(--muted); white-space: nowrap; }
 .gtab b { color: var(--blue-2); }
 
