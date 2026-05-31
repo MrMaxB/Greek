@@ -32,6 +32,8 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .muted { color: var(--muted); }
 .center { text-align: center; }
 .small { font-size: .85rem; }
+/* Скрытие транскрипции (настройка) */
+.no-tr .tr, .no-tr .flash-tr, .no-tr .w-tr { display: none !important; }
 
 /* ---------- NAV (тонкая шапка + бургер-меню) ---------- */
 .topbar {

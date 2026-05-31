@@ -44,6 +44,8 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .muted { color: var(--muted); }
 .center { text-align: center; }
 .small { font-size: .85rem; }
+/* Скрытие транскрипции (настройка) */
+.no-tr .tr, .no-tr .flash-tr, .no-tr .w-tr { display: none !important; }
 
 /* ---------- NAV (тонкая шапка + бургер-меню) ---------- */
 .topbar {
@@ -3766,6 +3768,8 @@ const App = {
 
   init() {
     this.root = document.getElementById("app");
+    this.loadSettings();
+    this.applySettings();
     // Service worker: «никогда не залипает на старой версии» (только на https-сайте).
     // network-first отдаёт свежее из сети; при выходе новой версии — тихий reload.
     if ("serviceWorker" in navigator && location.protocol === "https:") {
@@ -3788,6 +3792,17 @@ const App = {
     this.params = params;
     this.render();
   },
+
+  /* ---------- НАСТРОЙКИ ---------- */
+  loadSettings() {
+    try { this.settings = JSON.parse(localStorage.getItem("greekA1_settings")) || {}; }
+    catch { this.settings = {}; }
+    if (this.settings.tr === undefined) this.settings.tr = true;        // показывать транскрипцию
+    if (this.settings.gexInput === undefined) this.settings.gexInput = false; // ввод вместо выбора
+  },
+  saveSettings() { localStorage.setItem("greekA1_settings", JSON.stringify(this.settings)); },
+  applySettings() { if (document.body) document.body.classList.toggle("no-tr", !this.settings.tr); },
+  toggleSetting(k) { this.settings[k] = !this.settings[k]; this.saveSettings(); this.applySettings(); this.render(); },
 
   go(view, params = {}) {
     this.view = view;
@@ -4279,7 +4294,7 @@ const App = {
              <p class="muted center">Что ты услышал?</p>`
           : `<div class="quiz-prompt">
                <div class="big-letter sm">${cur.gr} ${this.speakBtn(cur.gr)}</div>
-               <div class="muted">[${cur.tr}]</div>
+               <div class="muted tr">[${cur.tr}]</div>
              </div>
              <p class="muted center">Выбери перевод</p>`;
       const buttons = opts
@@ -4299,7 +4314,7 @@ const App = {
       return `${head}
         <div class="quiz-prompt">
           <div class="big-letter sm">${cur.gr} ${this.speakBtn(cur.gr)}</div>
-          <div class="muted">[${cur.tr}] · ${cur.ru}</div>
+          <div class="muted"><span class="tr">[${cur.tr}] · </span>${cur.ru}</div>
         </div>
         ${body}
         <div id="fb" class="feedback"></div>`;
@@ -4315,7 +4330,7 @@ const App = {
              </div>`
           : `<div class="quiz-prompt">
                <div class="type-ru">${cur.ru}</div>
-               <div class="muted small">подсказка: [${cur.tr}]</div>
+               <div class="muted small tr">подсказка: [${cur.tr}]</div>
              </div>`;
       // В диктанте звук проигрывается сам при показе карточки
       this.afterRender = () => {
@@ -4460,13 +4475,35 @@ const App = {
     }
     if (!s.qs.length) return `<div class="result"><h2>Скоро</h2><p class="muted">Для этой темы упражнения готовятся.</p><button class="big-btn ghost" data-go="grammar">Назад</button></div>`;
     const q = s.qs[s.idx];
-    const opts = q.opts.map((o) => `<button class="opt" data-gexopt="${this.esc(o)}">${o}</button>`).join("");
+    const body = this.settings.gexInput
+      ? `<input id="typeInput" class="type-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                placeholder="Напиши ответ по-гречески" value="${this.esc(s.input || "")}">
+         <div class="gkbd">${this.greekKeyboard()}</div>
+         <button class="big-btn primary" data-action="gex-check">Проверить</button>`
+      : `<div class="opts">${q.opts.map((o) => `<button class="opt" data-gexopt="${this.esc(o)}">${o}</button>`).join("")}</div>`;
+    if (this.settings.gexInput) this.afterRender = () => { const i = document.getElementById("typeInput"); if (i) i.focus(); };
     return `
       <header class="page-head"><h2>${GrammarEx.icon(s.id)} ${title}</h2><div class="counter">${s.idx + 1}/${s.qs.length}</div></header>
       <button class="back" data-go="grammar">← Грамматика</button>
       <div class="exam-q">${this.wrapGreek(q.q)}</div>
-      <div class="opts">${opts}</div>
+      ${body}
       <div id="fb" class="feedback"></div>`;
+  },
+
+  gexCheck() {
+    const s = this.session;
+    const q = s.qs[s.idx];
+    const inp = document.getElementById("typeInput");
+    const val = inp ? inp.value : (s.input || "");
+    const ok = this.normGreek(val) === this.normGreek(q.ans);
+    if (ok) s.correct++;
+    if (inp) inp.disabled = true;
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + q.ans : "✗ Правильно: <b>" + q.ans + "</b>"} ${this.speakBtn(q.ans)}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
+    Speech.say(q.ans);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.input = ""; this.render(); });
+    this.afterAnswer();
   },
 
   gexAnswer(opt, el) {
@@ -5091,6 +5128,12 @@ const App = {
       <header class="page-head"><h2>ℹ️ Методика и покрытие</h2></header>
       <p class="muted small">Считается вживую из контента — всегда актуально.</p>
 
+      <h3 class="section-title">⚙️ Настройки</h3>
+      <button class="big-btn ghost" data-action="set-tr">Транскрипция: <b>${this.settings.tr ? "показана" : "скрыта"}</b></button>
+      <button class="big-btn ghost" data-action="set-gexinput">Упражнения грамматики: <b>${this.settings.gexInput ? "ввод по-гречески" : "выбор варианта"}</b></button>
+      <p class="muted small">Скрой транскрипцию, когда выучишь алфавит — так формируется чтение. Режим «ввод» тренирует активное вспоминание (сложнее, но эффективнее).</p>
+
+
       <section class="cards-row">
         <div class="stat"><div class="stat-num">${words}</div><div class="stat-lbl">слов</div></div>
         <div class="stat"><div class="stat-num">${themes}</div><div class="stat-lbl">тем</div></div>
@@ -5232,7 +5275,10 @@ const App = {
   },
 
   onKey(e) {
-    if (e.key === "Enter" && e.target.id === "typeInput") { e.preventDefault(); this.typeCheck(); }
+    if (e.key === "Enter" && e.target.id === "typeInput") {
+      e.preventDefault();
+      if (this.view === "gex") this.gexCheck(); else this.typeCheck();
+    }
     if (this.view === "review" && this.session && !this.session.flipped && e.code === "Space") {
       e.preventDefault(); this.action("flip");
     }
@@ -5268,6 +5314,9 @@ const App = {
         return;
       }
       case "wordbar-close": { const b = document.getElementById("wordbar"); if (b) b.hidden = true; return; }
+      case "set-tr": return this.toggleSetting("tr");
+      case "set-gexinput": return this.toggleSetting("gexInput");
+      case "gex-check": return this.gexCheck();
       case "reset":
         if (confirm("Сбросить весь прогресс (слова, экзамены, чтение, стрик)? Это нельзя отменить.")) {
           SRS.reset();
@@ -5387,7 +5436,7 @@ const App = {
     const fb = document.getElementById("fb");
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
         ${ok ? "✓ Верно! " + cur.gr : "✗ Правильно: <b>" + cur.gr + "</b>"} ${this.speakBtn(cur.gr)}
-        <div class="answer-ru">${cur.ru} · [${cur.tr}]</div>
+        <div class="answer-ru">${cur.ru} <span class="tr">· [${cur.tr}]</span></div>
       </div>
       <button class="big-btn primary" id="nextBtn">Дальше →</button>`;
     if (inp) inp.disabled = true;
