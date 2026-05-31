@@ -2065,6 +2065,8 @@ const App = {
           SRS.reset();
           localStorage.removeItem("greekA1_exam_best");
           localStorage.removeItem("greekA1_reading_done");
+          localStorage.removeItem("greekA1_track");
+          this._ts = null; this._track = null;
           if (window.Cloud && window.Cloud.reset) window.Cloud.reset();
           this._gg = null;
           this.go("home");
