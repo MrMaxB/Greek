@@ -18,6 +18,7 @@ import {
 
 const EXAM_KEY = "greekA1_exam_best";
 const READ_KEY = "greekA1_reading_done";
+const TRACK_KEY = "greekA1_track";
 
 const Cloud = { enabled: false, ready: false, user: null, status: "" };
 window.Cloud = Cloud;
@@ -34,6 +35,7 @@ function localState() {
     stats: S ? S.stats : JSON.parse(localStorage.getItem("greekA1_stats_v1") || "{}"),
     exams: JSON.parse(localStorage.getItem(EXAM_KEY) || "{}"),
     reading: JSON.parse(localStorage.getItem(READ_KEY) || "{}"),
+    track: JSON.parse(localStorage.getItem(TRACK_KEY) || "null"),
     _v: 1, _ts: Date.now(),
   };
 }
@@ -54,6 +56,8 @@ function applyState(state) {
   }
   localStorage.setItem(EXAM_KEY, JSON.stringify(state.exams || {}));
   localStorage.setItem(READ_KEY, JSON.stringify(state.reading || {}));
+  if (state.track) localStorage.setItem(TRACK_KEY, JSON.stringify(state.track));
+  if (window.App) window.App._ts = null; // сбросить кэш состояния трека
   Cloud._applying = false;
 }
 
@@ -92,7 +96,17 @@ function mergeState(a, b) {
   new Set([...Object.keys(ra), ...Object.keys(rb)]).forEach((k) => {
     reading[k] = ra[k] || rb[k] || false;
   });
-  return { srs, stats, exams, reading, _v: 1, _ts: Date.now() };
+  // Трек: берём более продвинутый день; отметки задач объединяем
+  const ta = a.track, tb = b.track;
+  let track = ta || tb || null;
+  if (ta && tb) {
+    const done = {};
+    new Set([...Object.keys(ta.done || {}), ...Object.keys(tb.done || {})]).forEach((d) => {
+      done[d] = [...new Set([...((ta.done || {})[d] || []), ...((tb.done || {})[d] || [])])];
+    });
+    track = { day: Math.max(ta.day || 1, tb.day || 1), done };
+  }
+  return { srs, stats, exams, reading, track, _v: 1, _ts: Date.now() };
 }
 
 const cfg = window.FIREBASE_CONFIG;
@@ -129,7 +143,7 @@ if (cfg && cfg.apiKey) {
     Cloud.reset = async () => {
       if (!Cloud.user) return;
       Cloud._applying = true;
-      try { await setDoc(doc(db, "progress", Cloud.user.uid), { srs: {}, stats: { learnedDates: {}, totalReviews: 0 }, exams: {}, reading: {}, _v: 1, _ts: Date.now() }); }
+      try { await setDoc(doc(db, "progress", Cloud.user.uid), { srs: {}, stats: { learnedDates: {}, totalReviews: 0 }, exams: {}, reading: {}, track: { day: 1, done: {} }, _v: 1, _ts: Date.now() }); }
       catch (e) { console.warn("Cloud reset error", e); }
       Cloud._applying = false;
     };
