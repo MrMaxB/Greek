@@ -14,6 +14,7 @@ const App = {
     this.root = document.getElementById("app");
     this.loadSettings();
     this.applySettings();
+    this.loadWeak();
     // Service worker: «никогда не залипает на старой версии» (только на https-сайте).
     // network-first отдаёт свежее из сети; при выходе новой версии — тихий reload.
     if ("serviceWorker" in navigator && location.protocol === "https:") {
@@ -45,6 +46,18 @@ const App = {
     if (this.settings.gexInput === undefined) this.settings.gexInput = false; // ввод вместо выбора
   },
   saveSettings() { localStorage.setItem("greekA1_settings", JSON.stringify(this.settings)); },
+
+  /* ---------- РАБОТА НАД ОШИБКАМИ (единый разбор) ---------- */
+  loadWeak() { try { this.weak = JSON.parse(localStorage.getItem("greekA1_weak")) || []; } catch { this.weak = []; } },
+  saveWeak() { localStorage.setItem("greekA1_weak", JSON.stringify(this.weak.slice(-120))); },
+  weakKey(it) { return this.normGreek((it.q || "") + "|" + (it.ans || "")); },
+  addWeak(it) {
+    if (!it || !it.opts || !it.ans) return;
+    if (!this.weak) this.loadWeak();
+    const k = this.weakKey(it);
+    if (!this.weak.some((w) => this.weakKey(w) === k)) { this.weak.push({ q: it.q, opts: it.opts, ans: it.ans }); this.saveWeak(); }
+  },
+  removeWeak(it) { const k = this.weakKey(it); this.weak = (this.weak || []).filter((w) => this.weakKey(w) !== k); this.saveWeak(); },
   applySettings() { if (document.body) document.body.classList.toggle("no-tr", !this.settings.tr); },
   toggleSetting(k) { this.settings[k] = !this.settings[k]; this.saveSettings(); this.applySettings(); this.render(); },
 
@@ -166,6 +179,7 @@ const App = {
       exam: () => this.renderExam(),
       progress: () => this.renderProgress(),
       coverage: () => this.renderCoverage(),
+      mistakes: () => this.renderMistakes(),
     };
     this.root.innerHTML =
       this.renderNav() + `<main class="screen">${(map[this.view] || map.home)()}</main>` + this.wordbarHtml();
@@ -286,6 +300,10 @@ const App = {
           📝 Пробные экзамены A1
           <small>${EXAM_READINGS.length} мини-тестов в формате экзамена</small>
         </button>
+        ${(this.weak && this.weak.length) ? `<button class="big-btn" data-go="mistakes">
+          🔁 Работа над ошибками
+          <small>${this.weak.length} вопросов на повторе</small>
+        </button>` : ""}
       </section>
 
       <h3 class="section-title">Путь «с нуля» до A1</h3>
@@ -696,6 +714,51 @@ const App = {
     `;
   },
 
+  /* ---------- РАБОТА НАД ОШИБКАМИ ---------- */
+  renderMistakes() {
+    if (!this.weak) this.loadWeak();
+    if (!this.weak.length) {
+      return `<header class="page-head"><h2>🔁 Работа над ошибками</h2></header>
+        <p class="muted">Ошибок нет — чисто! 🎉 Они появятся здесь, когда ошибёшься в упражнениях или экзамене.</p>
+        <button class="big-btn ghost" data-go="home">На главную</button>`;
+    }
+    if (!this.session) this.session = { qs: this.shuffle(this.weak.slice()), idx: 0, correct: 0, fixed: 0 };
+    const s = this.session;
+    if (s.idx >= s.qs.length) {
+      return `<div class="result"><h2>Готово 💪</h2>
+        <p class="big-score">${s.fixed} / ${s.qs.length}</p>
+        <p class="muted">исправлено · осталось в работе: ${this.weak.length}</p>
+        <button class="big-btn primary" data-action="mistakes-again">Ещё раз</button>
+        <button class="big-btn ghost" data-go="home">На главную</button></div>`;
+    }
+    const q = s.qs[s.idx];
+    const opts = this.shuffle(q.opts.slice()).map((o) => `<button class="opt" data-mistakeopt="${this.esc(o)}">${o}</button>`).join("");
+    return `
+      <header class="page-head"><h2>🔁 Ошибки</h2><div class="counter">${s.idx + 1}/${s.qs.length}</div></header>
+      <p class="muted small">Повтори то, в чём ошибся. Ответишь верно — уйдёт из списка.</p>
+      <div class="exam-q">${this.wrapGreek(q.q)}</div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>`;
+  },
+
+  mistakesAnswer(opt, el) {
+    const s = this.session;
+    const q = s.qs[s.idx];
+    const ok = opt === q.ans;
+    if (ok) { s.fixed++; this.removeWeak(q); }
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.mistakeopt === q.ans) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! Убрал из ошибок" : "✗ Правильно: <b>" + q.ans + "</b> (оставил на повтор)"} ${this.speakBtn(q.ans)}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Итог →" : "Дальше →"}</button>`;
+    Speech.say(q.ans);
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
+  },
+
   /* ---------- УПРАЖНЕНИЯ ПО ТЕМЕ ГРАММАТИКИ ---------- */
   renderGex() {
     const id = this.params.topic;
@@ -740,7 +803,7 @@ const App = {
     const inp = document.getElementById("typeInput");
     const val = inp ? inp.value : (s.input || "");
     const ok = this.normGreek(val) === this.normGreek(q.ans);
-    if (ok) s.correct++;
+    if (ok) s.correct++; else this.addWeak(q);
     if (inp) inp.disabled = true;
     const fb = document.getElementById("fb");
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + q.ans : "✗ Правильно: <b>" + q.ans + "</b>"} ${this.speakBtn(q.ans)}</div>
@@ -754,7 +817,7 @@ const App = {
     const s = this.session;
     const q = s.qs[s.idx];
     const ok = opt === q.ans;
-    if (ok) s.correct++;
+    if (ok) s.correct++; else this.addWeak(q);
     document.querySelectorAll(".opt").forEach((b) => {
       if (b.dataset.gexopt === q.ans) b.classList.add("ok");
       else if (b === el) b.classList.add("bad");
@@ -1318,7 +1381,7 @@ const App = {
     const s = this.session;
     const q = s.qs[s.idx];
     const ok = opt === q.answer;
-    if (ok) s.correct++;
+    if (ok) s.correct++; else this.addWeak({ q: q.prompt, opts: q.options, ans: q.answer });
     if (!s.sect[q.section]) s.sect[q.section] = { c: 0, t: 0 };
     s.sect[q.section].t++; if (ok) s.sect[q.section].c++;
     document.querySelectorAll(".opt").forEach((b) => {
@@ -1474,12 +1537,13 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt]");
     if (!t) return;
 
     if (t.dataset.lesson !== undefined) return this.go("lesson", { id: t.dataset.lesson });
     if (t.dataset.gex !== undefined) { e.preventDefault(); return this.go("gex", { topic: t.dataset.gex }); }
     if (t.dataset.gexopt !== undefined) return this.gexAnswer(t.dataset.gexopt, t);
+    if (t.dataset.mistakeopt !== undefined) return this.mistakesAnswer(t.dataset.mistakeopt, t);
 
     if (t.dataset.rw !== undefined) return this.showWord(t.dataset.rw, t.dataset.ro);
     if (t.dataset.rtr !== undefined) return this.rTrans(t.dataset.rtr);
@@ -1562,6 +1626,7 @@ const App = {
       case "set-tr": return this.toggleSetting("tr");
       case "set-gexinput": return this.toggleSetting("gexInput");
       case "gex-check": return this.gexCheck();
+      case "mistakes-again": this.session = null; return this.render();
       case "reset":
         if (confirm("Сбросить весь прогресс (слова, экзамены, чтение, стрик)? Это нельзя отменить.")) {
           SRS.reset();
