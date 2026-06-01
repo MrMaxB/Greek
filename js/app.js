@@ -299,6 +299,31 @@ const App = {
     if (b) b.classList.toggle("open", this.menuOpen);
   },
 
+  // Достижения (дофамин): считаются из прогресса, без отдельного хранилища.
+  badges(s) {
+    const decksDone = DECKS.filter((d) => SRS.summary(d.words).learned >= d.words.length).length;
+    const list = [];
+    if (s.learned >= 1) list.push(["🌱", "Первые слова"]);
+    if (s.streak >= 3) list.push(["🔥", "Стрик 3 дня"]);
+    if (s.streak >= 7) list.push(["🔥", "Неделя подряд"]);
+    if (s.streak >= 30) list.push(["🏆", "Месяц подряд"]);
+    if (s.learned >= 50) list.push(["📚", "50 слов"]);
+    if (s.learned >= 200) list.push(["📚", "200 слов"]);
+    if (s.learned >= 500) list.push(["🎓", "500 слов"]);
+    if (s.mature >= 100) list.push(["💎", "100 закреплено"]);
+    if (decksDone >= 1) list.push(["✅", "Тема закрыта"]);
+    if (decksDone >= 10) list.push(["🗂️", "10 тем закрыто"]);
+    const taken = Object.values(this.examBest()); const passed = taken.filter((p) => p >= 60).length;
+    if (passed >= 1) list.push(["📝", "Экзамен сдан"]);
+    if (passed >= 5) list.push(["🥇", "5 экзаменов"]);
+    return list;
+  },
+  badgesHtml(s) {
+    const b = this.badges(s);
+    if (!b.length) return "";
+    return `<div class="badges">${b.map(([ic, t]) => `<span class="badge" title="${t}">${ic} ${t}</span>`).join("")}</div>`;
+  },
+
   onboardSeen() { try { return localStorage.getItem("greekA1_onboard") === "1"; } catch { return false; } },
   dismissOnboard() { try { localStorage.setItem("greekA1_onboard", "1"); } catch {} this.render(); },
 
@@ -351,6 +376,7 @@ const App = {
 
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
       <p class="muted center">Освоено ${pct}% словаря A1</p>
+      ${this.badgesHtml(s)}
 
       <section class="cta">
         ${(() => {

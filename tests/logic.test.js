@@ -6,6 +6,13 @@ const { load } = require("./load");
 const X = load();
 const App = X.App;
 
+test("достижения: пусто на нуле, копятся с прогрессом", () => {
+  assert.equal(App.badges({ learned: 0, streak: 0, mature: 0 }).length, 0, "на нуле бейджей быть не должно");
+  const b = App.badges({ learned: 60, streak: 8, mature: 0 });
+  assert.ok(b.length >= 3, "при прогрессе должны появиться бейджи");
+  b.forEach((x) => assert.ok(Array.isArray(x) && x[0] && x[1], "бейдж = [иконка, текст]"));
+});
+
 test("все экраны рендерятся на свежем профиле (без прогресса)", () => {
   const screens = [
     "renderHome", "renderTrack", "renderAlphabet", "renderAlphaQuiz", "renderReview",
