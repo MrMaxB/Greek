@@ -66,11 +66,14 @@ test("трек: ссылки на темы/тексты/уроки/экзаме�
   const decks = new Set(X.DECKS.map((d) => d.id));
   const lessons = new Set(X.GRAMMAR_LESSONS.map((l) => l.id));
   const texts = new Set(X.READING_TEXTS.map((t) => t.id));
+  const wcats = new Set(X.WRITING_ORDER.map((w) => w.cat || "Разное"));
   days.forEach((d, i) => d.tasks.forEach((t) => {
     if (t.t === "deck") assert.ok(decks.has(t.ref), `день ${i}: нет темы ${t.ref}`);
     if (t.t === "lesson") assert.ok(lessons.has(t.ref), `день ${i}: нет урока ${t.ref}`);
     if (t.t === "read") assert.ok(texts.has(t.ref), `день ${i}: нет текста ${t.ref}`);
     if (t.t === "dict") assert.ok(decks.has(t.ref), `день ${i}: нет темы для диктанта ${t.ref}`);
+    if (t.t === "gex") assert.ok(lessons.has(t.ref), `день ${i}: нет урока для тренировки ${t.ref}`);
+    if (t.t === "write") assert.ok(wcats.has(t.ref), `день ${i}: нет категории письма ${t.ref}`);
     if (t.t === "exam") assert.ok(t.ref >= 0 && t.ref < X.EXAM_READINGS.length, `день ${i}: экзамен ${t.ref} вне диапазона`);
   }));
 });

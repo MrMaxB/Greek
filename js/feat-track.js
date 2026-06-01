@@ -151,9 +151,20 @@ Object.assign(App, {
     const GRAMMAR_EVERY = Math.max(1, Math.floor(CONTENT / (lessonOrder.length + 2)));
     const examUsed = new Set();
     let blockDecks = [], contentSince = 0, lessonsTaughtBy = 0, sinceLesson = 99, reviewLessonPtr = 0;
-    const prod = (i) => i % 3 === 0 ? { t: "go", ref: "writing", label: "Письмо: собери предложение" }
-      : i % 3 === 1 ? { t: "go", ref: "speaking", label: "Говорение: фразы или диалог" }
-        : { t: "go", ref: "writing", label: "Письмо: вставь слово / о себе" };
+    // тема дня → категория письма (для «собери предложение» по теме)
+    const WCAT = [[/ед|фрукт|продукт/i, "Еда"], [/цвет/i, "Цвета"], [/животн|птиц/i, "Животные"],
+      [/профес|работ/i, "Работа"], [/город|мест|здани|улиц/i, "Город"], [/дом|комнат|мебел/i, "Дом"],
+      [/здоров|тел/i, "Здоровье"], [/числ|счёт/i, "Числа"], [/глагол/i, "Глаголы"],
+      [/досуг|хобби|искусств/i, "Досуг"], [/техник|цифр/i, "Техника"], [/национал|стран|язык/i, "Люди и страны"],
+      [/быт/i, "Быт"], [/прилаг|качеств|описан/i, "Качества"], [/знаком|о себе|привет|личн|семь/i, "Знакомство"]];
+    const catForDeck = (d) => { if (!d) return null; const h = WCAT.find(([re]) => re.test(d.title)); return h ? h[1] : null; };
+    const prod = (i, d) => {
+      if (i % 3 === 1) return { t: "go", ref: "speaking", label: "Говорение: фразы или диалог" };
+      if (i % 3 === 2) return { t: "go", ref: "writing", label: "Письмо: вставь слово / о себе" };
+      const cat = catForDeck(d);
+      return cat ? { t: "write", ref: cat, label: "✍️ Собери предложение: " + cat }
+        : { t: "go", ref: "writing", label: "Письмо: собери предложение" };
+    };
 
     for (let i = 0; i < CONTENT; i++) {
       const p = i / CONTENT;                       // прогресс 0..1
@@ -187,7 +198,7 @@ Object.assign(App, {
       if (rt) tasks.push({ t: "read", ref: rt.id, label: "Чтение по теме: " + rt.titleRu });
       // на A1-этапе иногда второй текст той же темы
       if (p >= 0.4 && i % 2 === 0) { const rt2 = pickText(genres, maxLv); if (rt2) tasks.push({ t: "read", ref: rt2.id, label: "Ещё текст: " + rt2.titleRu }); }
-      tasks.push(prod(i));
+      tasks.push(prod(i, d1));
       D(newLesson ? lessonTitle : (d1 ? d1.title : "Практика"),
         newLesson ? "Грамматика · тема · чтение" : "Тема · чтение · практика", tasks,
         newLesson && lessonWhy ? { why: lessonWhy } : null);
@@ -274,6 +285,7 @@ Object.assign(App, {
       gex: [`data-gex="${task.ref}"`, "✍️"],
       deck: [`data-deck="${task.ref}"`, "📚"], read: [`data-read="${task.ref}"`, "📕"],
       dict: [`data-deck="${task.ref}" data-mode="dictation"`, "🎧"],
+      write: [`data-wcat="${this.esc(task.ref)}"`, "✍️"],
       exam: [examAttr, "📝"], train: [`data-train="${task.ref}"`, "🎲"],
       go: [`data-go="${task.ref}"`, task.ref === "speaking" ? "🗣️" : task.ref === "writing" ? "✍️" : "▶"],
     };

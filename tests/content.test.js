@@ -78,6 +78,12 @@ test("генераторы упражнений: ответ среди вари�
   }
 });
 
+test("письмо: все предложения «собери» размечены темой (cat)", () => {
+  assert.ok(X.WRITING_ORDER.every((w) => w.cat && w.cat.length), "есть предложения без cat");
+  const cats = new Set(X.WRITING_ORDER.map((w) => w.cat));
+  assert.ok(cats.size >= 5, `мало тем письма: ${cats.size}`);
+});
+
 test("грамматика: у всех упражнений есть say (озвучка) и why (объяснение)", () => {
   X.GRAMMAR_LESSONS.forEach((g) => {
     if (!X.GrammarEx.has(g.id)) return;

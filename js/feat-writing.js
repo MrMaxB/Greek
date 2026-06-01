@@ -53,17 +53,42 @@ Object.assign(App, {
   },
 
   wResult(s, label) {
+    // для «собери предложение» — вернуться к выбору темы
+    const pick = s.cat ? `<button class="big-btn ghost" data-wmode="worder">↩ Другая тема</button>` : "";
     return `<div class="result">
       <h2>Готово! 🎉</h2><p class="big-score">${s.correct} / ${s.pool.length}</p>
-      <p class="muted">${label}</p>
+      <p class="muted">${label}${s.cat && s.cat !== "__all" ? " · тема: " + s.cat : ""}</p>
       <button class="big-btn primary" data-action="wr-again">Ещё раунд</button>
+      ${pick}
       <button class="big-btn ghost" data-go="writing">К письму</button>
     </div>`;
   },
 
-  // Собери предложение (порядок слов)
+  // Темы для письма (категории + счётчики) — общий список из WRITING_ORDER
+  writingCats() {
+    const c = {};
+    WRITING_ORDER.forEach((w) => { c[w.cat || "Разное"] = (c[w.cat || "Разное"] || 0) + 1; });
+    return Object.entries(c).sort((a, b) => b[1] - a[1]);
+  },
+  // Экран выбора темы для письменного упражнения (worder)
+  renderWPick() {
+    const tiles = this.writingCats().map(([cat, n]) =>
+      `<button class="deck-tile" data-wcat="${this.esc(cat)}"><div class="deck-ic">🧩</div>
+        <div class="deck-body"><div class="deck-title">${cat}</div><div class="deck-meta">${n} предложений</div></div></button>`).join("");
+    return `
+      <header class="page-head"><h2>🧩 Собери предложение</h2><button class="back" data-go="writing">← Письмо</button></header>
+      <p class="muted">Выбери тему — порция из ~12 предложений. Можно вернуться и взять другую.</p>
+      <button class="big-btn primary" data-wcat="__all">🎲 Всё вперемешку</button>
+      <div class="deck-list">${tiles}</div>`;
+  },
+  // Собери предложение (порядок слов) — по выбранной теме, порциями
   renderWOrder() {
-    if (!this.session) this.session = { pool: this.shuffle(WRITING_ORDER), idx: 0, correct: 0, bank: null, built: [] };
+    if (!this.session) {
+      const cat = this.params.cat;
+      if (!cat) return this.renderWPick();
+      const src = cat === "__all" ? WRITING_ORDER : WRITING_ORDER.filter((w) => (w.cat || "Разное") === cat);
+      this.session = { pool: this.shuffle(src).slice(0, 12), idx: 0, correct: 0, bank: null, built: [], cat };
+    }
     const s = this.session;
     if (s.idx >= s.pool.length) return this.wResult(s, "верных предложений");
     const cur = s.pool[s.idx];
