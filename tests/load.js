@@ -14,6 +14,7 @@ const FILES = [
   "data.js", "grammar.js", "official_a1.js", "rare.js", "exercises.js",
   "writing.js", "reading.js", "exams.js", "srs.js", "speech.js",
   "app.js", "feat-track.js", "feat-speaking.js", "feat-exams.js",
+  "feat-writing.js", "feat-reading.js",
 ];
 
 let cached = null;
