@@ -1460,7 +1460,7 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-readopt],[data-listenopt],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog],[data-track-day],[data-track-check]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-readopt],[data-listenopt],[data-matchopt],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog],[data-track-day],[data-track-check]");
     if (!t) return;
 
     if (t.dataset.trackDay !== undefined) return this.go("track", { day: t.dataset.trackDay });
@@ -1483,6 +1483,7 @@ const App = {
     if (t.dataset.read !== undefined) return this.go("read", { id: t.dataset.read });
     if (t.dataset.readopt !== undefined) return this.readQuizAnswer(t.dataset.readopt, t);
     if (t.dataset.listenopt !== undefined) return this.listenAnswer(t.dataset.listenopt, t);
+    if (t.dataset.matchopt !== undefined) return this.matchAnswer(t.dataset.matchopt, t);
 
     if (t.dataset.go) return this.go(t.dataset.go);
 
@@ -1554,6 +1555,7 @@ const App = {
       case "dlg-restart": this.session.idx = 0; this.session.reveal = false; return this.render();
       case "listen-replay": { const d = this.session.pool[this.session.idx]; return this.playDialogAudio(d); }
       case "listen-again": this.session = null; return this.render();
+      case "match-again": this.session = null; return this.render();
       case "worder-check": return this.worderCheck();
       case "compose-check": return this.composeCheck();
       case "compose-new": this.session = null; return this.render();

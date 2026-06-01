@@ -52,12 +52,14 @@ Object.assign(App, {
         <p class="muted">Тренируй речь: повторяй фразы, отвечай на вопросы или проходи диалоги-сценарии.</p>
         <div class="deck-list">
           ${tile("listen", "🎧", "Аудирование", "слушай диалог (текст скрыт) → вопрос на понимание")}
+          ${tile("match", "🔗", "Соотнеси реплики", "формат экзамена: подбери ответ к вопросу")}
           ${tile("phrases", "🔊", "Фразы вслух", noMic ? "слушай образец и повторяй вслух" : "читаешь фразу — приложение сверяет")}
           ${tile("qa", "💬", "Вопрос-ответ", "отвечаешь своими словами, потом образец")}
           ${tile("dialog", "🎭", "Диалоги", `${SPEAKING_DIALOGS.length} сценариев: кафе, магазин, врач…`)}
         </div>`;
     }
     if (mode === "qa") return this.renderSpeakQA();
+    if (mode === "match") return this.renderMatch();
     if (mode === "dialog") return this.renderSpeakDialog();
     if (mode === "listen") return this.renderListen();
     if (!this.session) {
@@ -190,6 +192,50 @@ Object.assign(App, {
       </div>
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
+  },
+
+  /* ---------- СООТНЕСИ: подбери ответ к вопросу (формат matching ΚΕΓ) ---------- */
+  renderMatch() {
+    if (!this.session || this.session.mode !== "match") {
+      this.session = { mode: "match", pool: this.shuffle(SPEAKING_Q.slice()), idx: 0, correct: 0, answered: false };
+    }
+    const s = this.session;
+    if (s.idx >= s.pool.length) {
+      return `<div class="result"><h2>Готово! 🔗</h2><p class="big-score">${s.correct} / ${s.pool.length}</p>
+        <p class="muted">верных пар</p>
+        <button class="big-btn primary" data-action="match-again">Ещё раз</button>
+        <button class="big-btn ghost" data-go="speaking">К говорению</button></div>`;
+    }
+    const cur = s.pool[s.idx];          // [вопрос_гр, перевод_ру, ответ_гр]
+    const others = this.shuffle(SPEAKING_Q.filter((x) => x[2] !== cur[2])).slice(0, 3).map((x) => x[2]);
+    if (!s.opts) s.opts = this.shuffle([cur[2], ...others]);
+    const opts = s.opts.map((o) => `<button class="opt" data-matchopt="${this.esc(o)}">${o} ${this.speakBtn(o)}</button>`).join("");
+    this.afterRender = () => Speech.say(cur[0]);
+    return `
+      <header class="page-head"><h2>🔗 Соотнеси</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <button class="back" data-go="speaking">← Говорение</button>
+      <p class="muted small">Подбери подходящий ответ на вопрос.</p>
+      <div class="quiz-prompt"><div class="flash-gr">${this.wrapGreek(cur[0])} ${this.speakBtn(cur[0])}</div><div class="muted">${cur[1]}</div></div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>`;
+  },
+  matchAnswer(opt, el) {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    if (s.answered) return;
+    s.answered = true;
+    const ok = opt === cur[2];
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.matchopt === cur[2]) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + cur[2] + "</b>"} ${this.speakBtn(cur[2])}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.answered = false; s.opts = null; this.render(); });
     this.afterAnswer();
   },
 
