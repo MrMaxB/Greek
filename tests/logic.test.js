@@ -82,10 +82,20 @@ test("трек: грамматика-фундамент идёт рано (пр�
   ["read", "gender", "cases", "be-have", "verb-a"].forEach((id) => {
     assert.ok(when[id] && when[id] <= days.length / 2, `урок-фундамент ${id} слишком поздно: день ${when[id]}`);
   });
-  // каждый урок выдаётся ровно один раз
-  const counts = {};
-  days.forEach((d) => d.tasks.forEach((t) => { if (t.t === "lesson") counts[t.ref] = (counts[t.ref] || 0) + 1; }));
-  Object.entries(counts).forEach(([id, c]) => assert.equal(c, 1, `урок ${id} выдан ${c} раз`));
+  // каждый урок ВПЕРВЫЕ преподаётся ровно один раз (на не-rest днях);
+  // на днях закрепления (rest) допускается повтор-возврат к правилу.
+  const firstTeach = {};
+  days.filter((d) => !d.rest).forEach((d) => d.tasks.forEach((t) => {
+    if (t.t === "lesson") firstTeach[t.ref] = (firstTeach[t.ref] || 0) + 1;
+  }));
+  Object.entries(firstTeach).forEach(([id, c]) => assert.equal(c, 1, `урок ${id} впервые выдан ${c} раз`));
+  assert.equal(Object.keys(firstTeach).length, X.GRAMMAR_LESSONS.length, "не все уроки преподаны");
+});
+
+test("трек: дни закрепления возвращают к уже пройденным правилам", () => {
+  const days = App.buildTrack();
+  const restWithLesson = days.filter((d) => d.rest && d.tasks.some((t) => t.t === "lesson"));
+  assert.ok(restWithLesson.length >= 3, `мало возвратов к грамматике: ${restWithLesson.length}`);
 });
 
 test("трек: темы чередуются, базовая колода семьи раньше «сиквелов»", () => {

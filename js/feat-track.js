@@ -150,7 +150,7 @@ Object.assign(App, {
     // равномерно по всему треку: один урок примерно каждые N тем-дней
     const GRAMMAR_EVERY = Math.max(1, Math.floor(CONTENT / (lessonOrder.length + 2)));
     const examUsed = new Set();
-    let blockDecks = [], contentSince = 0, lessonsTaughtBy = 0, sinceLesson = 99;
+    let blockDecks = [], contentSince = 0, lessonsTaughtBy = 0, sinceLesson = 99, reviewLessonPtr = 0;
     const prod = (i) => i % 3 === 0 ? { t: "go", ref: "writing", label: "Письмо: собери предложение" }
       : i % 3 === 1 ? { t: "go", ref: "speaking", label: "Говорение: фразы или диалог" }
         : { t: "go", ref: "writing", label: "Письмо: вставь слово / о себе" };
@@ -191,6 +191,12 @@ Object.assign(App, {
         const ctasks = [{ t: "review", label: "Большое SRS-повторение" }];
         if (r1) ctasks.push({ t: "read", ref: r1.id, label: "Перечитай: " + r1.titleRu });
         if (r2) ctasks.push({ t: "read", ref: r2.id, label: "Перечитай: " + r2.titleRu });
+        // Цикличный возврат к УЖЕ пройденному правилу (борьба с забыванием грамматики)
+        if (lessonPtr > 0) {
+          const rl = lessonOrder[reviewLessonPtr % lessonPtr];
+          reviewLessonPtr++;
+          ctasks.push({ t: "lesson", ref: rl.id, label: "Повтори правило: " + stripN(rl.title) });
+        }
         ctasks.push({ t: "go", ref: "mistakes", label: "Работа над ошибками" });
         ctasks.push({ t: "train", ref: p > 0.45 ? "conj" : "decl", label: "🎲 Игра: микс форм вразнобой" });
         D("День закрепления", "Возврат к материалу · без новых слов", ctasks, { rest: true });

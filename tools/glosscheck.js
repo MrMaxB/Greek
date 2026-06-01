@@ -7,25 +7,21 @@
 // единый загрузчик (всё в одном vm-контексте) — как в тестах
 const X = require("../tests/load").load();
 
-// единый источник нормализации/токенизации — как в проде
-const norm = (s) => X.App.normGreek(s);
-const tok = (s) => X.App.tokenizeGreek(s);
+const App = X.App;
+const norm = (s) => App.normGreek(s);
+const tok = (s) => App.tokenizeGreek(s);
 
-// 1) словарь приложения (как globalGloss)
-const gloss = new Set();
-(X.ALL_WORDS || []).forEach((w) => { const k = norm(w.gr); if (k && !k.includes(" ")) gloss.add(k); });
-Object.keys(X.READING_COMMON || {}).forEach((k) => gloss.add(norm(k)));
-(X.READING_TEXTS || []).forEach((t) => Object.keys(t.gloss || {}).forEach((k) => gloss.add(norm(k))));
-(X.DECLENSIONS || []).forEach((d) => Object.values(d.f).forEach((f) => f.split(" ").forEach((tok) => gloss.add(norm(tok)))));
-(X.CONJUGATIONS || []).forEach((v) => Object.values(v.f).forEach((f) => gloss.add(norm(f))));
+// Используем РОВНО прод-функции: словарь = App.globalGloss(), резолв с
+// морфо-фолбэком = App.resolveGloss. Так чек проверяет то, что видит юзер.
+const gloss = App.globalGloss();
 
-// 2) все тапаемые материалы
+// все тапаемые материалы
 const freq = {};
 const eat = (text, where) => {
   tok(text).forEach((w) => {
     if (w.length < 2) return;
     const k = norm(w);
-    if (!gloss.has(k)) { (freq[k] = freq[k] || { n: 0, ex: w, where: new Set() }).n++; freq[k].where.add(where); }
+    if (!App.resolveGloss(k)) { (freq[k] = freq[k] || { n: 0, ex: w, where: new Set() }).n++; freq[k].where.add(where); }
   });
 };
 (X.READING_TEXTS || []).forEach((t) => (t.sents || []).forEach((s) => eat(s[0], "чтение")));
@@ -34,22 +30,9 @@ const eat = (text, where) => {
 (X.SPEAKING_DIALOGS || []).forEach((d) => (d.lines || []).forEach((l) => eat(l.gr, "диалог")));
 (X.SPEAKING_Q || []).forEach((t) => { eat(t[0], "вопрос-ответ"); eat(t[2], "вопрос-ответ"); });
 
-// приблизительный резолв (как App.resolveGloss): общая основа с леммой
-const stems = [...gloss];
-const resolvable = (w) => {
-  for (const k of stems) {
-    if (k.length < 3) continue;
-    let i = 0; const m = Math.min(k.length, w.length);
-    while (i < m && k[i] === w[i]) i++;
-    if (i < 3) continue;
-    if (i < k.length - 3 || i < w.length - 4) continue;
-    if (Math.abs(k.length - w.length) > 5) continue;
-    return true;
-  }
-  return false;
-};
-const miss = Object.entries(freq).filter(([k]) => !resolvable(k)).sort((a, b) => b[1].n - a[1].n);
-console.log(`Словарь тап-перевода: ${gloss.size} ключей`);
+// freq уже содержит только слова, которые App.resolveGloss НЕ смог перевести
+const miss = Object.entries(freq).sort((a, b) => b[1].n - a[1].n);
+console.log(`Словарь тап-перевода: ${Object.keys(gloss).length} ключей`);
 console.log(`Слов в материалах БЕЗ перевода: ${miss.length}\n`);
 if (miss.length) {
   miss.forEach(([k, v]) => console.log(`  ${v.ex.padEnd(18)} ×${String(v.n).padEnd(3)} [${[...v.where].join(",")}]`));

@@ -1197,11 +1197,10 @@ const App = {
   },
 
   // Словарь для тап-перевода: текст > общий > словарь приложения
+  // Словарь тап-перевода для текста = общий глоссарий + переопределения текста.
   buildGloss(t) {
-    const g = {};
-    ALL_WORDS.forEach((w) => { const k = this.normGreek(w.gr); if (k && !k.includes(" ")) g[k] = w.ru; });
-    Object.entries(READING_COMMON).forEach(([k, v]) => { g[this.normGreek(k)] = v; });
-    Object.entries(t.gloss).forEach(([k, v]) => { g[this.normGreek(k)] = v; });
+    const g = Object.assign({}, this.globalGloss());
+    Object.entries(t.gloss || {}).forEach(([k, v]) => { g[this.normGreek(k)] = v; });
     return g;
   },
 
