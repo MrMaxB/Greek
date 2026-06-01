@@ -43,6 +43,32 @@ test("трек: задействовано существенно больше �
   assert.ok(used.size >= X.READING_TEXTS.length * 0.6, `текстов в треке ${used.size} из ${X.READING_TEXTS.length}`);
 });
 
+test("трек: грамматика-фундамент идёт рано (простое→сложное)", () => {
+  const days = App.buildTrack();
+  const when = {};
+  days.forEach((d, i) => d.tasks.forEach((t) => { if (t.t === "lesson" && when[t.ref] == null) when[t.ref] = i + 1; }));
+  // базовые правила должны быть в первой трети пути
+  ["read", "gender", "cases", "be-have", "verb-a"].forEach((id) => {
+    assert.ok(when[id] && when[id] <= days.length / 2, `урок-фундамент ${id} слишком поздно: день ${when[id]}`);
+  });
+  // каждый урок выдаётся ровно один раз
+  const counts = {};
+  days.forEach((d) => d.tasks.forEach((t) => { if (t.t === "lesson") counts[t.ref] = (counts[t.ref] || 0) + 1; }));
+  Object.entries(counts).forEach(([id, c]) => assert.equal(c, 1, `урок ${id} выдан ${c} раз`));
+});
+
+test("трек: родственные темы кластеризованы (не разбросаны)", () => {
+  const days = App.buildTrack();
+  const fam = (id) => id.replace(/[0-9]+$/, "").replace(/_freq$|_life$/, "");
+  const dayOf = {};
+  days.forEach((d, i) => d.tasks.forEach((t) => { if (t.t === "deck" && dayOf[t.ref] == null) dayOf[t.ref] = i; }));
+  const byFam = {};
+  Object.entries(dayOf).forEach(([id, day]) => { (byFam[fam(id)] = byFam[fam(id)] || []).push(day); });
+  let worst = 0;
+  Object.values(byFam).forEach((ds) => { if (ds.length > 1) worst = Math.max(worst, Math.max(...ds) - Math.min(...ds)); });
+  assert.ok(worst <= 20, `тема разбросана на ${worst} дней (ожидалось ≤20)`);
+});
+
 test("трек: есть дни закрепления и экзамены-чекпоинты", () => {
   const days = App.buildTrack();
   assert.ok(days.some((d) => d.rest), "нет дней закрепления");
