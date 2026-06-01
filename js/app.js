@@ -7,6 +7,7 @@ const App = {
   view: "home",
   params: {},
   session: null,
+  settings: { tr: true, gexInput: false }, // дефолт до loadSettings (защита от раннего рендера)
 
   root: null,
 

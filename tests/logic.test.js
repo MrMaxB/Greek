@@ -6,6 +6,37 @@ const { load } = require("./load");
 const X = load();
 const App = X.App;
 
+test("все экраны рендерятся на свежем профиле (без прогресса)", () => {
+  const screens = [
+    "renderHome", "renderTrack", "renderAlphabet", "renderAlphaQuiz", "renderReview",
+    "renderDecks", "renderGrammar", "renderWriting", "renderSpeaking", "renderReadingList",
+    "renderExamsList", "renderProgress", "renderCoverage", "renderMistakes",
+  ];
+  for (const fn of screens) {
+    App.params = {}; App.session = null;
+    const r = App[fn]();
+    assert.ok(typeof r === "string" && r.length > 0, `${fn}: пустой/упавший рендер`);
+  }
+  // под-режимы письма и говорения
+  for (const mode of ["worder", "gap", "compose", "self", "open"]) {
+    App.params = { mode }; App.session = null;
+    assert.ok(App.renderWriting().length, `writing/${mode}: пусто`);
+  }
+  for (const mode of ["phrases", "qa", "dialog"]) {
+    App.params = { mode }; App.session = null;
+    assert.ok(App.renderSpeaking().length, `speaking/${mode}: пусто`);
+  }
+  // параметризованные экраны
+  App.params = { id: X.GRAMMAR_LESSONS[0].id }; App.session = null;
+  assert.ok(App.renderLesson().length, "lesson");
+  App.params = { id: X.READING_TEXTS[0].id }; App.session = null;
+  assert.ok(App.renderRead().length, "read");
+  App.params = { n: "0" }; App.session = null;
+  assert.ok(App.renderExam().length, "exam");
+  App.params = { topic: X.GRAMMAR_LESSONS[1].id }; App.session = null;
+  assert.ok(App.renderGex().length, "gex");
+});
+
 test("трек строится, дни и недели согласованы", () => {
   const days = App.buildTrack();
   assert.ok(days.length > 50, `мало дней: ${days.length}`);

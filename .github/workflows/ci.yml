@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run tests (node:test, без зависимостей)
+        run: npm test
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Build offline single-file и проверка, что собралось
+        run: |
+          python3 build.py
+          test -s dist/greek-a1.html
+      - name: Аудит покрытия (информативно)
+        run: python3 tools/coverage.py
