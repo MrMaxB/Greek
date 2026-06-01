@@ -12,11 +12,11 @@ read = lambda p: io.open(os.path.join(ROOT, p), encoding="utf-8").read()
 def main():
     html = read("index.html")
     css = read("css/styles.css")
-    js = "\n".join(read("js/" + f) for f in ["data.js", "grammar.js", "official_a1.js", "exercises.js", "writing.js", "reading.js", "exams.js", "srs.js", "speech.js", "app.js"])
+    js = "\n".join(read("js/" + f) for f in ["data.js", "grammar.js", "official_a1.js", "exercises.js", "writing.js", "reading.js", "exams.js", "srs.js", "speech.js", "app.js", "feat-track.js", "feat-speaking.js", "feat-exams.js"])
 
     html = re.sub(r'<link rel="stylesheet" href="css/styles.css">',
                   lambda m: "<style>\n" + css + "\n</style>", html)
-    html = re.sub(r'\s*<script src="js/data.js"></script>.*?<script src="js/app.js"></script>',
+    html = re.sub(r'\s*<script src="js/data.js"></script>.*?<script src="js/feat-exams.js"></script>',
                   lambda m: "\n  <script>\n" + js + "\n  </script>", html, flags=re.S)
 
     # Облако (Firebase) работает только онлайн — в офлайн-файл не включаем
