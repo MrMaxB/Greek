@@ -335,7 +335,7 @@ const App = {
         })()}
         <button class="big-btn" data-go="review">
           🧠 Заниматься сейчас
-          <small>${s.due} повторить · ${Math.max(0, 12 - s.newToday)} новых доступно</small>
+          <small>${s.due} повторить · ${Math.max(0, s.newPerDay - s.newToday)} новых доступно</small>
         </button>
         <button class="big-btn" data-go="exams">
           📝 Пробные экзамены A1
@@ -448,7 +448,7 @@ const App = {
   /* ---------- ПОВТОРЕНИЕ (SRS) ---------- */
   renderReview() {
     if (!this.session) {
-      const queue = SRS.buildQueue(ALL_WORDS, 12);
+      const queue = SRS.buildQueue(ALL_WORDS);
       this.session = { queue, idx: 0, flipped: false, done: 0, again: [] };
     }
     const s = this.session;

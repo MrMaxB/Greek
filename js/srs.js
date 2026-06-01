@@ -5,7 +5,7 @@
 
 const SRS_KEY = "greekA1_srs_v1";
 const STATS_KEY = "greekA1_stats_v1";
-const NEW_PER_DAY = 12; // сколько новых слов вводим в день по умолчанию
+const NEW_PER_DAY = 15; // новых слов в день (устойчивый верх удержания; совпадает с обещанием «Пути»)
 
 const SRS = {
   data: {},   // id -> { reps, interval, ease, due, lapses }
@@ -127,6 +127,7 @@ const SRS = {
       mature,
       due: this.dueCards(words).length,
       newToday: this.stats.learnedDates[this.today()] || 0,
+      newPerDay: NEW_PER_DAY,
       streak: this.stats.streak || 0,
       totalReviews: this.stats.totalReviews || 0,
     };
