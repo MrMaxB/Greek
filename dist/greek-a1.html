@@ -286,6 +286,10 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 .chip.done { background: #e8f8ee; border-color: var(--ok); color: #137a3f; }
 .chip.done::before { content: "✓ "; }
 .type-input.area { min-height: 110px; text-align: left; font-size: 1.15rem; resize: vertical; line-height: 1.5; }
+.form-fill { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; }
+.form-row { display: flex; flex-direction: column; gap: 2px; }
+.form-lbl { font-weight: 600; font-size: .95rem; }
+.type-input.form-inp { text-align: left; font-size: 1.1rem; padding: 10px 12px; margin: 2px 0 6px; }
 
 /* ---------- READING ---------- */
 .r-meta { margin: 2px 0 10px; color: var(--muted); font-size: .9rem; }
@@ -3983,6 +3987,49 @@ const WRITING_STARTER_WORDS = [
   "πόλη", "νερό", "μέρα", "παιδί", "ψωμί", "αγάπη",
 ];
 
+// Анкеты/формы (αίτηση) — якорное задание реального экзамена.
+// Каждое поле: греческая «графа», подсказка (что вписать), пример.
+// kind: "text" — свободный текст, "num" — нужны цифры (возраст/телефон/индекс).
+const WRITING_FORMS = [
+  {
+    title: "Αίτηση εγγραφής",
+    titleRu: "Заявление на запись (в школу/курсы)",
+    fields: [
+      { gr: "Επώνυμο", ru: "Фамилия", eg: "Παπαδόπουλος" },
+      { gr: "Όνομα", ru: "Имя", eg: "Άννα" },
+      { gr: "Ηλικία", ru: "Возраст (цифрой)", eg: "35", kind: "num" },
+      { gr: "Υπηκοότητα", ru: "Гражданство", eg: "Ρωσική" },
+      { gr: "Διεύθυνση", ru: "Адрес (улица, город)", eg: "Οδός Λήδρας 10, Λευκωσία" },
+      { gr: "Τηλέφωνο", ru: "Телефон (цифры)", eg: "99123456", kind: "num" },
+      { gr: "Email", ru: "Электронная почта", eg: "anna@mail.com" },
+    ],
+  },
+  {
+    title: "Στοιχεία επισκέπτη (ξενοδοχείο)",
+    titleRu: "Данные гостя (регистрация в отеле)",
+    fields: [
+      { gr: "Ονοματεπώνυμο", ru: "Имя и фамилия", eg: "Ιβάν Σοκόλοφ" },
+      { gr: "Χώρα", ru: "Страна", eg: "Ρωσία" },
+      { gr: "Ημερομηνία άφιξης", ru: "Дата заезда", eg: "12/06" },
+      { gr: "Αριθμός δωματίου", ru: "Номер комнаты (цифра)", eg: "204", kind: "num" },
+      { gr: "Αριθμός ατόμων", ru: "Сколько человек (цифра)", eg: "2", kind: "num" },
+      { gr: "Υπογραφή", ru: "Подпись (имя)", eg: "Ι. Σοκόλοφ" },
+    ],
+  },
+  {
+    title: "Φόρμα εγγραφής στη βιβλιοθήκη",
+    titleRu: "Запись в библиотеку",
+    fields: [
+      { gr: "Όνομα", ru: "Имя", eg: "Μαρία" },
+      { gr: "Επώνυμο", ru: "Фамилия", eg: "Ιβάνοβα" },
+      { gr: "Επάγγελμα", ru: "Профессия", eg: "δασκάλα" },
+      { gr: "Πόλη", ru: "Город", eg: "Λεμεσός" },
+      { gr: "Ταχυδρομικός κώδικας", ru: "Индекс (цифры)", eg: "3010", kind: "num" },
+      { gr: "Ημερομηνία", ru: "Дата (сегодня)", eg: "01/06", kind: "num" },
+    ],
+  },
+];
+
 </script>
   <script>
 /* ============================================================
@@ -6687,12 +6734,14 @@ const App = {
           ${tile("compose", "📝", "Текст из слов", "составь предложения из изученных слов")}
           ${tile("self", "🪪", "О себе", "ответь по-гречески, сверься с образцом")}
           ${tile("open", "📋", "Свободное письмо", "напиши 2–3 предложения на тему")}
+          ${tile("form", "📑", "Заполни анкету", "формат экзамена: впиши данные в графы")}
         </div>`;
     }
     if (mode === "worder") return this.renderWOrder();
     if (mode === "gap") return this.renderWGap();
     if (mode === "compose") return this.renderWCompose();
     if (mode === "self" || mode === "open") return this.renderWSelf();
+    if (mode === "form") return this.renderWForm();
     return this.renderWriting();
   },
 
@@ -6859,6 +6908,49 @@ const App = {
       <div class="quiz-prompt"><div class="type-ru">${cur.ask}</div></div>
       <textarea id="selfText" class="type-input area" placeholder="Напиши по-гречески (2–3 предложения)…">${this.esc(s.text)}</textarea>
       <div id="reveal">${reveal}</div>`;
+  },
+
+  // Заполнение анкеты (αίτηση) — формат реального экзамена.
+  renderWForm() {
+    if (!this.session) this.session = { fi: Math.floor(Math.random() * WRITING_FORMS.length), checked: false };
+    const s = this.session;
+    const form = WRITING_FORMS[s.fi];
+    const rows = form.fields.map((f, i) => `
+      <div class="form-row">
+        <label class="form-lbl">${this.wrapGreek(f.gr)} <span class="muted small">(${f.ru})</span></label>
+        <input class="type-input form-inp" id="ff${i}" autocomplete="off"
+          inputmode="${f.kind === "num" ? "numeric" : "text"}" placeholder="${f.kind === "num" ? "цифры" : f.eg}">
+      </div>`).join("");
+    return `
+      <header class="page-head"><h2>📑 ${form.title}</h2><button class="back" data-go="writing">← Письмо</button></header>
+      <div class="r-meta">${form.titleRu}</div>
+      <p class="muted small">Впиши свои данные по-гречески в каждую графу (можно выдуманные). Это типовое задание экзамена.</p>
+      <div class="form-fill">${rows}</div>
+      <button class="big-btn primary" data-action="form-check">Проверить</button>
+      <div id="fb" class="feedback"></div>`;
+  },
+  formCheck() {
+    const s = this.session;
+    const form = WRITING_FORMS[s.fi];
+    const issues = [];
+    form.fields.forEach((f, i) => {
+      const el = document.getElementById("ff" + i);
+      const v = (el ? el.value : "").trim();
+      if (!v) { issues.push(`«${f.gr}» (${f.ru}) — пусто`); return; }
+      if (f.kind === "num") {
+        if (!/\d/.test(v)) issues.push(`«${f.gr}» (${f.ru}) — нужны цифры`);
+      } else if (!/[Ͱ-Ͽἀ-῿]/.test(v) && !/@/.test(v)) {
+        issues.push(`«${f.gr}» (${f.ru}) — впиши по-гречески`);
+      }
+    });
+    const fb = document.getElementById("fb");
+    if (!issues.length) {
+      fb.innerHTML = `<div class="ok-msg">✓ Анкета заполнена верно! Все графы на месте.</div>
+        <button class="big-btn primary" data-action="form-again">Другая анкета</button>
+        <button class="big-btn ghost" data-go="writing">К письму</button>`;
+    } else {
+      fb.innerHTML = `<div class="bad-msg" style="text-align:left">Проверь графы:<br>${issues.map((x) => "• " + x).join("<br>")}</div>`;
+    }
   },
 
 
@@ -7253,6 +7345,8 @@ const App = {
       case "worder-check": return this.worderCheck();
       case "compose-check": return this.composeCheck();
       case "compose-new": this.session = null; return this.render();
+      case "form-check": return this.formCheck();
+      case "form-again": this.session = null; return this.render();
       case "self-reveal": this.session.revealed = true; return this.render();
       case "self-next": this.session.idx++; this.session.revealed = false; this.session.text = ""; return this.render();
       case "wr-again": this.session = null; return this.render();

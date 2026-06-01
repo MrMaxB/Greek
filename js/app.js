@@ -905,12 +905,14 @@ const App = {
           ${tile("compose", "📝", "Текст из слов", "составь предложения из изученных слов")}
           ${tile("self", "🪪", "О себе", "ответь по-гречески, сверься с образцом")}
           ${tile("open", "📋", "Свободное письмо", "напиши 2–3 предложения на тему")}
+          ${tile("form", "📑", "Заполни анкету", "формат экзамена: впиши данные в графы")}
         </div>`;
     }
     if (mode === "worder") return this.renderWOrder();
     if (mode === "gap") return this.renderWGap();
     if (mode === "compose") return this.renderWCompose();
     if (mode === "self" || mode === "open") return this.renderWSelf();
+    if (mode === "form") return this.renderWForm();
     return this.renderWriting();
   },
 
@@ -1077,6 +1079,49 @@ const App = {
       <div class="quiz-prompt"><div class="type-ru">${cur.ask}</div></div>
       <textarea id="selfText" class="type-input area" placeholder="Напиши по-гречески (2–3 предложения)…">${this.esc(s.text)}</textarea>
       <div id="reveal">${reveal}</div>`;
+  },
+
+  // Заполнение анкеты (αίτηση) — формат реального экзамена.
+  renderWForm() {
+    if (!this.session) this.session = { fi: Math.floor(Math.random() * WRITING_FORMS.length), checked: false };
+    const s = this.session;
+    const form = WRITING_FORMS[s.fi];
+    const rows = form.fields.map((f, i) => `
+      <div class="form-row">
+        <label class="form-lbl">${this.wrapGreek(f.gr)} <span class="muted small">(${f.ru})</span></label>
+        <input class="type-input form-inp" id="ff${i}" autocomplete="off"
+          inputmode="${f.kind === "num" ? "numeric" : "text"}" placeholder="${f.kind === "num" ? "цифры" : f.eg}">
+      </div>`).join("");
+    return `
+      <header class="page-head"><h2>📑 ${form.title}</h2><button class="back" data-go="writing">← Письмо</button></header>
+      <div class="r-meta">${form.titleRu}</div>
+      <p class="muted small">Впиши свои данные по-гречески в каждую графу (можно выдуманные). Это типовое задание экзамена.</p>
+      <div class="form-fill">${rows}</div>
+      <button class="big-btn primary" data-action="form-check">Проверить</button>
+      <div id="fb" class="feedback"></div>`;
+  },
+  formCheck() {
+    const s = this.session;
+    const form = WRITING_FORMS[s.fi];
+    const issues = [];
+    form.fields.forEach((f, i) => {
+      const el = document.getElementById("ff" + i);
+      const v = (el ? el.value : "").trim();
+      if (!v) { issues.push(`«${f.gr}» (${f.ru}) — пусто`); return; }
+      if (f.kind === "num") {
+        if (!/\d/.test(v)) issues.push(`«${f.gr}» (${f.ru}) — нужны цифры`);
+      } else if (!/[Ͱ-Ͽἀ-῿]/.test(v) && !/@/.test(v)) {
+        issues.push(`«${f.gr}» (${f.ru}) — впиши по-гречески`);
+      }
+    });
+    const fb = document.getElementById("fb");
+    if (!issues.length) {
+      fb.innerHTML = `<div class="ok-msg">✓ Анкета заполнена верно! Все графы на месте.</div>
+        <button class="big-btn primary" data-action="form-again">Другая анкета</button>
+        <button class="big-btn ghost" data-go="writing">К письму</button>`;
+    } else {
+      fb.innerHTML = `<div class="bad-msg" style="text-align:left">Проверь графы:<br>${issues.map((x) => "• " + x).join("<br>")}</div>`;
+    }
   },
 
 
@@ -1471,6 +1516,8 @@ const App = {
       case "worder-check": return this.worderCheck();
       case "compose-check": return this.composeCheck();
       case "compose-new": this.session = null; return this.render();
+      case "form-check": return this.formCheck();
+      case "form-again": this.session = null; return this.render();
       case "self-reveal": this.session.revealed = true; return this.render();
       case "self-next": this.session.idx++; this.session.revealed = false; this.session.text = ""; return this.render();
       case "wr-again": this.session = null; return this.render();

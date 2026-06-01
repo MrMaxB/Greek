@@ -78,6 +78,18 @@ test("генераторы упражнений: ответ среди вари�
   }
 });
 
+test("письмо: анкеты (формы) валидны", () => {
+  assert.ok(X.WRITING_FORMS && X.WRITING_FORMS.length >= 1, "нет анкет");
+  for (const f of X.WRITING_FORMS) {
+    assert.ok(f.title && f.titleRu && f.fields && f.fields.length >= 3, `анкета «${f.title}»: мало полей`);
+    f.fields.forEach((fl) => {
+      assert.ok(fl.gr && fl.ru, `поле в «${f.title}»: нет gr/ru`);
+      // графа по-гречески (кроме интернациональных меток вроде Email)
+      assert.ok(/[Ͱ-Ͽἀ-῿]/.test(fl.gr) || /^(email|sms)$/i.test(fl.gr), `графа «${fl.gr}» не по-гречески`);
+    });
+  }
+});
+
 test("письмо: пропуски корректны", () => {
   X.WRITING_GAPS.forEach((g, i) => {
     assert.ok(g.options.includes(g.answer), `gap#${i}: ответ не среди вариантов`);
