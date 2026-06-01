@@ -25,11 +25,14 @@ test("все экраны рендерятся на свежем профиле 
     assert.ok(typeof r === "string" && r.length > 0, `${fn}: пустой/упавший рендер`);
   }
   // под-режимы письма и говорения
-  for (const mode of ["worder", "gap", "compose", "self", "open"]) {
+  for (const mode of ["worder", "gap", "compose", "self", "open", "form", "dict"]) {
     App.params = { mode }; App.session = null;
     assert.ok(App.renderWriting().length, `writing/${mode}: пусто`);
   }
-  for (const mode of ["phrases", "qa", "dialog"]) {
+  // диктант фраз по теме
+  App.params = { mode: "pdict", cat: "Еда" }; App.session = null;
+  assert.ok(App.renderWriting().length, "writing/pdict: пусто");
+  for (const mode of ["phrases", "qa", "dialog", "listen", "match", "pic"]) {
     App.params = { mode }; App.session = null;
     assert.ok(App.renderSpeaking().length, `speaking/${mode}: пусто`);
   }

@@ -23,6 +23,7 @@ Object.assign(App, {
         </div>`;
     }
     if (mode === "dict") return this.renderWDict();
+    if (mode === "pdict") return this.renderWPhraseDict();
     if (mode === "worder") return this.renderWOrder();
     if (mode === "gap") return this.renderWGap();
     if (mode === "compose") return this.renderWCompose();
@@ -31,21 +32,74 @@ Object.assign(App, {
     return this.renderWriting();
   },
 
-  // Диктант на слух по теме: выбери тему → пиши её слова под диктовку.
-  // Реюзит режим колоды "dictation" (слышишь греческое — печатаешь).
+  // Диктант на слух: слова по темам (колоды) ИЛИ фразы по темам (предложения).
   renderWDict() {
-    const tiles = DECKS.map((d) => {
+    const decks = DECKS.map((d) => {
       const done = SRS.summary(d.words).learned;
       return `<button class="deck-tile" data-deck="${d.id}" data-mode="dictation">
         <div class="deck-ic">${d.icon}</div>
         <div class="deck-body"><div class="deck-title">${d.title}</div>
         <div class="deck-meta">${d.words.length} слов${done ? ` · изучается ${done}` : ""}</div></div></button>`;
     }).join("");
+    const phrases = this.writingCats().map(([cat, n]) =>
+      `<button class="deck-tile" data-pdict="${this.esc(cat)}"><div class="deck-ic">💬</div>
+        <div class="deck-body"><div class="deck-title">${cat}</div><div class="deck-meta">${n} фраз</div></div></button>`).join("");
     return `
       <header class="page-head"><h2>🎧 Диктант на слух</h2><button class="back" data-go="writing">← Письмо</button></header>
-      <p class="muted">Выбери тему — будешь слышать греческое слово и записывать его. Лучший способ закрепить написание (как daily dictation).</p>
-      <div class="deck-list">${tiles}</div>`;
+      <p class="muted">Слушай и записывай — лучший способ закрепить написание (как daily dictation).</p>
+      <h3 class="section-title">💬 Фразы по темам</h3>
+      <p class="muted small">Целое предложение на слух — пиши, что услышал.</p>
+      <div class="deck-list">${phrases}</div>
+      <h3 class="section-title">🔤 Слова по темам</h3>
+      <div class="deck-list">${decks}</div>`;
   },
+
+  // Пофразовый диктант: слышишь предложение целиком — печатаешь его.
+  renderWPhraseDict() {
+    if (!this.session) {
+      const cat = this.params.cat;
+      const src = cat === "__all" || !cat ? WRITING_ORDER : WRITING_ORDER.filter((w) => (w.cat || "Разное") === cat);
+      this.session = { pool: this.shuffle(src).slice(0, 10), idx: 0, correct: 0, cat, text: "", checked: false };
+    }
+    const s = this.session;
+    if (s.idx >= s.pool.length) {
+      return `<div class="result"><h2>Готово! 🎧</h2><p class="big-score">${s.correct} / ${s.pool.length}</p>
+        <p class="muted">фраз записано${s.cat && s.cat !== "__all" ? " · тема: " + s.cat : ""}</p>
+        <button class="big-btn primary" data-action="pdict-again">Ещё раунд</button>
+        <button class="big-btn ghost" data-wmode="dict">↩ Другая тема</button>
+        <button class="big-btn ghost" data-go="writing">К письму</button></div>`;
+    }
+    const cur = s.pool[s.idx];
+    const right = cur.tokens.join(" ");
+    if (!s.checked) this.afterRender = () => { Speech.say(right); const i = document.getElementById("pdInput"); if (i) i.focus(); };
+    const fb = s.checked
+      ? `<div class="${s.lastOk ? "ok-msg" : "bad-msg"}" style="text-align:left">
+            ${s.lastOk ? "✓ Верно!" : "✗ Правильно:"} <b>${right}</b> ${this.speakBtn(right)}
+            <div class="answer-ru">${cur.ru}</div></div>
+          <button class="big-btn primary" data-action="pdict-next">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`
+      : `<button class="big-btn primary" data-action="pdict-check">Проверить</button>`;
+    return `
+      <header class="page-head"><h2>🎧 Диктант: фразы</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <button class="back" data-wmode="dict">← К темам</button>
+      <div class="quiz-prompt listen">
+        <button class="play-big" data-say="${this.esc(right)}">🔊 Повторить</button>
+        <button class="play-slow" data-say-slow="${this.esc(right)}">🐢 Медленно</button>
+        <div class="muted small dict-hint">Запиши фразу по-гречески (${cur.ru})</div>
+      </div>
+      <textarea id="pdInput" class="type-input area" autocomplete="off" autocapitalize="off" spellcheck="false" ${s.checked ? "disabled" : ""}>${this.esc(s.text)}</textarea>
+      <div id="fb" class="feedback">${fb}</div>`;
+  },
+  pdictCheck() {
+    const s = this.session;
+    const inp = document.getElementById("pdInput");
+    if (inp) s.text = inp.value;
+    const cur = s.pool[s.idx];
+    const ok = [cur.tokens.join(" "), ...(cur.alt || [])].some((c) => this.normGreek(s.text) === this.normGreek(c));
+    s.lastOk = ok; if (ok) s.correct++;
+    s.checked = true;
+    this.render();
+  },
+  pdictNext() { const s = this.session; s.idx++; s.text = ""; s.checked = false; s.lastOk = false; this.render(); },
 
   wHead(title, s) {
     return `<header class="page-head"><h2>${title}</h2><div class="counter">${Math.min(s.idx + 1, s.pool.length)}/${s.pool.length}</div></header>

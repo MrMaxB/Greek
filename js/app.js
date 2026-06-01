@@ -1101,7 +1101,7 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wcat],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-readopt],[data-listenopt],[data-matchopt],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog],[data-track-day],[data-track-check]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wcat],[data-pdict],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-readopt],[data-listenopt],[data-matchopt],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog],[data-track-day],[data-track-check]");
     if (!t) return;
 
     if (t.dataset.trackDay !== undefined) return this.go("track", { day: t.dataset.trackDay });
@@ -1133,6 +1133,7 @@ const App = {
 
     if (t.dataset.wmode) return this.go("writing", { mode: t.dataset.wmode });
     if (t.dataset.wcat !== undefined) { this.session = null; return this.go("writing", { mode: "worder", cat: t.dataset.wcat }); }
+    if (t.dataset.pdict !== undefined) { this.session = null; return this.go("writing", { mode: "pdict", cat: t.dataset.pdict }); }
     if (t.dataset.wtoken) return this.wToken(t.dataset.wtoken);
     if (t.dataset.wgap !== undefined) return this.wGapAnswer(t.dataset.wgap, t);
 
@@ -1210,6 +1211,9 @@ const App = {
       case "self-reveal": this.session.revealed = true; return this.render();
       case "self-next": this.session.idx++; this.session.revealed = false; this.session.text = ""; return this.render();
       case "wr-again": this.session = null; return this.render();
+      case "pdict-check": return this.pdictCheck();
+      case "pdict-next": return this.pdictNext();
+      case "pdict-again": this.session = null; return this.render();
       case "cloud-login": if (window.Cloud && window.Cloud.login) window.Cloud.login(); return;
       case "cloud-logout": if (window.Cloud && window.Cloud.logout) window.Cloud.logout(); return;
       case "menu-toggle": return this.toggleMenu();
