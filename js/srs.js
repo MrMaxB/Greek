@@ -99,15 +99,23 @@ const SRS = {
     return c;
   },
 
-  // Обновление стрика (дни подряд с активностью)
+  // Обновление стрика (дни подряд с активностью).
+  // Льготный день: пропуск ОДНОГО дня не рвёт стрик (gap=2 дня — прощаем,
+  // как «заморозка» у Duolingo). Рвётся только при пропуске ≥2 дней подряд.
   touchStreak() {
     const t = this.today();
     if (this.stats.lastDay === t) return;
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const y = yesterday.toISOString().slice(0, 10);
-    if (this.stats.lastDay === y) this.stats.streak = (this.stats.streak || 0) + 1;
-    else this.stats.streak = 1;
+    const last = this.stats.lastDay;
+    if (!last) { this.stats.streak = 1; this.stats.lastDay = t; this.stats.frozeOn = null; return; }
+    const gap = Math.round((new Date(t) - new Date(last)) / 86400000);
+    if (gap <= 2) {
+      // вчера (gap=1) или один пропущенный день (gap=2) — стрик продолжается
+      this.stats.streak = (this.stats.streak || 0) + 1;
+      this.stats.frozeOn = gap === 2 ? t : (this.stats.frozeOn || null);
+    } else {
+      this.stats.streak = 1;
+      this.stats.frozeOn = null;
+    }
     this.stats.lastDay = t;
   },
 

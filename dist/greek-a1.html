@@ -5702,15 +5702,23 @@ const SRS = {
     return c;
   },
 
-  // Обновление стрика (дни подряд с активностью)
+  // Обновление стрика (дни подряд с активностью).
+  // Льготный день: пропуск ОДНОГО дня не рвёт стрик (gap=2 дня — прощаем,
+  // как «заморозка» у Duolingo). Рвётся только при пропуске ≥2 дней подряд.
   touchStreak() {
     const t = this.today();
     if (this.stats.lastDay === t) return;
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const y = yesterday.toISOString().slice(0, 10);
-    if (this.stats.lastDay === y) this.stats.streak = (this.stats.streak || 0) + 1;
-    else this.stats.streak = 1;
+    const last = this.stats.lastDay;
+    if (!last) { this.stats.streak = 1; this.stats.lastDay = t; this.stats.frozeOn = null; return; }
+    const gap = Math.round((new Date(t) - new Date(last)) / 86400000);
+    if (gap <= 2) {
+      // вчера (gap=1) или один пропущенный день (gap=2) — стрик продолжается
+      this.stats.streak = (this.stats.streak || 0) + 1;
+      this.stats.frozeOn = gap === 2 ? t : (this.stats.frozeOn || null);
+    } else {
+      this.stats.streak = 1;
+      this.stats.frozeOn = null;
+    }
     this.stats.lastDay = t;
   },
 
@@ -5917,6 +5925,12 @@ const App = {
     if (!this.weak.some((w) => this.weakKey(w) === k)) { this.weak.push({ q: it.q, opts: it.opts, ans: it.ans }); this.saveWeak(); }
   },
   removeWeak(it) { const k = this.weakKey(it); this.weak = (this.weak || []).filter((w) => this.weakKey(w) !== k); this.saveWeak(); },
+  // Добавить промах по слову темы в «Работу над ошибками» как MCQ «что значит X?»
+  addWeakWord(cur) {
+    if (!cur || !cur.gr || !cur.ru) return;
+    const distract = this.shuffle(ALL_WORDS.filter((w) => w.ru !== cur.ru)).slice(0, 3).map((w) => w.ru);
+    this.addWeak({ q: `Что значит «${cur.gr}»?`, opts: this.shuffle([cur.ru, ...distract]), ans: cur.ru });
+  },
   applySettings() { if (document.body) document.body.classList.toggle("no-tr", !this.settings.tr); },
   toggleSetting(k) { this.settings[k] = !this.settings[k]; this.saveSettings(); this.applySettings(); this.render(); },
 
@@ -7215,11 +7229,7 @@ const App = {
       <div class="word-row"><div class="w-gr">Дни закрепления · чекпоинты</div><div class="w-ru">${trRest} · ${trCheck}</div></div>
       <div class="word-row"><div class="w-gr">Темп словаря</div><div class="w-ru">~15 новых слов в день</div></div>
       <button class="big-btn primary" data-go="track" style="margin-top:10px">Открыть путь →</button>
-
-      <h3 class="section-title">⚙️ Настройки</h3>
-      <button class="big-btn ghost" data-action="set-tr">Транскрипция: <b>${this.settings.tr ? "показана" : "скрыта"}</b></button>
-      <button class="big-btn ghost" data-action="set-gexinput">Упражнения грамматики: <b>${this.settings.gexInput ? "ввод по-гречески" : "выбор варианта"}</b></button>
-      <p class="muted small">Скрой транскрипцию, когда выучишь алфавит — так формируется чтение. Режим «ввод» тренирует активное вспоминание (сложнее, но эффективнее).</p>
+      <p class="muted small">⚙️ Настройки (транскрипция, режим упражнений) — на вкладке «Прогресс».</p>
 
       <h3 class="section-title">Что внутри</h3>
       <section class="cards-row">
@@ -7278,6 +7288,10 @@ const App = {
     }
     return `
       <header class="page-head"><h2>📊 Прогресс</h2></header>
+      <h3 class="section-title">⚙️ Настройки</h3>
+      <button class="big-btn ghost" data-action="set-tr">Транскрипция: <b>${this.settings.tr ? "показана" : "скрыта"}</b></button>
+      <button class="big-btn ghost" data-action="set-gexinput">Упражнения грамматики: <b>${this.settings.gexInput ? "ввод по-гречески" : "выбор варианта"}</b></button>
+      <p class="muted small">Скрой транскрипцию, когда выучишь алфавит — так формируется чтение. Режим «ввод» тренирует активное вспоминание.</p>
       <h3 class="section-title">☁️ Синхронизация</h3>
       ${this.renderAccount()}
       <section class="cards-row">
@@ -7518,7 +7532,7 @@ const App = {
     const cur = s.pool[s.idx];
     const ok = id === cur.id;
     if (cur && cur.id) SRS.grade(cur.id, ok ? 2 : 0); // практика идёт в прогресс
-    if (ok) s.correct++;
+    if (ok) s.correct++; else this.addWeakWord(cur);
     document.querySelectorAll(".opt").forEach((b) => {
       if (b.dataset.choice === cur.id) b.classList.add("ok");
       else if (b === el) b.classList.add("bad");
@@ -7549,7 +7563,7 @@ const App = {
     const val = inp ? inp.value : s.input;
     const ok = this.normGreek(val) === this.normGreek(cur.gr);
     if (cur && cur.id) SRS.grade(cur.id, ok ? 2 : 0); // практика идёт в прогресс
-    if (ok) s.correct++;
+    if (ok) s.correct++; else this.addWeakWord(cur);
     const fb = document.getElementById("fb");
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
         ${ok ? "✓ Верно! " + cur.gr : "✗ Правильно: <b>" + cur.gr + "</b>"} ${this.speakBtn(cur.gr)}

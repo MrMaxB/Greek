@@ -66,9 +66,14 @@ test("стрик растёт со вчера и сбрасывается при
   S.stats.lastDay = iso(yest); S.stats.streak = 4;
   S.touchStreak();
   assert.equal(S.stats.streak, 5, "должен продолжиться");
-  // пропуск: последний день — позавчера
+  // льготный день: пропущен ровно ОДИН день (gap=2) — стрик продолжается
+  const skip1 = new Date(); skip1.setDate(skip1.getDate() - 2);
+  S.stats.lastDay = iso(skip1); S.stats.streak = 9; S.stats.frozeOn = null;
+  S.touchStreak();
+  assert.equal(S.stats.streak, 10, "один пропуск прощается (заморозка)");
+  // пропуск 2+ дней (gap=3) — стрик рвётся
   const before = new Date(); before.setDate(before.getDate() - 3);
   S.stats.lastDay = iso(before); S.stats.streak = 9;
   S.touchStreak();
-  assert.equal(S.stats.streak, 1, "после пропуска стрик = 1");
+  assert.equal(S.stats.streak, 1, "после пропуска ≥2 дней стрик = 1");
 });

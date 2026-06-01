@@ -59,6 +59,12 @@ const App = {
     if (!this.weak.some((w) => this.weakKey(w) === k)) { this.weak.push({ q: it.q, opts: it.opts, ans: it.ans }); this.saveWeak(); }
   },
   removeWeak(it) { const k = this.weakKey(it); this.weak = (this.weak || []).filter((w) => this.weakKey(w) !== k); this.saveWeak(); },
+  // Добавить промах по слову темы в «Работу над ошибками» как MCQ «что значит X?»
+  addWeakWord(cur) {
+    if (!cur || !cur.gr || !cur.ru) return;
+    const distract = this.shuffle(ALL_WORDS.filter((w) => w.ru !== cur.ru)).slice(0, 3).map((w) => w.ru);
+    this.addWeak({ q: `Что значит «${cur.gr}»?`, opts: this.shuffle([cur.ru, ...distract]), ans: cur.ru });
+  },
   applySettings() { if (document.body) document.body.classList.toggle("no-tr", !this.settings.tr); },
   toggleSetting(k) { this.settings[k] = !this.settings[k]; this.saveSettings(); this.applySettings(); this.render(); },
 
@@ -1357,11 +1363,7 @@ const App = {
       <div class="word-row"><div class="w-gr">Дни закрепления · чекпоинты</div><div class="w-ru">${trRest} · ${trCheck}</div></div>
       <div class="word-row"><div class="w-gr">Темп словаря</div><div class="w-ru">~15 новых слов в день</div></div>
       <button class="big-btn primary" data-go="track" style="margin-top:10px">Открыть путь →</button>
-
-      <h3 class="section-title">⚙️ Настройки</h3>
-      <button class="big-btn ghost" data-action="set-tr">Транскрипция: <b>${this.settings.tr ? "показана" : "скрыта"}</b></button>
-      <button class="big-btn ghost" data-action="set-gexinput">Упражнения грамматики: <b>${this.settings.gexInput ? "ввод по-гречески" : "выбор варианта"}</b></button>
-      <p class="muted small">Скрой транскрипцию, когда выучишь алфавит — так формируется чтение. Режим «ввод» тренирует активное вспоминание (сложнее, но эффективнее).</p>
+      <p class="muted small">⚙️ Настройки (транскрипция, режим упражнений) — на вкладке «Прогресс».</p>
 
       <h3 class="section-title">Что внутри</h3>
       <section class="cards-row">
@@ -1420,6 +1422,10 @@ const App = {
     }
     return `
       <header class="page-head"><h2>📊 Прогресс</h2></header>
+      <h3 class="section-title">⚙️ Настройки</h3>
+      <button class="big-btn ghost" data-action="set-tr">Транскрипция: <b>${this.settings.tr ? "показана" : "скрыта"}</b></button>
+      <button class="big-btn ghost" data-action="set-gexinput">Упражнения грамматики: <b>${this.settings.gexInput ? "ввод по-гречески" : "выбор варианта"}</b></button>
+      <p class="muted small">Скрой транскрипцию, когда выучишь алфавит — так формируется чтение. Режим «ввод» тренирует активное вспоминание.</p>
       <h3 class="section-title">☁️ Синхронизация</h3>
       ${this.renderAccount()}
       <section class="cards-row">
@@ -1660,7 +1666,7 @@ const App = {
     const cur = s.pool[s.idx];
     const ok = id === cur.id;
     if (cur && cur.id) SRS.grade(cur.id, ok ? 2 : 0); // практика идёт в прогресс
-    if (ok) s.correct++;
+    if (ok) s.correct++; else this.addWeakWord(cur);
     document.querySelectorAll(".opt").forEach((b) => {
       if (b.dataset.choice === cur.id) b.classList.add("ok");
       else if (b === el) b.classList.add("bad");
@@ -1691,7 +1697,7 @@ const App = {
     const val = inp ? inp.value : s.input;
     const ok = this.normGreek(val) === this.normGreek(cur.gr);
     if (cur && cur.id) SRS.grade(cur.id, ok ? 2 : 0); // практика идёт в прогресс
-    if (ok) s.correct++;
+    if (ok) s.correct++; else this.addWeakWord(cur);
     const fb = document.getElementById("fb");
     fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">
         ${ok ? "✓ Верно! " + cur.gr : "✗ Правильно: <b>" + cur.gr + "</b>"} ${this.speakBtn(cur.gr)}
