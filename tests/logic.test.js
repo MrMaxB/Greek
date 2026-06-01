@@ -109,6 +109,21 @@ test("трек: темы чередуются, базовая колода се�
   big.forEach((ds) => { const span = Math.max(...ds) - Math.min(...ds); assert.ok(span >= ds.length, `большая тема идёт блоком (span ${span} при ${ds.length} колодах)`); });
 });
 
+test("чтение: проверка понимания валидна (ответ среди вариантов, без дублей)", () => {
+  let checked = 0;
+  X.READING_TEXTS.filter((t) => t.sents.length >= 3).slice(0, 30).forEach((t) => {
+    const qs = App.buildReadQuiz(t);
+    assert.ok(qs.length >= 1 && qs.length <= 3, `${t.id}: ${qs.length} вопросов`);
+    qs.forEach((q) => {
+      assert.ok(q.options.includes(q.answer), `${t.id}: ответа нет в вариантах`);
+      assert.ok(q.options.length >= 2, `${t.id}: <2 вариантов`);
+      assert.equal(new Set(q.options).size, q.options.length, `${t.id}: дубли вариантов`);
+    });
+    checked++;
+  });
+  assert.ok(checked > 0, "не нашлось текстов для проверки");
+});
+
 test("трек: чекпоинт-экзамены тестируют лексику пройденного блока", () => {
   const days = App.buildTrack();
   let total = 0, inScope = 0;
