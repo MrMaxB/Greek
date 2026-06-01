@@ -85,8 +85,11 @@ Object.assign(App, {
         <button class="play-big" data-say="${this.esc(right)}">🔊 Повторить</button>
         <button class="play-slow" data-say-slow="${this.esc(right)}">🐢 Медленно</button>
         <div class="muted small dict-hint">Запиши фразу по-гречески (${cur.ru})</div>
+        ${this.dictSkeleton(right)}
       </div>
       <textarea id="pdInput" class="type-input area" autocomplete="off" autocapitalize="off" spellcheck="false" ${s.checked ? "disabled" : ""}>${this.esc(s.text)}</textarea>
+      ${s.checked ? "" : `<div class="kbd-hint">✓ Ударения, регистр и знаки можно не ставить. Можно печатать на клавиатуре ниже.</div>
+      <div class="gkbd">${this.greekKeyboard()}</div>`}
       <div id="fb" class="feedback">${fb}</div>`;
   },
   pdictCheck() {

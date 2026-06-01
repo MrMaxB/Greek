@@ -687,6 +687,7 @@ const App = {
                <button class="play-big" data-say="${this.esc(cur.gr)}">🔊 Повторить</button>
                <button class="play-slow" data-say-slow="${this.esc(cur.gr)}">🐢 Медленно</button>
                <div class="muted small dict-hint">Слушай и запиши по-гречески</div>
+               ${this.dictSkeleton(cur.gr)}
              </div>`
           : `<div class="quiz-prompt">
                <div class="type-ru">${cur.ru}</div>
@@ -701,8 +702,8 @@ const App = {
       return `${head}
         ${prompt}
         <input id="typeInput" class="type-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-               placeholder="Напиши по-гречески (ударения можно не ставить)" value="${this.esc(s.input)}">
-        <div class="kbd-hint">Нужны греческие буквы? Включи раскладку Ελληνικά или используй экранную клавиатуру ниже.</div>
+               placeholder="Пиши по-гречески…" value="${this.esc(s.input)}">
+        <div class="kbd-hint">✓ Ударения, регистр и знаки (· ;) можно не ставить — засчитаю без них. Можно включить раскладку Ελληνικά или печатать на клавиатуре ниже.</div>
         <div class="gkbd">${this.greekKeyboard()}</div>
         <button class="big-btn primary" data-action="type-check">Проверить</button>
         <div id="fb" class="feedback"></div>`;
@@ -710,15 +711,24 @@ const App = {
     return this.renderDecks();
   },
 
+  // Скелет ответа для диктанта: показывает число слов и букв (· на букву),
+  // чтобы было от чего оттолкнуться, не раскрывая сам текст.
+  dictSkeleton(gr) {
+    const words = this.tokenizeGreek(gr);
+    if (!words.length) return "";
+    const sk = words.map((w) => "·".repeat(w.length)).join("&nbsp;&nbsp;&nbsp;");
+    return `<div class="dict-skel" title="столько букв в каждом слове">${sk}</div>`;
+  },
+
   greekKeyboard() {
-    const rows = ["ασδφγηξκλ", "ζχψωβνμ", "ερτυθιοπ"];
+    const rows = ["ερτυθιοπ", "ασδφγηξκλ", "ζχψωβνμς", "άέήίόύώ"];
     return rows
       .map(
-        (r) =>
+        (r, ri) =>
           `<div class="gkbd-row">${r
             .split("")
             .map((c) => `<button class="gkey" data-key="${c}">${c}</button>`)
-            .join("")}<button class="gkey wide" data-key=" ">␣</button><button class="gkey wide" data-key="BACK">⌫</button></div>`
+            .join("")}${ri === 3 ? `<button class="gkey wide" data-key=" ">␣</button>` : ""}<button class="gkey wide" data-key="BACK">⌫</button></div>`
       )
       .join("");
   },
@@ -1333,11 +1343,12 @@ const App = {
 
   /* --- экранная клавиатура --- */
   kbdKey(k) {
-    const inp = document.getElementById("typeInput");
+    const inp = document.getElementById("typeInput") || document.getElementById("pdInput");
     if (!inp) return;
     if (k === "BACK") inp.value = inp.value.slice(0, -1);
     else inp.value += k;
-    this.session.input = inp.value;
+    if (this.session) this.session.input = inp.value;
+    if (inp.id === "pdInput" && this.session) this.session.text = inp.value;
     inp.focus();
   },
 

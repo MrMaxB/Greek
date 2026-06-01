@@ -94,6 +94,7 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 
 /* ---------- HERO / HOME ---------- */
 .why-box { background: #fff7e6; border: 1px solid #ffe2a8; border-radius: 12px; padding: 10px 12px; margin: 8px 0; font-size: .95rem; line-height: 1.5; text-align: left; color: #6b4e00; }
+.dict-skel { margin-top: 8px; font-size: 1.3rem; letter-spacing: 2px; color: var(--sky); font-weight: 700; }
 .pic-scene { font-size: 3.4rem; text-align: center; padding: 18px; background: #f4f7fb; border-radius: 14px; margin: 10px 0; letter-spacing: 6px; }
 .badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 10px 0 2px; }
 .badge { font-size: .78rem; background: #eef4ff; color: #2a4d7a; border: 1px solid #d4e2f5; border-radius: 999px; padding: 3px 10px; font-weight: 600; }
@@ -6611,6 +6612,7 @@ const App = {
                <button class="play-big" data-say="${this.esc(cur.gr)}">🔊 Повторить</button>
                <button class="play-slow" data-say-slow="${this.esc(cur.gr)}">🐢 Медленно</button>
                <div class="muted small dict-hint">Слушай и запиши по-гречески</div>
+               ${this.dictSkeleton(cur.gr)}
              </div>`
           : `<div class="quiz-prompt">
                <div class="type-ru">${cur.ru}</div>
@@ -6625,8 +6627,8 @@ const App = {
       return `${head}
         ${prompt}
         <input id="typeInput" class="type-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-               placeholder="Напиши по-гречески (ударения можно не ставить)" value="${this.esc(s.input)}">
-        <div class="kbd-hint">Нужны греческие буквы? Включи раскладку Ελληνικά или используй экранную клавиатуру ниже.</div>
+               placeholder="Пиши по-гречески…" value="${this.esc(s.input)}">
+        <div class="kbd-hint">✓ Ударения, регистр и знаки (· ;) можно не ставить — засчитаю без них. Можно включить раскладку Ελληνικά или печатать на клавиатуре ниже.</div>
         <div class="gkbd">${this.greekKeyboard()}</div>
         <button class="big-btn primary" data-action="type-check">Проверить</button>
         <div id="fb" class="feedback"></div>`;
@@ -6634,15 +6636,24 @@ const App = {
     return this.renderDecks();
   },
 
+  // Скелет ответа для диктанта: показывает число слов и букв (· на букву),
+  // чтобы было от чего оттолкнуться, не раскрывая сам текст.
+  dictSkeleton(gr) {
+    const words = this.tokenizeGreek(gr);
+    if (!words.length) return "";
+    const sk = words.map((w) => "·".repeat(w.length)).join("&nbsp;&nbsp;&nbsp;");
+    return `<div class="dict-skel" title="столько букв в каждом слове">${sk}</div>`;
+  },
+
   greekKeyboard() {
-    const rows = ["ασδφγηξκλ", "ζχψωβνμ", "ερτυθιοπ"];
+    const rows = ["ερτυθιοπ", "ασδφγηξκλ", "ζχψωβνμς", "άέήίόύώ"];
     return rows
       .map(
-        (r) =>
+        (r, ri) =>
           `<div class="gkbd-row">${r
             .split("")
             .map((c) => `<button class="gkey" data-key="${c}">${c}</button>`)
-            .join("")}<button class="gkey wide" data-key=" ">␣</button><button class="gkey wide" data-key="BACK">⌫</button></div>`
+            .join("")}${ri === 3 ? `<button class="gkey wide" data-key=" ">␣</button>` : ""}<button class="gkey wide" data-key="BACK">⌫</button></div>`
       )
       .join("");
   },
@@ -7257,11 +7268,12 @@ const App = {
 
   /* --- экранная клавиатура --- */
   kbdKey(k) {
-    const inp = document.getElementById("typeInput");
+    const inp = document.getElementById("typeInput") || document.getElementById("pdInput");
     if (!inp) return;
     if (k === "BACK") inp.value = inp.value.slice(0, -1);
     else inp.value += k;
-    this.session.input = inp.value;
+    if (this.session) this.session.input = inp.value;
+    if (inp.id === "pdInput" && this.session) this.session.text = inp.value;
     inp.focus();
   },
 
@@ -8456,8 +8468,11 @@ Object.assign(App, {
         <button class="play-big" data-say="${this.esc(right)}">🔊 Повторить</button>
         <button class="play-slow" data-say-slow="${this.esc(right)}">🐢 Медленно</button>
         <div class="muted small dict-hint">Запиши фразу по-гречески (${cur.ru})</div>
+        ${this.dictSkeleton(right)}
       </div>
       <textarea id="pdInput" class="type-input area" autocomplete="off" autocapitalize="off" spellcheck="false" ${s.checked ? "disabled" : ""}>${this.esc(s.text)}</textarea>
+      ${s.checked ? "" : `<div class="kbd-hint">✓ Ударения, регистр и знаки можно не ставить. Можно печатать на клавиатуре ниже.</div>
+      <div class="gkbd">${this.greekKeyboard()}</div>`}
       <div id="fb" class="feedback">${fb}</div>`;
   },
   pdictCheck() {
