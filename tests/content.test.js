@@ -5,8 +5,8 @@ const assert = require("node:assert");
 const { load } = require("./load");
 
 const X = load();
-const norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ς/g, "σ").replace(/[;.,!·»«]/g, "").replace(/\s+/g, " ").trim();
-const GK = (t) => (t.match(/[Ͱ-Ͽἀ-῿]+/g) || []);
+const norm = (s) => X.App.normGreek(s); // единый источник нормализации (как в проде)
+const GK = (t) => X.App.tokenizeGreek(t);
 
 test("словарь: поля, id, без лишних пробелов", () => {
   const ids = new Set();

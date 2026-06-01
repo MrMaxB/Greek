@@ -122,6 +122,9 @@ const App = {
     return typeof RARE_A1 !== "undefined" && RARE_A1.has(this.normGreek(gr));
   },
 
+  // Выделить греческие слова из текста (единый токенизатор для всего проекта)
+  tokenizeGreek(s) { return (String(s || "").match(/[Ͱ-Ͽἀ-῿]+/g)) || []; },
+
   // Сравнение греческого без учёта ударений/регистра (для набора)
   normGreek(s) {
     return (s || "")
@@ -129,7 +132,7 @@ const App = {
       .normalize("NFD")
       .replace(/[̀-ͯ]/g, "") // снять диакритику
       .replace(/ς/g, "σ")
-      .replace(/[;.,!·]/g, "")
+      .replace(/[;.,!·»«]/g, "")
       .replace(/\s+/g, " ")
       .trim();
   },

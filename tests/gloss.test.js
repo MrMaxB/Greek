@@ -7,13 +7,12 @@ const { load } = require("./load");
 
 const X = load();
 const App = X.App;
-const GREEK = /[Ͱ-Ͽἀ-῿]+/g;
 const norm = (s) => App.normGreek(s);
 
 function collect() {
   const words = [];
   const eat = (text, where) => {
-    (String(text || "").match(GREEK) || []).forEach((w) => { if (w.length >= 2) words.push([w, where]); });
+    App.tokenizeGreek(text).forEach((w) => { if (w.length >= 2) words.push([w, where]); });
   };
   (X.READING_TEXTS || []).forEach((t) => (t.sents || []).forEach((s) => eat(s[0], "чтение")));
   (X.GRAMMAR_LESSONS || []).forEach((g) => eat(g.body, "грамматика"));

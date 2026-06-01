@@ -7,6 +7,8 @@ docs/METHODOLOGY_AND_COVERAGE.md при каждом апдейте контен
 import re, unicodedata, os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# ВНИМАНИЕ: держать в синхроне с App.normGreek (js/app.js) — это его Python-зеркало
+# для офлайн-отчёта о покрытии (снять диакритику, ς→σ, нижний регистр).
 def norm(s):
     s = unicodedata.normalize("NFD", s.lower())
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")

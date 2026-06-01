@@ -7,8 +7,9 @@
 // единый загрузчик (всё в одном vm-контексте) — как в тестах
 const X = require("../tests/load").load();
 
-const norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ς/g, "σ").replace(/[;.,!·]/g, "").replace(/\s+/g, " ").trim();
-const GREEK = /[Ͱ-Ͽἀ-῿]+/g;
+// единый источник нормализации/токенизации — как в проде
+const norm = (s) => X.App.normGreek(s);
+const tok = (s) => X.App.tokenizeGreek(s);
 
 // 1) словарь приложения (как globalGloss)
 const gloss = new Set();
@@ -21,7 +22,7 @@ Object.keys(X.READING_COMMON || {}).forEach((k) => gloss.add(norm(k)));
 // 2) все тапаемые материалы
 const freq = {};
 const eat = (text, where) => {
-  (String(text || "").match(GREEK) || []).forEach((w) => {
+  tok(text).forEach((w) => {
     if (w.length < 2) return;
     const k = norm(w);
     if (!gloss.has(k)) { (freq[k] = freq[k] || { n: 0, ex: w, where: new Set() }).n++; freq[k].where.add(where); }
