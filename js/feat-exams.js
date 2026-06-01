@@ -102,10 +102,26 @@ Object.assign(App, {
       return this.shuffle(pool).slice(0, k).map((x) => x.ru);
     };
 
-    // Чтение
+    // Чтение — понимание (MCQ, как раньше)
     R.q.forEach((q) => qs.push({ section: "Чтение", passage: R.gr, passageRu: R.ru, prompt: q.ask, options: this.shuffle(q.options.slice()), answer: q.answer }));
-    // Лексика (3): что значит слово (из тем блока, если задано)
-    this.shuffle(vocabPool).slice(0, 3).forEach((w) => {
+    // Чтение — «верно / неверно» (до 2): переформулируем вопросы текста.
+    // Берём готовый (уже проверенный) греческий: вопрос + верный/неверный
+    // вариант — без авто-генерации новых фраз. Усиливает вес чтения.
+    const TRUE = "Σωστό (верно)", FALSE = "Λάθος (неверно)";
+    this.shuffle(R.q.slice()).slice(0, 2).forEach((q, k) => {
+      const askGr = q.ask.replace(/\s*\([^)]*\)\s*$/, ""); // греческий вопрос без ru-подсказки
+      const wrong = q.options.filter((o) => o !== q.answer);
+      // чередуем: первое утверждение истинное, второе — ложное (если есть дистрактор)
+      const makeFalse = k % 2 === 1 && wrong.length;
+      const cand = makeFalse ? this.shuffle(wrong)[0] : q.answer;
+      qs.push({
+        section: "Чтение (верно/неверно)", passage: R.gr, passageRu: R.ru,
+        prompt: `Прочитай текст. По вопросу «${askGr}» предлагается ответ: <b>${cand}</b>. Это верно?`,
+        options: [TRUE, FALSE], answer: makeFalse ? FALSE : TRUE,
+      });
+    });
+    // Лексика (2): что значит слово (из тем блока, если задано)
+    this.shuffle(vocabPool).slice(0, 2).forEach((w) => {
       const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Лексика", prompt: `Что значит «${w.gr}»?`, audio: w.gr, options: this.shuffle(opts), answer: w.ru });
     });
