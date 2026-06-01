@@ -116,6 +116,11 @@ const App = {
     return a;
   },
 
+  // «Редкое» слово A1 (есть в офиц. глоссарии, но низкочастотное) — для бейджа
+  isRare(gr) {
+    return typeof RARE_A1 !== "undefined" && RARE_A1.has(this.normGreek(gr));
+  },
+
   // Сравнение греческого без учёта ударений/регистра (для набора)
   normGreek(s) {
     return (s || "")
@@ -519,7 +524,7 @@ const App = {
           (w) => `
         <div class="word-row">
           <span class="w-audio">${this.speakBtn(w.gr)}</span>
-          <div class="w-gr">${w.gr}</div>
+          <div class="w-gr">${w.gr}${this.isRare(w.gr) ? ' <span class="rare-badge" title="Есть в офиц. A1, но редкое — учи в последнюю очередь">редкое</span>' : ""}</div>
           <div class="w-tr">[${w.tr}]</div>
           <div class="w-ru">${w.ru}</div>
         </div>`
