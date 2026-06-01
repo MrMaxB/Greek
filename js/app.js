@@ -100,6 +100,7 @@ const App = {
     this.params = params;
     this.session = null;
     this.menuOpen = false;
+    this.stopExamTimer();
     Speech.stop();
     this.render();
     window.scrollTo(0, 0);
@@ -320,7 +321,7 @@ const App = {
       <section class="cta">
         ${(() => {
           const tr = this.buildTrack(); const tsd = this.trackState().day;
-          const cur = tr[Math.min(tsd, tr.length) - 1];
+          const cur = tr[Math.max(1, Math.min(tsd, tr.length)) - 1];
           return `<button class="big-btn primary" data-go="track">
             🗺️ Путь к A1 — День ${Math.min(tsd, tr.length)} из ${tr.length}
             <small>${tsd > tr.length ? "курс пройден 🎓" : cur.title}</small>
@@ -383,23 +384,27 @@ const App = {
       reading[0] ? { t: "read", ref: reading[0].id, label: "Первый текст (A0): " + reading[0].titleRu } : { t: "go", ref: "reading", label: "Открой чтение" },
     ]);
 
-    const CONTENT = Math.ceil(decks.length / 2);
+    // Один словарный набор в день (~15 слов) — посильный темп для A1.
+    // Грамматика подаётся медленнее словаря и раскрывается заранее, чтобы
+    // новые слова/тексты опирались на уже изученные правила.
+    const CONTENT = decks.length;
     let ri = 1, exi = 0;
     for (let i = 0; i < CONTENT; i++) {
-      const tasks = [{ t: "review", label: "SRS-повторение (10–15 мин)" }];
-      const li = Math.floor(i * lessons.length / CONTENT);
-      const prevLi = i === 0 ? -1 : Math.floor((i - 1) * lessons.length / CONTENT);
-      const newLesson = li !== prevLi;
+      const tasks = [{ t: "review", label: "SRS-повторение изученных слов" }];
+      // грамматика занимает первые ~3/4 трека: одно правило раз в ~3 дня
+      const gspan = Math.floor(CONTENT * 0.75);
+      const li = Math.min(lessons.length - 1, Math.floor(i * lessons.length / gspan));
+      const prevLi = i === 0 ? -1 : Math.min(lessons.length - 1, Math.floor((i - 1) * lessons.length / gspan));
+      const newLesson = i < gspan && li !== prevLi;
       if (newLesson) tasks.push({ t: "lesson", ref: lessons[li].id, label: "Грамматика: " + stripN(lessons[li].title) });
-      const d1 = decks[2 * i], d2 = decks[2 * i + 1];
+      const d1 = decks[i];
       if (d1) tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title });
-      if (d2) tasks.push({ t: "deck", ref: d2.id, label: "Тема: " + d2.title });
       if (reading[ri]) { tasks.push({ t: "read", ref: reading[ri].id, label: "Чтение: " + reading[ri].titleRu }); ri++; }
       tasks.push(i % 3 === 0 ? { t: "go", ref: "writing", label: "Письмо: собери предложение" }
         : i % 3 === 1 ? { t: "go", ref: "speaking", label: "Говорение: фразы или диалог" }
           : { t: "go", ref: "writing", label: "Письмо: вставь слово / о себе" });
-      D(newLesson ? stripN(lessons[li].title) : (d1 ? d1.title : "Практика"), "Грамматика · темы · чтение", tasks);
-      if ((i + 1) % 6 === 0 && exams[exi]) {
+      D(newLesson ? stripN(lessons[li].title) : (d1 ? d1.title : "Практика"), newLesson ? "Грамматика · тема · чтение" : "Тема · чтение · практика", tasks);
+      if ((i + 1) % 8 === 0 && exams[exi]) {
         D("Контрольный экзамен", "Проверка", [
           { t: "review", label: "SRS-повторение" },
           { t: "exam", ref: exi, label: "Пробный экзамен: " + exams[exi].theme },
@@ -421,7 +426,7 @@ const App = {
   trackState() {
     if (this._ts) return this._ts;
     try { this._ts = JSON.parse(localStorage.getItem("greekA1_track")) || null; } catch { this._ts = null; }
-    if (!this._ts || typeof this._ts.day !== "number") this._ts = { day: 1, done: {} };
+    if (!this._ts || typeof this._ts.day !== "number" || this._ts.day < 1) this._ts = { day: 1, done: (this._ts && this._ts.done) || {} };
     if (!this._ts.done) this._ts.done = {};
     return this._ts;
   },
@@ -497,7 +502,7 @@ const App = {
 
     return `
       <header class="page-head"><h2>🗺️ Путь к A1</h2></header>
-      <p class="muted">Учись по порядку: каждый «день» — одна сессия на 20–40 минут. Весь путь — ${total} дней (~${weeks} недель, ≈3 месяца при 5 занятиях в неделю). Прогресс сохраняется и синхронизируется.</p>
+      <p class="muted">Учись по порядку: каждый «день» — одна сессия на 25–40 минут (один новый набор слов + грамматика + чтение + практика). Весь путь — ${total} дней (~${weeks} недель, ≈4 месяца при 5 занятиях в неделю). Чем дальше, тем больше времени на SRS-повторение. Прогресс сохраняется и синхронизируется.</p>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
       <p class="muted center small">Пройдено ${ts.day - 1} из ${total} дней · ${pct}%</p>
 
@@ -2068,7 +2073,7 @@ const App = {
           localStorage.removeItem("greekA1_track");
           this._ts = null; this._track = null;
           if (window.Cloud && window.Cloud.reset) window.Cloud.reset();
-          this._gg = null;
+          this._gg = null; this._stems = null; this._speaking = null;
           this.go("home");
         }
         return;

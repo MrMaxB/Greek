@@ -97,7 +97,8 @@ function mergeState(a, b) {
     reading[k] = ra[k] || rb[k] || false;
   });
   // Трек: берём более продвинутый день; отметки задач объединяем
-  const ta = a.track, tb = b.track;
+  const ta = (a.track && typeof a.track === "object") ? a.track : null;
+  const tb = (b.track && typeof b.track === "object") ? b.track : null;
   let track = ta || tb || null;
   if (ta && tb) {
     const done = {};
