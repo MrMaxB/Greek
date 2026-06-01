@@ -6907,20 +6907,34 @@ const App = {
     const offDeck = off.length ? Math.round(100 * off.filter((h) => deckSet.has(h)).length / off.length) : 0;
     const offAll = off.length ? Math.round(100 * off.filter((h) => allSet.has(h)).length / off.length) : 0;
 
-    const themeRows = DECKS.map((d) => `<div class="word-row"><div class="w-gr">${d.icon} ${d.title}</div><div class="w-ru">${d.words.length} сл.</div></div>`).join("");
-    const exRows = GRAMMAR_LESSONS.filter((g) => GrammarEx.has(g.id)).map((g) =>
-      `<div class="word-row"><div class="w-gr">${GrammarEx.icon(g.id)} ${g.title.replace(/^\d+\.\s*/, "")}</div><div class="w-ru">${GrammarEx.gen(g.id).length} упр.</div></div>`).join("");
+    // трек
+    const track = this.buildTrack();
+    const tDay = this.trackState().day;
+    const trWeeks = track[track.length - 1].week;
+    const trRest = track.filter((d) => d.rest).length;
+    const trCheck = track.filter((d) => d.checkpoint).length;
+    const trTexts = new Set(); track.forEach((d) => d.tasks.forEach((t) => { if (t.t === "read") trTexts.add(t.ref); }));
+    const rareN = (typeof RARE_A1 !== "undefined") ? RARE_A1.size : 0;
+    const dialogN = (typeof SPEAKING_DIALOGS !== "undefined") ? SPEAKING_DIALOGS.length : 0;
 
     return `
-      <header class="page-head"><h2>ℹ️ Методика и покрытие</h2></header>
+      <header class="page-head"><h2>ℹ️ Методика</h2></header>
       <p class="muted small">Считается вживую из контента — всегда актуально.</p>
+
+      <h3 class="section-title">🗺️ Учебный путь</h3>
+      <p class="muted small">Главный режим: маршрут от простого к сложному, новое стоит на изученном. По теме дня — слова, грамматика, чтение и практика; каждые 5 дней — закрепление; экзамены проверяют пройденный блок.</p>
+      <div class="word-row"><div class="w-gr">Сейчас</div><div class="w-ru"><b>День ${Math.min(tDay, track.length)} из ${track.length}</b></div></div>
+      <div class="word-row"><div class="w-gr">Длительность</div><div class="w-ru">~${trWeeks} недель</div></div>
+      <div class="word-row"><div class="w-gr">Дни закрепления · чекпоинты</div><div class="w-ru">${trRest} · ${trCheck}</div></div>
+      <div class="word-row"><div class="w-gr">Темп словаря</div><div class="w-ru">~15 новых слов в день</div></div>
+      <button class="big-btn primary" data-go="track" style="margin-top:10px">Открыть путь →</button>
 
       <h3 class="section-title">⚙️ Настройки</h3>
       <button class="big-btn ghost" data-action="set-tr">Транскрипция: <b>${this.settings.tr ? "показана" : "скрыта"}</b></button>
       <button class="big-btn ghost" data-action="set-gexinput">Упражнения грамматики: <b>${this.settings.gexInput ? "ввод по-гречески" : "выбор варианта"}</b></button>
       <p class="muted small">Скрой транскрипцию, когда выучишь алфавит — так формируется чтение. Режим «ввод» тренирует активное вспоминание (сложнее, но эффективнее).</p>
 
-
+      <h3 class="section-title">Что внутри</h3>
       <section class="cards-row">
         <div class="stat"><div class="stat-num">${words}</div><div class="stat-lbl">слов</div></div>
         <div class="stat"><div class="stat-num">${themes}</div><div class="stat-lbl">тем</div></div>
@@ -6932,15 +6946,17 @@ const App = {
         <div class="stat"><div class="stat-num">${exams}</div><div class="stat-lbl">экзаменов</div></div>
       </section>
 
+      <p class="muted center small">🗣️ говорение: ${speakN} фраз + ${dialogN} диалогов · в треке задействовано ${trTexts.size} текстов</p>
+
       <h3 class="section-title">Покрытие официального A1 (ΚΕΓ)</h3>
-      <p class="muted small">Эталон — глоссарий ΚΛΙΚ Α1 (${off.length} лемм). Реальное ядро ~800–1000.</p>
+      <p class="muted small">Эталон — глоссарий ΚΛΙΚ Α1 (${off.length} лемм). Из них ${rareN} помечены «редкое» (есть в A1, но низкочастотные — учи в последнюю очередь).</p>
       <div class="word-row"><div class="w-gr">Словарём (темы)</div><div class="w-ru"><b>${offDeck}%</b></div></div>
       <div class="word-row"><div class="w-gr">Со всем контентом</div><div class="w-ru"><b>${offAll}%</b></div></div>
 
       <h3 class="section-title">Синергия «слово ↔ материалы»</h3>
       <p class="muted small">Доля слов, встречающихся в текстах/упражнениях/экзаменах/грамматике (контекст → удержание).</p>
       <div class="progress-bar"><div class="progress-fill" style="width:${synergy}%"></div></div>
-      <p class="muted center"><b>${synergy}%</b> слов живут в материалах · 🗣️ говорение: ${speakN} фраз</p>
+      <p class="muted center"><b>${synergy}%</b> слов живут в материалах</p>
 
       <h3 class="section-title">Методология (5 опор)</h3>
       <ol class="steps">
@@ -6950,12 +6966,6 @@ const App = {
         <li>Продукция — письмо, говорение, упражнения по грамматике.</li>
         <li>Самопроверка — пробные экзамены формата ΚΕΓ.</li>
       </ol>
-
-      <h3 class="section-title">Слова по темам (${themes})</h3>
-      <div class="word-list">${themeRows}</div>
-
-      <h3 class="section-title">Упражнения по темам грамматики (${exTopics})</h3>
-      <div class="word-list">${exRows}</div>
     `;
   },
 
