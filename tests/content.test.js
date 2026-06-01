@@ -78,6 +78,18 @@ test("генераторы упражнений: ответ среди вари�
   }
 });
 
+test("письмо: образцы свободного письма проходят свой чек-лист", () => {
+  const App = X.App;
+  X.WRITING_OPEN.forEach((w) => {
+    if (!w.must) return;
+    const norm = App.normGreek(w.model);
+    assert.ok(App.tokenizeGreek(w.model).length >= (w.minWords || 6), `«${w.ask}»: образец короче minWords`);
+    w.must.forEach((m) => {
+      assert.ok(m.any.some((f) => norm.includes(App.normGreek(f))), `«${w.ask}»: образец не содержит «${m.ru}»`);
+    });
+  });
+});
+
 test("письмо: анкеты (формы) валидны", () => {
   assert.ok(X.WRITING_FORMS && X.WRITING_FORMS.length >= 1, "нет анкет");
   for (const f of X.WRITING_FORMS) {

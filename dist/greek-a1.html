@@ -3876,15 +3876,35 @@ const WRITING_SELF = [
 ];
 
 // Свободное письмо: тема → пишешь 2–3 предложения, потом сверяешь с образцом
+// Свободное письмо с НАПРАВЛЯЮЩЕЙ обратной связью:
+//  minWords — минимум слов (как на экзамене); must — список «обязательных
+//  элементов» {любой из вариантов-форм; ru — что это}. Проверка ищет хотя бы
+//  одну из форм каждого элемента в ответе ученика (нормализованно).
 const WRITING_OPEN = [
-  { ask: "Опиши свой обычный день (2–3 предложения).", model: "Κάθε μέρα ξυπνάω στις εφτά, πίνω καφέ και πηγαίνω στη δουλειά. Το βράδυ διαβάζω." },
-  { ask: "Расскажи о своей семье.", model: "Έχω μια μικρή οικογένεια. Ο πατέρας μου είναι γιατρός και η μητέρα μου δασκάλα." },
-  { ask: "Что тебе нравится делать в свободное время?", model: "Μου αρέσει να ακούω μουσική και να διαβάζω βιβλία." },
-  { ask: "Опиши свой город.", model: "Μένω στη Λεμεσό. Είναι μια όμορφη πόλη κοντά στη θάλασσα." },
-  { ask: "Что ты ел сегодня?", model: "Το πρωί έφαγα ψωμί με τυρί και ήπια καφέ." },
-  { ask: "Куда ты хочешь поехать летом?", model: "Το καλοκαίρι θέλω να πάω στην Ελλάδα, στη θάλασσα." },
-  { ask: "Опиши своего друга.", model: "Ο φίλος μου είναι ψηλός και καλός. Του αρέσει το ποδόσφαιρο." },
-  { ask: "Напиши короткую записку: позови друга в кафе.", model: "Γεια σου! Πάμε για καφέ αύριο στις πέντε; Περιμένω απάντηση." },
+  { ask: "Опиши свой обычный день (2–3 предложения).", minWords: 8,
+    must: [{ any: ["ξυπνάω", "ξυπνώ"], ru: "встаю (ξυπνάω)" }, { any: ["πρωί", "βράδυ", "μέρα"], ru: "время суток" }, { any: ["πηγαίνω", "πάω", "δουλειά"], ru: "иду/работа" }],
+    model: "Κάθε μέρα ξυπνάω στις εφτά, πίνω καφέ και πηγαίνω στη δουλειά. Το βράδυ διαβάζω." },
+  { ask: "Расскажи о своей семье.", minWords: 8,
+    must: [{ any: ["οικογένεια", "οικογένειά"], ru: "семья" }, { any: ["πατέρας", "μητέρα", "αδερφός", "αδερφή", "παιδί", "παιδιά"], ru: "член семьи" }, { any: ["έχω", "είναι"], ru: "есть/является" }],
+    model: "Έχω μια μικρή οικογένεια. Ο πατέρας μου είναι γιατρός και η μητέρα μου δασκάλα." },
+  { ask: "Что тебе нравится делать в свободное время?", minWords: 6,
+    must: [{ any: ["αρέσει", "αρέσουν"], ru: "нравится (μου αρέσει)" }, { any: ["να"], ru: "частица να + глагол" }],
+    model: "Μου αρέσει να ακούω μουσική και να διαβάζω βιβλία." },
+  { ask: "Опиши свой город.", minWords: 7,
+    must: [{ any: ["μένω", "πόλη"], ru: "живу/город" }, { any: ["είναι"], ru: "является (είναι)" }, { any: ["όμορφη", "μεγάλη", "μικρή", "κοντά"], ru: "описание" }],
+    model: "Μένω στη Λεμεσό. Είναι μια όμορφη πόλη κοντά στη θάλασσα." },
+  { ask: "Что ты ел сегодня?", minWords: 6,
+    must: [{ any: ["έφαγα", "ήπια", "έφαγα"], ru: "ел/пил (прош. время)" }, { any: ["πρωί", "μεσημέρι", "βράδυ", "σήμερα"], ru: "когда" }],
+    model: "Το πρωί έφαγα ψωμί με τυρί και ήπια καφέ." },
+  { ask: "Куда ты хочешь поехать летом?", minWords: 6,
+    must: [{ any: ["θέλω"], ru: "хочу (θέλω)" }, { any: ["να"], ru: "να + глагол" }, { any: ["καλοκαίρι"], ru: "лето" }],
+    model: "Το καλοκαίρι θέλω να πάω στην Ελλάδα, στη θάλασσα." },
+  { ask: "Опиши своего друга.", minWords: 6,
+    must: [{ any: ["φίλος", "φίλη"], ru: "друг/подруга" }, { any: ["είναι"], ru: "является" }, { any: ["καλός", "ψηλός", "καλή", "έξυπνος"], ru: "качество" }],
+    model: "Ο φίλος μου είναι ψηλός και καλός. Του αρέσει το ποδόσφαιρο." },
+  { ask: "Напиши записку: позови друга в кафе (приветствие, приглашение, время).", minWords: 7,
+    must: [{ any: ["γεια", "γειά"], ru: "приветствие" }, { any: ["καφέ", "καφές"], ru: "кафе/кофе" }, { any: ["αύριο", "στις", "ώρα", "σήμερα"], ru: "когда" }],
+    model: "Γεια σου! Πάμε για καφέ αύριο στις πέντε; Περιμένω απάντηση." },
 ];
 
 // Вопрос-ответ для говорения: вопрос (греч.) + перевод + образец ответа
@@ -6899,15 +6919,48 @@ const App = {
     const s = this.session;
     if (s.idx >= s.pool.length) return `<div class="result"><h2>Готово! 🎉</h2><p class="muted">Все задания пройдены.</p><button class="big-btn primary" data-action="wr-again">Ещё раз</button><button class="big-btn ghost" data-go="writing">К письму</button></div>`;
     const cur = s.pool[s.idx];
+    // У открытого письма с чек-листом — сначала «Проверить» (направляющий фидбэк),
+    // затем образец. У «О себе» — как раньше, сразу образец.
+    const guided = open && cur.must;
     const reveal = s.revealed
       ? `<div class="ok-msg" style="text-align:left">Образец: <b>${cur.model}</b> ${this.speakBtn(cur.model)}</div>
          <button class="big-btn primary" data-action="self-next">Дальше →</button>`
-      : `<button class="big-btn primary" data-action="self-reveal">Показать образец</button>`;
+      : guided
+        ? `<button class="big-btn primary" data-action="self-checkwrite">Проверить</button>
+           <button class="big-btn ghost" data-action="self-reveal">Показать образец</button>`
+        : `<button class="big-btn primary" data-action="self-reveal">Показать образец</button>`;
+    const hint = guided ? `<p class="muted small">Минимум ~${cur.minWords} слов. Включи: ${cur.must.map((m) => m.ru).join(", ")}.</p>` : "";
     return `<header class="page-head"><h2>${title}</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
       <button class="back" data-go="writing">← Письмо</button>
       <div class="quiz-prompt"><div class="type-ru">${cur.ask}</div></div>
+      ${hint}
       <textarea id="selfText" class="type-input area" placeholder="Напиши по-гречески (2–3 предложения)…">${this.esc(s.text)}</textarea>
+      <div id="fb" class="feedback"></div>
       <div id="reveal">${reveal}</div>`;
+  },
+  // Направляющая проверка свободного письма: длина + наличие обязательных элементов.
+  selfCheckWrite() {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    const el = document.getElementById("selfText");
+    const text = el ? el.value : (s.text || "");
+    s.text = text;
+    const norm = this.normGreek(text);
+    const words = this.tokenizeGreek(text);
+    const checks = cur.must.map((m) => ({ ru: m.ru, ok: m.any.some((f) => norm.includes(this.normGreek(f))) }));
+    const lenOk = words.length >= (cur.minWords || 6);
+    const missing = checks.filter((c) => !c.ok);
+    const fb = document.getElementById("fb");
+    const lines = [
+      `${lenOk ? "✓" : "✗"} длина: ${words.length} слов (нужно ~${cur.minWords})`,
+      ...checks.map((c) => `${c.ok ? "✓" : "✗"} ${c.ru}`),
+    ];
+    const allOk = lenOk && !missing.length;
+    fb.innerHTML = `<div class="${allOk ? "ok-msg" : "bad-msg"}" style="text-align:left">
+        ${allOk ? "Отлично! Все элементы на месте — сверься с образцом:" : "Хорошее начало. Чего не хватает:"}
+        <div class="small" style="margin-top:6px;line-height:1.6">${lines.join("<br>")}</div>
+      </div>`;
+    if (allOk && !s.revealed) { s.revealed = true; this.render(); }
   },
 
   // Заполнение анкеты (αίτηση) — формат реального экзамена.
@@ -7347,6 +7400,7 @@ const App = {
       case "compose-new": this.session = null; return this.render();
       case "form-check": return this.formCheck();
       case "form-again": this.session = null; return this.render();
+      case "self-checkwrite": return this.selfCheckWrite();
       case "self-reveal": this.session.revealed = true; return this.render();
       case "self-next": this.session.idx++; this.session.revealed = false; this.session.text = ""; return this.render();
       case "wr-again": this.session = null; return this.render();

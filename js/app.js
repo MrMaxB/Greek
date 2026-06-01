@@ -1070,15 +1070,48 @@ const App = {
     const s = this.session;
     if (s.idx >= s.pool.length) return `<div class="result"><h2>Готово! 🎉</h2><p class="muted">Все задания пройдены.</p><button class="big-btn primary" data-action="wr-again">Ещё раз</button><button class="big-btn ghost" data-go="writing">К письму</button></div>`;
     const cur = s.pool[s.idx];
+    // У открытого письма с чек-листом — сначала «Проверить» (направляющий фидбэк),
+    // затем образец. У «О себе» — как раньше, сразу образец.
+    const guided = open && cur.must;
     const reveal = s.revealed
       ? `<div class="ok-msg" style="text-align:left">Образец: <b>${cur.model}</b> ${this.speakBtn(cur.model)}</div>
          <button class="big-btn primary" data-action="self-next">Дальше →</button>`
-      : `<button class="big-btn primary" data-action="self-reveal">Показать образец</button>`;
+      : guided
+        ? `<button class="big-btn primary" data-action="self-checkwrite">Проверить</button>
+           <button class="big-btn ghost" data-action="self-reveal">Показать образец</button>`
+        : `<button class="big-btn primary" data-action="self-reveal">Показать образец</button>`;
+    const hint = guided ? `<p class="muted small">Минимум ~${cur.minWords} слов. Включи: ${cur.must.map((m) => m.ru).join(", ")}.</p>` : "";
     return `<header class="page-head"><h2>${title}</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
       <button class="back" data-go="writing">← Письмо</button>
       <div class="quiz-prompt"><div class="type-ru">${cur.ask}</div></div>
+      ${hint}
       <textarea id="selfText" class="type-input area" placeholder="Напиши по-гречески (2–3 предложения)…">${this.esc(s.text)}</textarea>
+      <div id="fb" class="feedback"></div>
       <div id="reveal">${reveal}</div>`;
+  },
+  // Направляющая проверка свободного письма: длина + наличие обязательных элементов.
+  selfCheckWrite() {
+    const s = this.session;
+    const cur = s.pool[s.idx];
+    const el = document.getElementById("selfText");
+    const text = el ? el.value : (s.text || "");
+    s.text = text;
+    const norm = this.normGreek(text);
+    const words = this.tokenizeGreek(text);
+    const checks = cur.must.map((m) => ({ ru: m.ru, ok: m.any.some((f) => norm.includes(this.normGreek(f))) }));
+    const lenOk = words.length >= (cur.minWords || 6);
+    const missing = checks.filter((c) => !c.ok);
+    const fb = document.getElementById("fb");
+    const lines = [
+      `${lenOk ? "✓" : "✗"} длина: ${words.length} слов (нужно ~${cur.minWords})`,
+      ...checks.map((c) => `${c.ok ? "✓" : "✗"} ${c.ru}`),
+    ];
+    const allOk = lenOk && !missing.length;
+    fb.innerHTML = `<div class="${allOk ? "ok-msg" : "bad-msg"}" style="text-align:left">
+        ${allOk ? "Отлично! Все элементы на месте — сверься с образцом:" : "Хорошее начало. Чего не хватает:"}
+        <div class="small" style="margin-top:6px;line-height:1.6">${lines.join("<br>")}</div>
+      </div>`;
+    if (allOk && !s.revealed) { s.revealed = true; this.render(); }
   },
 
   // Заполнение анкеты (αίτηση) — формат реального экзамена.
@@ -1518,6 +1551,7 @@ const App = {
       case "compose-new": this.session = null; return this.render();
       case "form-check": return this.formCheck();
       case "form-again": this.session = null; return this.render();
+      case "self-checkwrite": return this.selfCheckWrite();
       case "self-reveal": this.session.revealed = true; return this.render();
       case "self-next": this.session.idx++; this.session.revealed = false; this.session.text = ""; return this.render();
       case "wr-again": this.session = null; return this.render();
