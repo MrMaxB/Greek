@@ -362,6 +362,7 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 /* путь / учебный трек */
 .track-day { border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin: 12px 0; background: #fff; }
 .track-day.cp { background: #fff7e0; border-color: #f0d68a; }
+.track-day.rest { background: #eef7f0; border-color: #c5e6cf; }
 .td-head { display: flex; align-items: center; gap: 8px; }
 .td-mid { flex: 1; text-align: center; }
 .td-n { font-size: .8rem; color: var(--muted); }

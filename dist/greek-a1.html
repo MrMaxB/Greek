@@ -374,6 +374,7 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 /* путь / учебный трек */
 .track-day { border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin: 12px 0; background: #fff; }
 .track-day.cp { background: #fff7e0; border-color: #f0d68a; }
+.track-day.rest { background: #eef7f0; border-color: #c5e6cf; }
 .td-head { display: flex; align-items: center; gap: 8px; }
 .td-mid { flex: 1; text-align: center; }
 .td-n { font-size: .8rem; color: var(--muted); }
@@ -5809,53 +5810,129 @@ const App = {
   },
 
   /* ---------- ПУТЬ (учебный трек по дням) ---------- */
-  // Трек собирается из существующего контента: алфавит → грамматика по
-  // порядку + темы + чтение + продуктивные задания, с экзаменами-чекпоинтами.
+  // Настоящий трек, а не набор заданий на таймлайне:
+  //  • колоды идут от простого к сложному (приветствия→…→абстракции),
+  //  • грамматика опережает материал (новое стоит на изученном),
+  //  • тексты чтения привязаны К ТЕМЕ ДНЯ (кучность по темам) и растут
+  //    по уровню A0→A0+→A1 по мере продвижения,
+  //  • каждые 5 дней — День закрепления (возврат к материалу, без новых слов),
+  //  • экзамен-чекпоинт тестирует ИМЕННО темы прошедшего блока, не рандом.
+  // Жанр текста → по теме колоды (для тематической привязки чтения).
+  GENRE_BY_KW: [
+    [/привет|вежлив|знаком|о себе|личн/i, ["Знакомство", "Приветствия", "О себе", "Диалог"]],
+    [/числ|фигур/i, ["Числа"]],
+    [/семь/i, ["Семья"]],
+    [/распорядок|рутин/i, ["Распорядок", "Дневник"]],
+    [/врем|месяц/i, ["Время", "Распорядок"]],
+    [/ед|фрукт|овощ|продукт|напит/i, ["Еда"]],
+    [/покупк/i, ["Покупки"]],
+    [/город|мест|услуг|банк|документ/i, ["Город", "Места", "Услуги", "Быт"]],
+    [/глагол|действ/i, ["Действия", "Рассказ", "Дневник"]],
+    [/прилаг|описан/i, ["Описание", "Описания"]],
+    [/вопрос|местоимен|сколько|чей/i, ["Диалог"]],
+    [/фраз/i, ["Диалог"]],
+    [/цвет/i, ["Цвета"]],
+    [/погод|сезон/i, ["Погода"]],
+    [/тел|здоров/i, ["Тело", "Здоровье"]],
+    [/одежд/i, ["Одежда"]],
+    [/дом|комнат/i, ["Дом", "Быт"]],
+    [/нрав|чувств|иде/i, ["Хобби", "Рассказ"]],
+    [/стран|национальност/i, ["Страны"]],
+    [/транспорт/i, ["Транспорт"]],
+    [/профес|работ/i, ["Профессии", "Работа"]],
+    [/природ|животн/i, ["Природа"]],
+    [/вещ|предмет/i, ["Вещи"]],
+    [/люд|обществ/i, ["Общество"]],
+    [/учёб|учеб|школ|язык/i, ["Учёба", "Медиа"]],
+    [/наречи|связк/i, ["Связки"]],
+    [/досуг|искусств|медиа|техник|цифр/i, ["Хобби", "Медиа"]],
+    [/слов|жизнь|разное|быт/i, ["Слова", "Жизнь", "Быт"]],
+  ],
   buildTrack() {
     if (this._track) return this._track;
     const ord = { "A0": 0, "A0+": 1, "A1": 2 };
-    const reading = (typeof READING_TEXTS !== "undefined") ? [...READING_TEXTS].sort((a, b) => (ord[a.level] - ord[b.level])) : [];
+    const texts = (typeof READING_TEXTS !== "undefined") ? [...READING_TEXTS].sort((a, b) => (ord[a.level] - ord[b.level])) : [];
     const lessons = GRAMMAR_LESSONS, decks = DECKS, exams = EXAM_READINGS;
     const days = [];
     const D = (title, focus, tasks, extra) => days.push(Object.assign({ title, focus, tasks }, extra || {}));
     const stripN = (s) => s.replace(/^\d+\.\s*/, "");
 
+    // — подбор текста по теме и уровню (кучность); задействует все 140 текстов —
+    const used = new Set(), usedOrder = [];
+    const genresFor = (d) => { for (const [re, g] of this.GENRE_BY_KW) if (re.test(d.title)) return g; return []; };
+    const pickText = (genres, maxLv) => {
+      const tries = [
+        (t) => !used.has(t.id) && genres.includes(t.genre) && ord[t.level] <= maxLv,
+        (t) => !used.has(t.id) && genres.includes(t.genre),
+        (t) => !used.has(t.id) && ord[t.level] <= maxLv,
+        (t) => !used.has(t.id),
+      ];
+      for (const f of tries) { const c = texts.filter(f); if (c.length) { used.add(c[0].id); usedOrder.push(c[0].id); return c[0]; } }
+      return null;
+    };
+    let revPtr = 0;
+    const reviewText = () => { if (!usedOrder.length) return null; const id = usedOrder[revPtr % usedOrder.length]; revPtr++; return texts.find((t) => t.id === id); };
+
     D("Алфавит: буквы и звуки", "Старт", [
       { t: "go", ref: "alphabet", label: "Изучи 24 буквы (нажми — услышишь)" },
       { t: "go", ref: "alphaQuiz", label: "Тренажёр узнавания букв" },
     ]);
+    const t0 = pickText(["Приветствия", "Знакомство"], 0);
     D("Буквосочетания и первые слова", "Старт", [
       { t: "go", ref: "alphabet", label: "Буквосочетания: μπ, ντ, αι, ει…" },
       { t: "go", ref: "alphaQuiz", label: "Тренажёр букв" },
-      reading[0] ? { t: "read", ref: reading[0].id, label: "Первый текст (A0): " + reading[0].titleRu } : { t: "go", ref: "reading", label: "Открой чтение" },
+      t0 ? { t: "read", ref: t0.id, label: "Первый текст (A0): " + t0.titleRu } : { t: "go", ref: "reading", label: "Открой чтение" },
     ]);
 
-    // Один словарный набор в день (~15 слов) — посильный темп для A1.
-    // Грамматика подаётся медленнее словаря и раскрывается заранее, чтобы
-    // новые слова/тексты опирались на уже изученные правила.
+    // Один словарный набор в день (~15 слов) — посильный темп для удержания.
     const CONTENT = decks.length;
-    let ri = 1, exi = 0;
+    const gspan = Math.floor(CONTENT * 0.7); // грамматика — в первых ~70% трека
+    let exi = 0, blockDecks = [], contentSince = 0;
+    const prod = (i) => i % 3 === 0 ? { t: "go", ref: "writing", label: "Письмо: собери предложение" }
+      : i % 3 === 1 ? { t: "go", ref: "speaking", label: "Говорение: фразы или диалог" }
+        : { t: "go", ref: "writing", label: "Письмо: вставь слово / о себе" };
+
     for (let i = 0; i < CONTENT; i++) {
+      const p = i / CONTENT;                       // прогресс 0..1
+      const maxLv = p < 0.28 ? 1 : 2;              // ранний этап — до A0+, дальше — A1
       const tasks = [{ t: "review", label: "SRS-повторение изученных слов" }];
-      // грамматика занимает первые ~3/4 трека: одно правило раз в ~3 дня
-      const gspan = Math.floor(CONTENT * 0.75);
       const li = Math.min(lessons.length - 1, Math.floor(i * lessons.length / gspan));
       const prevLi = i === 0 ? -1 : Math.min(lessons.length - 1, Math.floor((i - 1) * lessons.length / gspan));
       const newLesson = i < gspan && li !== prevLi;
       if (newLesson) tasks.push({ t: "lesson", ref: lessons[li].id, label: "Грамматика: " + stripN(lessons[li].title) });
       const d1 = decks[i];
-      if (d1) tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title });
-      if (reading[ri]) { tasks.push({ t: "read", ref: reading[ri].id, label: "Чтение: " + reading[ri].titleRu }); ri++; }
-      tasks.push(i % 3 === 0 ? { t: "go", ref: "writing", label: "Письмо: собери предложение" }
-        : i % 3 === 1 ? { t: "go", ref: "speaking", label: "Говорение: фразы или диалог" }
-          : { t: "go", ref: "writing", label: "Письмо: вставь слово / о себе" });
-      D(newLesson ? stripN(lessons[li].title) : (d1 ? d1.title : "Практика"), newLesson ? "Грамматика · тема · чтение" : "Тема · чтение · практика", tasks);
+      if (d1) { tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title }); blockDecks.push(d1.id); }
+      // текст(ы) ПО ТЕМЕ дня
+      const genres = d1 ? genresFor(d1) : [];
+      const rt = pickText(genres, maxLv);
+      if (rt) tasks.push({ t: "read", ref: rt.id, label: "Чтение по теме: " + rt.titleRu });
+      // на A1-этапе иногда второй текст той же темы
+      if (p >= 0.4 && i % 2 === 0) { const rt2 = pickText(genres, maxLv); if (rt2) tasks.push({ t: "read", ref: rt2.id, label: "Ещё текст: " + rt2.titleRu }); }
+      tasks.push(prod(i));
+      D(newLesson ? stripN(lessons[li].title) : (d1 ? d1.title : "Практика"),
+        newLesson ? "Грамматика · тема · чтение" : "Тема · чтение · практика", tasks);
+      contentSince++;
+
+      // День закрепления каждые 5 содержательных дней (возврат к материалу)
+      if (contentSince >= 5 && i < CONTENT - 3) {
+        contentSince = 0;
+        const r1 = reviewText(), r2 = reviewText();
+        const ctasks = [{ t: "review", label: "Большое SRS-повторение" }];
+        if (r1) ctasks.push({ t: "read", ref: r1.id, label: "Перечитай: " + r1.titleRu });
+        if (r2) ctasks.push({ t: "read", ref: r2.id, label: "Перечитай: " + r2.titleRu });
+        ctasks.push({ t: "go", ref: "mistakes", label: "Работа над ошибками" });
+        ctasks.push({ t: "train", ref: i > gspan * 0.5 ? "conj" : "decl", label: "🎲 Игра: микс форм вразнобой" });
+        D("День закрепления", "Возврат к материалу · без новых слов", ctasks, { rest: true });
+      }
+
+      // Экзамен-чекпоинт каждые 8 тем — тестирует ИМЕННО темы блока
       if ((i + 1) % 8 === 0 && exams[exi]) {
-        D("Контрольный экзамен", "Проверка", [
+        D("Контрольный экзамен", "Срез блока", [
           { t: "review", label: "SRS-повторение" },
-          { t: "exam", ref: exi, label: "Пробный экзамен: " + exams[exi].theme },
+          { t: "exam", ref: exi, scope: blockDecks.slice(), label: "Экзамен по темам блока: " + exams[exi].theme },
         ], { checkpoint: true });
         exi = (exi + 1) % exams.length;
+        blockDecks = [];
       }
     }
     D("Финал: итоговый пробный экзамен A1", "Финал", [
@@ -5904,10 +5981,11 @@ const App = {
     this.go("track", ts.day > total ? {} : { day: String(ts.day) });
   },
   trackTaskBtn(task, idx, done) {
+    const examAttr = `data-exam="${task.ref}"` + (task.scope && task.scope.length ? ` data-exam-scope="${this.esc(task.scope.join(","))}"` : "");
     const map = {
       review: ['data-go="review"', "🧠"], lesson: [`data-lesson="${task.ref}"`, "📖"],
       deck: [`data-deck="${task.ref}"`, "📚"], read: [`data-read="${task.ref}"`, "📕"],
-      exam: [`data-exam="${task.ref}"`, "📝"],
+      exam: [examAttr, "📝"], train: [`data-train="${task.ref}"`, "🎲"],
       go: [`data-go="${task.ref}"`, task.ref === "speaking" ? "🗣️" : task.ref === "writing" ? "✍️" : "▶"],
     };
     const [attr, ic] = map[task.t] || ['data-go="home"', "•"];
@@ -5948,7 +6026,8 @@ const App = {
 
     return `
       <header class="page-head"><h2>🗺️ Путь к A1</h2></header>
-      <p class="muted">Учись по порядку: каждый «день» — одна сессия на 25–40 минут (один новый набор слов + грамматика + чтение + практика). Весь путь — ${total} дней (~${weeks} недель, ≈4 месяца при 5 занятиях в неделю). Чем дальше, тем больше времени на SRS-повторение. Прогресс сохраняется и синхронизируется.</p>
+      <p class="muted">Настоящий маршрут от простого к сложному: каждое новое опирается на пройденное. Один новый набор слов в день (~15), грамматика идёт впереди материала, чтение и практика — <b>по теме дня</b>, каждые 5 дней — день закрепления (возврат, без новых слов), экзамены проверяют темы блока. Сессия — 25–40 мин.</p>
+      <p class="muted small">Весь путь — ${total} дней (~${weeks} недель). Реалистично: за <b>2 месяца</b> (≈43 занятия) прочно закрепляется <b>ядро ~600–700 слов</b> и базовая грамматика; полный словарь A1 (~1300) — это ~4 месяца при 5 занятиях в неделю. Темп держим посильным — это важнее скорости. Прогресс синхронизируется.</p>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
       <p class="muted center small">Пройдено ${ts.day - 1} из ${total} дней · ${pct}%</p>
 
@@ -7096,11 +7175,15 @@ const App = {
     return words.join(" ") + ".";
   },
 
-  // Сборка одного экзамена из текста + общих банков
-  buildExam(n) {
+  // Сборка одного экзамена из текста + банков.
+  // scope (массив id колод) — если задан, лексика/аудио берутся ИЗ ЭТИХ тем
+  // (срез блока трека), иначе из всего словаря.
+  buildExam(n, scope) {
     const R = EXAM_READINGS[n % EXAM_READINGS.length];
     const qs = [];
     const uniq = (arr) => [...new Set(arr)];
+    const inScope = (scope && scope.length) ? ALL_WORDS.filter((w) => scope.includes(w.deck)) : null;
+    const vocabPool = (inScope && inScope.length >= 6) ? inScope : ALL_WORDS;
     // Дистракторы — из ТОЙ ЖЕ темы (числа к числу, фразы к фразе), чтобы
     // нельзя было угадать по формату/длине. Добор из общего словаря при нехватке.
     const distract = (w, k) => {
@@ -7111,8 +7194,8 @@ const App = {
 
     // Чтение
     R.q.forEach((q) => qs.push({ section: "Чтение", passage: R.gr, passageRu: R.ru, prompt: q.ask, options: this.shuffle(q.options.slice()), answer: q.answer }));
-    // Лексика (3): что значит слово
-    this.shuffle(ALL_WORDS).slice(0, 3).forEach((w) => {
+    // Лексика (3): что значит слово (из тем блока, если задано)
+    this.shuffle(vocabPool).slice(0, 3).forEach((w) => {
       const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Лексика", prompt: `Что значит «${w.gr}»?`, audio: w.gr, options: this.shuffle(opts), answer: w.ru });
     });
@@ -7121,7 +7204,7 @@ const App = {
       qs.push({ section: "Грамматика", prompt: `${g.parts[0]}<span class="blank">_____</span>${g.parts[1]} <span class="muted small">(${g.ru})</span>`, options: this.shuffle(g.options.slice()), answer: g.answer });
     });
     // Аудио — слово (2): услышь и выбери перевод (текст скрыт)
-    this.shuffle(ALL_WORDS).slice(0, 2).forEach((w) => {
+    this.shuffle(vocabPool).slice(0, 2).forEach((w) => {
       const opts = uniq([w.ru, ...distract(w, 3)]);
       qs.push({ section: "Аудио", prompt: "Прослушай слово и выбери перевод:", audio: w.gr, hideAudioText: true, autoplay: true, options: this.shuffle(opts), answer: w.ru });
     });
@@ -7170,7 +7253,9 @@ const App = {
 
   renderExam() {
     const n = parseInt(this.params.n, 10) || 0;
-    if (!this.session || this.session.n !== n) { this.stopExamTimer(); this.session = { n, qs: this.buildExam(n), idx: 0, correct: 0, sect: {}, startTs: Date.now() }; }
+    const scope = this.params.scope ? this.params.scope.split(",").filter(Boolean) : null;
+    const scopeKey = scope ? scope.join(",") : "";
+    if (!this.session || this.session.n !== n || this.session.scopeKey !== scopeKey) { this.stopExamTimer(); this.session = { n, scopeKey, qs: this.buildExam(n, scope), idx: 0, correct: 0, sect: {}, startTs: Date.now() }; }
     const s = this.session;
 
     if (s.idx >= s.qs.length) {
@@ -7188,7 +7273,7 @@ const App = {
           <p class="muted">${s.correct} из ${s.qs.length} правильно · зачёт от 60% · ⏱ ${this.fmtMS(s.endTs - s.startTs)}</p>
         </div>
         <div class="word-list">${rows}</div>
-        <button class="big-btn primary" data-exam="${n}">Пересдать</button>
+        <button class="big-btn primary" data-exam="${n}"${s.scopeKey ? ` data-exam-scope="${this.esc(s.scopeKey)}"` : ""}>Пересдать</button>
         <button class="big-btn ghost" data-go="exams">К списку экзаменов</button>`;
     }
 
@@ -7423,7 +7508,7 @@ const App = {
 
     if (t.dataset.go) return this.go(t.dataset.go);
 
-    if (t.dataset.exam !== undefined) return this.go("exam", { n: t.dataset.exam });
+    if (t.dataset.exam !== undefined) return this.go("exam", { n: t.dataset.exam, scope: t.dataset.examScope || "" });
     if (t.dataset.exopt !== undefined) return this.examAnswer(t.dataset.exopt, t);
 
     if (t.dataset.wmode) return this.go("writing", { mode: t.dataset.wmode });
