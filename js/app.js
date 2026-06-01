@@ -56,7 +56,7 @@ const App = {
     if (!it || !it.opts || !it.ans) return;
     if (!this.weak) this.loadWeak();
     const k = this.weakKey(it);
-    if (!this.weak.some((w) => this.weakKey(w) === k)) { this.weak.push({ q: it.q, opts: it.opts, ans: it.ans }); this.saveWeak(); }
+    if (!this.weak.some((w) => this.weakKey(w) === k)) { this.weak.push({ q: it.q, opts: it.opts, ans: it.ans, why: it.why, say: it.say }); this.saveWeak(); }
   },
   removeWeak(it) { const k = this.weakKey(it); this.weak = (this.weak || []).filter((w) => this.weakKey(w) !== k); this.saveWeak(); },
   // Добавить промах по слову темы в «Работу над ошибками» как MCQ «что значит X?»
@@ -863,9 +863,11 @@ const App = {
       b.disabled = true;
     });
     const fb = document.getElementById("fb");
-    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! Убрал из ошибок" : "✗ Правильно: <b>" + q.ans + "</b> (оставил на повтор)"} ${this.speakBtn(q.ans)}</div>
+    const why = (!ok && q.why) ? `<div class="why-box">💡 ${q.why}</div>` : "";
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! Убрал из ошибок" : "✗ Правильно: <b>" + q.ans + "</b> (оставил на повтор)"} ${this.speakBtn(q.say || q.ans)}</div>
+      ${why}
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Итог →" : "Дальше →"}</button>`;
-    Speech.say(q.ans);
+    Speech.say(q.say || q.ans);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
     this.afterAnswer();
   },
@@ -917,9 +919,11 @@ const App = {
     if (ok) s.correct++; else this.addWeak(q);
     if (inp) inp.disabled = true;
     const fb = document.getElementById("fb");
-    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + q.ans : "✗ Правильно: <b>" + q.ans + "</b>"} ${this.speakBtn(q.ans)}</div>
+    const why = (!ok && q.why) ? `<div class="why-box">💡 ${q.why}</div>` : "";
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно! " + q.ans : "✗ Правильно: <b>" + q.ans + "</b>"} ${this.speakBtn(q.say || q.ans)}</div>
+      ${why}
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
-    Speech.say(q.ans);
+    Speech.say(q.say || q.ans);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.input = ""; this.render(); });
     this.afterAnswer();
   },
@@ -935,9 +939,11 @@ const App = {
       b.disabled = true;
     });
     const fb = document.getElementById("fb");
-    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + q.ans + "</b>"} ${this.speakBtn(q.ans)}</div>
+    const why = (!ok && q.why) ? `<div class="why-box">💡 ${q.why}</div>` : "";
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + q.ans + "</b>"} ${this.speakBtn(q.say || q.ans)}</div>
+      ${why}
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.qs.length ? "Результат →" : "Дальше →"}</button>`;
-    Speech.say(q.ans);
+    Speech.say(q.say || q.ans);
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
     this.afterAnswer();
   },

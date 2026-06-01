@@ -78,6 +78,18 @@ test("генераторы упражнений: ответ среди вари�
   }
 });
 
+test("грамматика: у всех упражнений есть say (озвучка) и why (объяснение)", () => {
+  X.GRAMMAR_LESSONS.forEach((g) => {
+    if (!X.GrammarEx.has(g.id)) return;
+    const ex = X.GrammarEx.gen(g.id);
+    ex.forEach((e, i) => {
+      assert.ok(e.say && e.say.length, `${g.id}[${i}]: нет say`);
+      assert.ok(e.why && e.why.length, `${g.id}[${i}]: нет why`);
+      assert.ok(e.opts.includes(e.ans), `${g.id}[${i}]: ans не в opts`);
+    });
+  });
+});
+
 test("письмо: образцы свободного письма проходят свой чек-лист", () => {
   const App = X.App;
   X.WRITING_OPEN.forEach((w) => {

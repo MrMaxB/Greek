@@ -3,7 +3,9 @@
    Для каждого урока — генератор заданий (выбор варианта),
    от простого к сложному. Большие темы генерируются из данных
    (DECLENSIONS/CONJUGATIONS/словарь), узкие — из банков.
-   GrammarEx.gen(lessonId) -> [{q, opts:[...], ans, lvl}]
+   GrammarEx.gen(lessonId) -> [{q, opts:[...], ans, lvl, say?, why?}]
+     say — что озвучить (полная естественная фраза, не голый артикль)
+     why — короткое «почему» (правило), показывается при ошибке
    ============================================================ */
 const GrammarEx = (() => {
   const sh = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -11,6 +13,7 @@ const GrammarEx = (() => {
   // варианты: ответ ГАРАНТИРОВАННО внутри + 2 разных дистрактора
   const mk = (ans, pool) => sh([ans, ...uniq(sh(pool).filter((x) => x !== ans)).slice(0, 2)]);
   const noun = (n) => n.f.nomS.replace(/^(ο|η|το)\s+/, ""); // слово без артикля
+  const GNAME = { "м": "мужской", "ж": "женский", "ср": "средний" };
 
   // прилагательные: муж/жен/ср
   const ADJ = [
@@ -33,8 +36,12 @@ const GrammarEx = (() => {
       const out = [];
       DECLENSIONS.forEach((d) => {
         const w = noun(d), g = d.g;
-        out.push({ q: `Артикль (им.п.): ___ ${w} <span class="muted small">(${d.ru})</span>`, opts: ["ο", "η", "το"], ans: { "м": "ο", "ж": "η", "ср": "το" }[g], lvl: 1 });
-        out.push({ q: `Артикль (вин.п.): Βλέπω ___ ${w} <span class="muted small">(вижу ${d.ru})</span>`, opts: ["τον", "την", "το"], ans: { "м": "τον", "ж": "την", "ср": "το" }[g], lvl: 2 });
+        const artN = { "м": "ο", "ж": "η", "ср": "το" }[g];
+        const artA = { "м": "τον", "ж": "την", "ср": "το" }[g];
+        out.push({ q: `Артикль (им.п.): ___ ${w} <span class="muted small">(${d.ru})</span>`, opts: ["ο", "η", "το"], ans: artN, lvl: 1,
+          say: `${artN} ${w}`, why: `«${w}» — ${GNAME[g]} род, поэтому в им. падеже артикль <b>${artN}</b> (м→ο, ж→η, ср→το).` });
+        out.push({ q: `Артикль (вин.п.): Βλέπω ___ ${w} <span class="muted small">(вижу ${d.ru})</span>`, opts: ["τον", "την", "το"], ans: artA, lvl: 2,
+          say: `βλέπω ${artA} ${w}`, why: `${GNAME[g]} род в вин. падеже → <b>${artA}</b> (м: ο→τον, ж: η→την, ср: το→το).` });
       });
       return out;
     },
@@ -45,7 +52,8 @@ const GrammarEx = (() => {
         const a = ADJ[Math.floor(Math.random() * ADJ.length)];
         const art = { "м": "ο", "ж": "η", "ср": "το" }[d.g];
         const ans = a[G[d.g]];
-        out.push({ q: `${art} ___ ${noun(d)} <span class="muted small">(${a.ru} ${d.ru})</span>`, opts: sh([a.m, a.f, a.n]), ans, lvl: d.g === "ср" ? 1 : 2 });
+        out.push({ q: `${art} ___ ${noun(d)} <span class="muted small">(${a.ru} ${d.ru})</span>`, opts: sh([a.m, a.f, a.n]), ans, lvl: d.g === "ср" ? 1 : 2,
+          say: `${art} ${ans} ${noun(d)}`, why: `Прилагательное согласуется в роде: «${d.ru}» — ${GNAME[d.g]} род → <b>${ans}</b>.` });
       });
       return out;
     },
@@ -55,14 +63,16 @@ const GrammarEx = (() => {
       return sh(DECLENSIONS).slice(0, 30).map((d) => {
         const p = P[Math.floor(Math.random() * P.length)];
         const others = sh(P.filter((x) => x[0] !== p[0])).slice(0, 2).map((x) => x[0]);
-        return { q: `${d.f.nomS} ___ <span class="muted small">(${p[1]} ${d.ru})</span>`, opts: sh([p[0], ...others]), ans: p[0], lvl: 1 };
+        return { q: `${d.f.nomS} ___ <span class="muted small">(${p[1]} ${d.ru})</span>`, opts: sh([p[0], ...others]), ans: p[0], lvl: 1,
+          say: `${d.f.nomS} ${p[0]}`, why: `Притяжательное ставится <b>после</b> слова: «${p[1]}» = <b>${p[0]}</b>.` };
       });
     },
     // 14. Предлоги: σε + артикль
     prepositions() {
       return sh(DECLENSIONS).slice(0, 30).map((d) => {
         const ans = { "м": "στον", "ж": "στη", "ср": "στο" }[d.g];
-        return { q: `Πάω ___ ${noun(d)} <span class="muted small">(иду в/на ${d.ru})</span>`, opts: ["στον", "στη", "στο"], ans, lvl: 2 };
+        return { q: `Πάω ___ ${noun(d)} <span class="muted small">(иду в/на ${d.ru})</span>`, opts: ["στον", "στη", "στο"], ans, lvl: 2,
+          say: `πάω ${ans} ${noun(d)}`, why: `σε + артикль (вин.): ${GNAME[d.g]} род → <b>${ans}</b> (στον/στη/στο).` };
       });
     },
     // 16. Мне нравится
@@ -70,8 +80,10 @@ const GrammarEx = (() => {
       const out = [];
       DECLENSIONS.forEach((d) => {
         const pl = d.f.nomP, sg = d.f.nomS;
-        out.push({ q: `Μου ___ ${sg} <span class="muted small">(мне нравится ${d.ru})</span>`, opts: ["αρέσει", "αρέσουν", "αρέσω"], ans: "αρέσει", lvl: 1 });
-        out.push({ q: `Μου ___ ${pl} <span class="muted small">(мне нравятся, мн.)</span>`, opts: ["αρέσουν", "αρέσει", "αρέσω"], ans: "αρέσουν", lvl: 2 });
+        out.push({ q: `Μου ___ ${sg} <span class="muted small">(мне нравится ${d.ru})</span>`, opts: ["αρέσει", "αρέσουν", "αρέσω"], ans: "αρέσει", lvl: 1,
+          say: `μου αρέσει ${sg}`, why: `Подлежащее в ед. числе → <b>αρέσει</b> (буквально «мне нравится ОНО»).` });
+        out.push({ q: `Μου ___ ${pl} <span class="muted small">(мне нравятся, мн.)</span>`, opts: ["αρέσουν", "αρέσει", "αρέσω"], ans: "αρέσουν", lvl: 2,
+          say: `μου αρέσουν ${pl}`, why: `Подлежащее во мн. числе → <b>αρέσουν</b> («мне нравятся ОНИ»).` });
       });
       return out;
     },
@@ -80,9 +92,9 @@ const GrammarEx = (() => {
       const out = [];
       DECLENSIONS.forEach((d) => {
         const ans = { "м": "ένας", "ж": "μία", "ср": "ένα" }[d.g];
-        out.push({ q: `___ ${noun(d)} <span class="muted small">(один/одна/одно ${d.ru})</span>`, opts: ["ένας", "μία", "ένα"], ans, lvl: 1 });
+        out.push({ q: `___ ${noun(d)} <span class="muted small">(один/одна/одно ${d.ru})</span>`, opts: ["ένας", "μία", "ένα"], ans, lvl: 1,
+          say: `${ans} ${noun(d)}`, why: `«Один» согласуется в роде: ${GNAME[d.g]} → <b>${ans}</b> (ένας/μία/ένα).` });
       });
-      [["м", "τρεις"], ["ж", "τρεις"], ["ср", "τρία"]].forEach(() => {});
       return out;
     },
     // 7. είμαι / έχω
@@ -100,43 +112,51 @@ const GrammarEx = (() => {
     past() {
       const B = [["είμαι", "ήμουν", "быть"], ["έχω", "είχα", "иметь"], ["πηγαίνω", "πήγα", "идти"], ["τρώω", "έφαγα", "есть"], ["βλέπω", "είδα", "видеть"], ["λέω", "είπα", "говорить"], ["πίνω", "ήπια", "пить"], ["κάνω", "έκανα", "делать"], ["παίρνω", "πήρα", "брать"], ["δίνω", "έδωσα", "давать"], ["βρίσκω", "βρήκα", "находить"], ["έρχομαι", "ήρθα", "приходить"]];
       const all = B.map((x) => x[1]);
-      return B.map(([pres, pa, ru]) => ({ q: `Прошедшее (я) от «${pres}» <span class="muted small">(${ru})</span>`, opts: sh(uniq([pa, ...sh(all.filter((x) => x !== pa)).slice(0, 2)])), ans: pa, lvl: 2 }));
+      return B.map(([pres, pa, ru]) => ({ q: `Прошедшее (я) от «${pres}» <span class="muted small">(${ru})</span>`, opts: sh(uniq([pa, ...sh(all.filter((x) => x !== pa)).slice(0, 2)])), ans: pa, lvl: 2,
+        say: pa, why: `«${pres}» — неправильный глагол, прош. время (я) = <b>${pa}</b>. Учится наизусть.` }));
     },
     // 19/21. Будущее θα
     future() {
       const B = [["πάω", "θα πάω", "пойду"], ["φάω", "θα φάω", "поем"], ["δω", "θα δω", "увижу"], ["έρθω", "θα έρθω", "приду"], ["πιω", "θα πιω", "выпью"], ["γράψω", "θα γράψω", "напишу"], ["διαβάσω", "θα διαβάσω", "почитаю"], ["αγοράσω", "θα αγοράσω", "куплю"], ["δουλέψω", "θα δουλέψω", "поработаю"], ["μείνω", "θα μείνω", "останусь"]];
-      return B.map(([v, ans, ru]) => ({ q: `Завтра я ___ <span class="muted small">(${ru})</span>`, opts: sh([ans, v, "θα " + v + "ε"]).slice(0, 3), ans, lvl: 2 }));
+      return B.map(([v, ans, ru]) => ({ q: `Завтра я ___ <span class="muted small">(${ru})</span>`, opts: sh([ans, v, "θα " + v + "ε"]).slice(0, 3), ans, lvl: 2,
+        say: ans, why: `Будущее время = <b>θα</b> + глагол: ${ans}.` }));
     },
     // 22. να
     na() {
       const B = [["Θέλω ___ φάω.", "хочу поесть"], ["Πρέπει ___ πάω.", "надо идти"], ["Μπορώ ___ βοηθήσω;", "могу помочь"], ["Μου αρέσει ___ διαβάζω.", "нравится читать"], ["Θέλω ___ πιω νερό.", "хочу выпить воды"], ["Πρέπει ___ δουλέψω.", "надо работать"], ["Μπορείς ___ έρθεις;", "можешь прийти"], ["Θέλει ___ κοιμηθεί.", "хочет спать"]];
-      return B.map(([q, ru]) => ({ q: `${q} <span class="muted small">(${ru})</span>`, opts: sh(["να", "θα", "δεν"]), ans: "να", lvl: 1 }));
+      return B.map(([q, ru]) => ({ q: `${q} <span class="muted small">(${ru})</span>`, opts: sh(["να", "θα", "δεν"]), ans: "να", lvl: 1,
+        say: q.replace("___", "να"), why: `Два глагола подряд («хочу/могу/надо» + действие) соединяет <b>να</b>, а не θα.` }));
     },
     // 23. Союзы
     conj() {
       const B = [["ψωμί ___ τυρί", "και", "и"], ["καφέ ___ τσάι;", "ή", "или"], ["μικρό ___ ωραίο", "αλλά", "но"], ["___ δεν ήρθες;", "γιατί", "почему"], ["___ πάω σπίτι, τρώω.", "όταν", "когда"], ["___ θέλεις, έλα.", "αν", "если"], ["Λέει ___ είναι καλά.", "ότι", "что"], ["ο φίλος ___ μένει εδώ", "που", "который"]];
-      return B.map(([q, ans, ru]) => ({ q: `${q} <span class="muted small">(${ru})</span>`, opts: mk(ans, ["και", "αλλά", "ότι", "ή", "όταν", "αν", "που", "γιατί"]), ans, lvl: 2 }));
+      return B.map(([q, ans, ru]) => ({ q: `${q} <span class="muted small">(${ru})</span>`, opts: mk(ans, ["και", "αλλά", "ότι", "ή", "όταν", "αν", "που", "γιατί"]), ans, lvl: 2,
+        say: q.replace("___", ans), why: `«${ru}» по-гречески = <b>${ans}</b>.` }));
     },
     // 18. Повелительное
     imperative() {
       const B = [["приходи (ты)", "έλα", "ελάτε"], ["приходите (вы)", "ελάτε", "έλα"], ["скажи (ты)", "πες", "πείτε"], ["дай (ты)", "δώσε", "δώστε"], ["подожди (ты)", "περίμενε", "περιμένετε"], ["садитесь (вы)", "καθίστε", "κάτσε"]];
-      return B.map(([ru, ans, other]) => ({ q: `Как сказать: «${ru}»?`, opts: sh([ans, other, "παρακαλώ"]), ans, lvl: 1 }));
+      return B.map(([ru, ans, other]) => ({ q: `Как сказать: «${ru}»?`, opts: sh([ans, other, "παρακαλώ"]), ans, lvl: 1,
+        say: ans, why: `Повелительное «${ru}» = <b>${ans}</b>.` }));
     },
     // 10. Местоимения (слабые, вин.)
     pronouns() {
       const B = [["___ λένε Μαξ.", "Με", "меня зовут"], ["___ ξέρω.", "Σε", "тебя знаю"], ["___ βλέπω (его).", "Τον", "его вижу"], ["___ βλέπω (её).", "Την", "её вижу"], ["___ ευχαριστώ.", "Σας", "вас благодарю"], ["___ βοηθάει (нас).", "Μας", "нам помогает"]];
-      return B.map(([q, ans, ru]) => ({ q: `${q} <span class="muted small">(${ru})</span>`, opts: mk(ans, ["Με", "Σε", "Τον", "Την", "Σας", "Μας"]), ans, lvl: 2 }));
+      return B.map(([q, ans, ru]) => ({ q: `${q} <span class="muted small">(${ru})</span>`, opts: mk(ans, ["Με", "Σε", "Τον", "Την", "Σας", "Μας"]), ans, lvl: 2,
+        say: q.replace("___", ans).replace(/\s*\([^)]*\)/, ""), why: `«${ru}»: местоимение-объект <b>${ans}</b> стоит перед глаголом.` }));
     },
     // 17. Время (часы)
     time() {
       const B = [["3:00", "τρεις", "η ώρα"], ["3:15", "τρεις και τέταρτο", "+15"], ["3:30", "τρεις και μισή", "+30"], ["4:45", "πέντε παρά τέταρτο", "без 15 пять"], ["в 8", "στις οχτώ", "время"], ["в час", "στη μία", "1:00"]];
-      return B.map(([ru, ans]) => ({ q: `Как сказать: «${ru}»?`, opts: mk(ans, ["τρεις και δέκα", "στις δέκα", "δώδεκα", "τρεις", "στη μία", "τρεις και μισή"]), ans, lvl: 2 }));
+      return B.map(([ru, ans]) => ({ q: `Как сказать: «${ru}»?`, opts: mk(ans, ["τρεις και δέκα", "στις δέκα", "δώδεκα", "τρεις", "στη μία", "τρεις και μισή"]), ans, lvl: 2,
+        say: ans, why: `«${ru}» = <b>${ans}</b> (και — «и», παρά — «без», στις — «в … часов»).` }));
     },
     // 13. Отрицание и вопросы
     "neg-q"() {
-      const B = [["___ καταλαβαίνω. (не понимаю)", "Δεν"], ["___ είσαι; (кто ты)", "Ποιος"], ["___ μένεις; (где живёшь)", "Πού"], ["___ ώρα είναι; (который час)", "Τι"], ["___ κάνεις; (как дела)", "Πώς"], ["___ κοστίζει; (сколько стоит)", "Πόσο"]];
+      const B = [["___ καταλαβαίνω. (не понимаю)", "Δεν", "«не» перед глаголом = Δεν"], ["___ είσαι; (кто ты)", "Ποιος", "«кто» = Ποιος"], ["___ μένεις; (где живёшь)", "Πού", "«где» = Πού"], ["___ ώρα είναι; (который час)", "Τι", "«что/какой» = Τι"], ["___ κάνεις; (как дела)", "Πώς", "«как» = Πώς"], ["___ κοστίζει; (сколько стоит)", "Πόσο", "«сколько» = Πόσο"]];
       const pool = ["Δεν", "Ποιος", "Πού", "Τι", "Πώς", "Πόσο", "Πότε"];
-      return B.map(([q, ans]) => ({ q, opts: sh(uniq([ans, ...sh(pool.filter((x) => x !== ans)).slice(0, 2)])), ans, lvl: 1 }));
+      return B.map(([q, ans, why]) => ({ q, opts: sh(uniq([ans, ...sh(pool.filter((x) => x !== ans)).slice(0, 2)])), ans, lvl: 1,
+        say: q.replace("___", ans).replace(/\s*\([^)]*\)/, ""), why: `<b>${why}</b>.` }));
     },
   };
 
@@ -146,7 +166,8 @@ const GrammarEx = (() => {
     words.forEach((w) => {
       const v = CONJUGATIONS.find((x) => x.word === w); if (!v) return;
       PERS.forEach(([k, lbl]) => {
-        out.push({ q: `${lbl} ___ <span class="muted small">(${v.ru})</span>`, opts: mk(v.f[k], Object.values(v.f)), ans: v.f[k], lvl: 1 });
+        out.push({ q: `${lbl} ___ <span class="muted small">(${v.ru})</span>`, opts: mk(v.f[k], Object.values(v.f)), ans: v.f[k], lvl: 1,
+          say: `${lbl} ${v.f[k]}`, why: `«${v.word}» (${v.ru}), лицо «${lbl}» → <b>${v.f[k]}</b>.` });
       });
     });
     return out;
@@ -165,7 +186,8 @@ const GrammarEx = (() => {
       CASES.forEach(([k, lbl, lvl]) => {
         const others = sh(uniq(Object.values(d.f)).filter((x) => x !== d.f[k]));
         if (others.length < 2) return;
-        out.push({ q: `«${noun(d)}» (${d.ru}) → ${lbl}`, opts: sh([d.f[k], others[0], others[1]]), ans: d.f[k], lvl });
+        out.push({ q: `«${noun(d)}» (${d.ru}) → ${lbl}`, opts: sh([d.f[k], others[0], others[1]]), ans: d.f[k], lvl,
+          say: d.f[k], why: `«${noun(d)}» (${GNAME[d.g]} род), ${lbl.replace(/\s*\([^)]*\)/, "")} = <b>${d.f[k]}</b>.` });
       });
     });
     return out;
