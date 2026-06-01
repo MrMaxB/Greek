@@ -109,6 +109,29 @@ test("трек: темы чередуются, базовая колода се�
   big.forEach((ds) => { const span = Math.max(...ds) - Math.min(...ds); assert.ok(span >= ds.length, `большая тема идёт блоком (span ${span} при ${ds.length} колодах)`); });
 });
 
+test("трек: чекпоинт-экзамены тестируют лексику пройденного блока", () => {
+  const days = App.buildTrack();
+  let total = 0, inScope = 0;
+  days.forEach((d) => {
+    const ex = d.tasks.find((t) => t.t === "exam" && t.scope && t.scope.length);
+    if (!ex) return;
+    const qs = App.buildExam(ex.ref, ex.scope);
+    const scopeWords = new Set(X.ALL_WORDS.filter((w) => ex.scope.includes(w.deck)).map((w) => w.ru));
+    qs.filter((q) => q.section === "Лексика" || q.section === "Аудио").forEach((q) => {
+      total++; if (scopeWords.has(q.answer)) inScope++;
+    });
+  });
+  assert.ok(total > 0, "нет чекпоинт-экзаменов со scope");
+  assert.equal(inScope, total, `лексика/аудио вне блока: ${total - inScope}/${total}`);
+});
+
+test("трек: экзамены-чекпоинты не повторяются", () => {
+  const days = App.buildTrack();
+  const refs = [];
+  days.forEach((d) => { const ex = d.tasks.find((t) => t.t === "exam" && t.scope); if (ex) refs.push(ex.ref); });
+  assert.equal(new Set(refs).size, refs.length, `повтор экзамена: ${refs.join(",")}`);
+});
+
 test("трек: есть дни закрепления и экзамены-чекпоинты", () => {
   const days = App.buildTrack();
   assert.ok(days.some((d) => d.rest), "нет дней закрепления");
