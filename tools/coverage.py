@@ -15,7 +15,7 @@ def norm(s):
 def read(p): return open(os.path.join(ROOT, p), encoding="utf-8").read()
 def gk(t): return set(norm(m) for m in re.findall(r'[Α-Ωα-ωΆ-Ώάέήίόύώϊϋΐΰ]+', t) if len(m) >= 2)
 
-data = read("js/data.js")
+data = read("js/data-decks-core.js") + read("js/data-decks-extra.js")
 items = [(v, [norm(w) for w in re.findall(r'[Α-Ωα-ωΆ-Ώάέήίόύώϊϋΐΰ]+', v) if len(w) >= 2])
          for v in re.findall(r'\{\s*gr:\s*"([^"]+)",\s*tr:', data)]
 N = len(items)

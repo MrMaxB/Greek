@@ -4,18 +4,8 @@
    формы склонений/спряжений). Запуск: node tools/glosscheck.js
    Выход: список «осиротевших» слов с частотой — их надо добавить
    в READING_COMMON (js/reading.js). Код выхода 1, если есть пропуски. */
-const fs = require("fs");
-const path = require("path");
-const ROOT = path.dirname(__dirname);
-const read = (f) => fs.readFileSync(path.join(ROOT, "js", f), "utf8");
-
-const ctx = {};
-const EXPORT = ["ALL_WORDS","READING_COMMON","READING_TEXTS","DECLENSIONS","CONJUGATIONS","WRITING_ORDER","SPEAKING_Q","SPEAKING_DIALOGS","EXAM_READINGS","GRAMMAR_LESSONS"];
-["data.js", "grammar.js", "reading.js", "writing.js", "exams.js"].forEach((f) => {
-  const exp = EXPORT.map((k) => `try{ if(typeof ${k}!=="undefined") __C.${k}=${k}; }catch(e){}`).join("\n");
-  new Function("__C", read(f) + "\n" + exp)(ctx);
-});
-const X = ctx;
+// единый загрузчик (всё в одном vm-контексте) — как в тестах
+const X = require("../tests/load").load();
 
 const norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ς/g, "σ").replace(/[;.,!·]/g, "").replace(/\s+/g, " ").trim();
 const GREEK = /[Ͱ-Ͽἀ-῿]+/g;

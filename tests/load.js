@@ -10,6 +10,7 @@ const read = (f) => fs.readFileSync(path.join(ROOT, "js", f), "utf8");
 
 // Порядок как в index.html
 const FILES = [
+  "data-alphabet.js", "data-decks-core.js", "data-decks-extra.js",
   "data.js", "grammar.js", "official_a1.js", "rare.js", "exercises.js",
   "writing.js", "reading.js", "exams.js", "srs.js", "speech.js",
   "app.js", "feat-track.js", "feat-speaking.js", "feat-exams.js",
