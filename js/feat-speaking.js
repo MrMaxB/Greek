@@ -53,6 +53,7 @@ Object.assign(App, {
         <div class="deck-list">
           ${tile("listen", "🎧", "Аудирование", "слушай диалог (текст скрыт) → вопрос на понимание")}
           ${tile("match", "🔗", "Соотнеси реплики", "формат экзамена: подбери ответ к вопросу")}
+          ${tile("pic", "🖼️", "Опиши картинку", "формат A2: расскажи, что на сцене")}
           ${tile("phrases", "🔊", "Фразы вслух", noMic ? "слушай образец и повторяй вслух" : "читаешь фразу — приложение сверяет")}
           ${tile("qa", "💬", "Вопрос-ответ", "отвечаешь своими словами, потом образец")}
           ${tile("dialog", "🎭", "Диалоги", `${SPEAKING_DIALOGS.length} сценариев: кафе, магазин, врач…`)}
@@ -60,6 +61,7 @@ Object.assign(App, {
     }
     if (mode === "qa") return this.renderSpeakQA();
     if (mode === "match") return this.renderMatch();
+    if (mode === "pic") return this.renderPic();
     if (mode === "dialog") return this.renderSpeakDialog();
     if (mode === "listen") return this.renderListen();
     if (!this.session) {
@@ -193,6 +195,33 @@ Object.assign(App, {
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
     this.afterAnswer();
+  },
+
+  /* ---------- ОПИШИ КАРТИНКУ (устная часть A2) ---------- */
+  renderPic() {
+    if (!this.session || this.session.mode !== "pic") {
+      this.session = { mode: "pic", pool: this.shuffle(SPEAKING_PICS.slice()), idx: 0, revealed: false };
+    }
+    const s = this.session;
+    if (s.idx >= s.pool.length) {
+      return `<div class="result"><h2>Готово! 🖼️</h2><p class="muted">Все сцены описаны.</p>
+        <button class="big-btn primary" data-action="pic-again">Ещё раз</button>
+        <button class="big-btn ghost" data-go="speaking">К говорению</button></div>`;
+    }
+    const cur = s.pool[s.idx];
+    const words = cur.words.map((w) => `<span class="rword" data-rw="${this.esc(this.normGreek(w))}" data-ro="${this.esc(w)}">${w}</span>`).join(" · ");
+    const reveal = s.revealed
+      ? `<div class="ok-msg" style="text-align:left">Образец: <b>${this.wrapGreek(cur.model)}</b> ${this.speakBtn(cur.model)}</div>
+         <button class="big-btn primary" data-action="pic-next">Дальше →</button>`
+      : `<button class="big-btn primary" data-action="pic-reveal">Показать образец</button>`;
+    return `
+      <header class="page-head"><h2>🖼️ Опиши картинку</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <button class="back" data-go="speaking">← Говорение</button>
+      <div class="pic-scene">${cur.scene}</div>
+      <div class="quiz-prompt"><div class="type-ru">${cur.ask}</div></div>
+      <p class="muted small">Опорные слова (тапни — перевод): ${words}</p>
+      <p class="muted small">Скажи вслух 2–3 предложения, потом сверься с образцом.</p>
+      <div id="reveal">${reveal}</div>`;
   },
 
   /* ---------- СООТНЕСИ: подбери ответ к вопросу (формат matching ΚΕΓ) ---------- */

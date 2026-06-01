@@ -139,6 +139,19 @@ test("чтение: id уникальны, level/titleRu заданы, пред�
   });
 });
 
+test("говорение: описание картинки — образец содержит опорные слова и переводимо", () => {
+  const App = X.App;
+  assert.ok(X.SPEAKING_PICS && X.SPEAKING_PICS.length >= 3, "мало картинок");
+  X.SPEAKING_PICS.forEach((p) => {
+    assert.ok(p.scene && p.ask && p.model && p.words && p.words.length, `картинка «${p.ask}»: неполная`);
+    const n = App.normGreek(p.model);
+    assert.ok(p.words.some((w) => n.includes(App.normGreek(w))), `«${p.ask}»: образец не использует опорные слова`);
+    [...p.words, ...App.tokenizeGreek(p.model)].forEach((w) => {
+      if (w.length >= 2) assert.ok(App.resolveGloss(App.normGreek(w)), `«${p.ask}»: нет тап-перевода для ${w}`);
+    });
+  });
+});
+
 test("аудирование: у диалогов вопрос валиден (ответ среди вариантов)", () => {
   const withQ = X.SPEAKING_DIALOGS.filter((d) => d.q);
   assert.ok(withQ.length >= 1, "нет диалогов с вопросом для аудирования");

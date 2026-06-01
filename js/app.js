@@ -1190,6 +1190,9 @@ const App = {
       case "listen-replay": { const d = this.session.pool[this.session.idx]; return this.playDialogAudio(d); }
       case "listen-again": this.session = null; return this.render();
       case "match-again": this.session = null; return this.render();
+      case "pic-reveal": this.session.revealed = true; return this.render();
+      case "pic-next": this.session.idx++; this.session.revealed = false; return this.render();
+      case "pic-again": this.session = null; return this.render();
       case "worder-check": return this.worderCheck();
       case "compose-check": return this.composeCheck();
       case "compose-new": this.session = null; return this.render();
