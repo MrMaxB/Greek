@@ -299,10 +299,28 @@ const App = {
     if (b) b.classList.toggle("open", this.menuOpen);
   },
 
+  onboardSeen() { try { return localStorage.getItem("greekA1_onboard") === "1"; } catch { return false; } },
+  dismissOnboard() { try { localStorage.setItem("greekA1_onboard", "1"); } catch {} this.render(); },
+
   /* ---------- ГЛАВНАЯ ---------- */
   renderHome() {
     const s = SRS.summary(ALL_WORDS);
     const pct = Math.round((s.learned / s.total) * 100);
+    // Онбординг первого запуска: один раз, пока нет прогресса
+    if (!this.onboardSeen() && s.learned === 0) {
+      return `
+        <div class="onboard">
+          <h1>Γεια σου! 👋</h1>
+          <p class="sub">Это тренажёр греческого <b>с нуля до A1</b> — фундамент для экзамена A2 (гражданство Кипра).</p>
+          <div class="onboard-steps">
+            <div class="ob-step"><span class="ob-ic">🗺️</span><div><b>Иди по «Пути»</b><br><span class="muted small">Маршрут по дням: что учить сегодня — решать не нужно.</span></div></div>
+            <div class="ob-step"><span class="ob-ic">⏱️</span><div><b>25–40 минут в день</b><br><span class="muted small">Слова, грамматика, чтение, практика — по чуть-чуть.</span></div></div>
+            <div class="ob-step"><span class="ob-ic">☁️</span><div><b>Прогресс сохраняется</b><br><span class="muted small">Войди через Google — занимайся с телефона и компа.</span></div></div>
+          </div>
+          <button class="big-btn primary" data-action="onboard-go">🚀 Начать с Дня 1</button>
+          <button class="big-btn ghost" data-action="onboard-dismiss">Осмотреться сам(а)</button>
+        </div>`;
+    }
     // Баннер только если синтез речи реально не поддерживается.
     // (Раньше проверяли наличие именованного el-GR голоса — мобильный
     //  Chrome его не показывает в списке, но озвучивает по запросу.)
@@ -1169,6 +1187,8 @@ const App = {
       case "set-gexinput": return this.toggleSetting("gexInput");
       case "gex-check": return this.gexCheck();
       case "mistakes-again": this.session = null; return this.render();
+      case "onboard-go": try { localStorage.setItem("greekA1_onboard", "1"); } catch {} return this.go("track");
+      case "onboard-dismiss": return this.dismissOnboard();
       case "reset":
         if (confirm("Сбросить весь прогресс (слова, экзамены, чтение, стрик)? Это нельзя отменить.")) {
           SRS.reset();
