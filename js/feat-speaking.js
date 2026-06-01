@@ -51,6 +51,7 @@ Object.assign(App, {
         ${noMic ? `<div class="banner">🎤 В этом браузере нет распознавания речи (iPhone/Firefox). Тренировка работает в режиме «слушай образец и говори вслух»; для авто-проверки открой в <b>Chrome</b>.</div>` : ""}
         <p class="muted">Тренируй речь: повторяй фразы, отвечай на вопросы или проходи диалоги-сценарии.</p>
         <div class="deck-list">
+          ${tile("listen", "🎧", "Аудирование", "слушай диалог (текст скрыт) → вопрос на понимание")}
           ${tile("phrases", "🔊", "Фразы вслух", noMic ? "слушай образец и повторяй вслух" : "читаешь фразу — приложение сверяет")}
           ${tile("qa", "💬", "Вопрос-ответ", "отвечаешь своими словами, потом образец")}
           ${tile("dialog", "🎭", "Диалоги", `${SPEAKING_DIALOGS.length} сценариев: кафе, магазин, врач…`)}
@@ -58,6 +59,7 @@ Object.assign(App, {
     }
     if (mode === "qa") return this.renderSpeakQA();
     if (mode === "dialog") return this.renderSpeakDialog();
+    if (mode === "listen") return this.renderListen();
     if (!this.session) {
       this.session = { pool: this.shuffle(this.buildSpeaking()), idx: 0, correct: 0, done: 0, scored: false };
     }
@@ -188,6 +190,61 @@ Object.assign(App, {
       </div>
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
+  },
+
+  /* ---------- АУДИРОВАНИЕ: слушай диалог → вопрос на понимание ---------- */
+  renderListen() {
+    const pool = SPEAKING_DIALOGS.filter((d) => d.q);
+    if (!this.session || this.session.mode !== "listen") {
+      this.session = { mode: "listen", pool: this.shuffle(pool), idx: 0, correct: 0, answered: false };
+    }
+    const s = this.session;
+    if (s.idx >= s.pool.length) {
+      return `<div class="result"><h2>Готово! 🎧</h2><p class="big-score">${s.correct} / ${s.pool.length}</p>
+        <p class="muted">диалогов понято</p>
+        <button class="big-btn primary" data-action="listen-again">Ещё раз</button>
+        <button class="big-btn ghost" data-go="speaking">К говорению</button></div>`;
+    }
+    const d = s.pool[s.idx];
+    if (!Speech.supported) {
+      return `<header class="page-head"><h2>🎧 Аудирование</h2></header>
+        <button class="back" data-go="speaking">← Говорение</button>
+        <div class="banner">🔇 Этот браузер не озвучивает текст — аудирование недоступно. Открой в Chrome/Edge. А пока можно пройти «Диалоги» с текстом.</div>`;
+    }
+    const opts = d.q.options.map((o) => `<button class="opt" data-listenopt="${this.esc(o)}">${o}</button>`).join("");
+    // автозапуск проигрывания диалога двумя «голосами»
+    this.afterRender = () => this.playDialogAudio(d);
+    return `
+      <header class="page-head"><h2>🎧 Аудирование</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <button class="back" data-go="speaking">← Говорение</button>
+      <p class="muted small">Прослушай диалог (текст скрыт) и ответь на вопрос. Можно переслушать.</p>
+      <div class="quiz-prompt"><div class="deck-ic" style="font-size:2.2rem">${d.icon}</div>
+        <button class="big-btn primary slim" data-action="listen-replay">🔊 Прослушать ещё раз</button></div>
+      <div class="exam-q">${d.q.ask}</div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>`;
+  },
+  playDialogAudio(d) {
+    // два «голоса»: собеседник (p) выше, ты (u) ниже
+    Speech.sayAll(d.lines.map((l) => ({ text: l.gr, pitch: l.who === "p" ? 1.15 : 0.85 })));
+  },
+  listenAnswer(opt, el) {
+    const s = this.session;
+    const d = s.pool[s.idx];
+    if (s.answered) return;
+    s.answered = true;
+    const ok = opt === d.q.answer;
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.listenopt === d.q.answer) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + d.q.answer + "</b>"}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.answered = false; this.render(); });
     this.afterAnswer();
   },
 

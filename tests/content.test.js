@@ -139,6 +139,16 @@ test("чтение: id уникальны, level/titleRu заданы, пред�
   });
 });
 
+test("аудирование: у диалогов вопрос валиден (ответ среди вариантов)", () => {
+  const withQ = X.SPEAKING_DIALOGS.filter((d) => d.q);
+  assert.ok(withQ.length >= 1, "нет диалогов с вопросом для аудирования");
+  withQ.forEach((d) => {
+    assert.ok(d.q.options.includes(d.q.answer), `диалог ${d.id}: ответа нет в вариантах`);
+    assert.ok(d.q.options.length >= 2, `диалог ${d.id}: <2 вариантов`);
+    assert.equal(new Set(d.q.options).size, d.q.options.length, `диалог ${d.id}: дубли`);
+  });
+});
+
 test("экзамены: вопросы есть, ответ среди вариантов", () => {
   X.EXAM_READINGS.forEach((r, i) => {
     assert.ok(r.q && r.q.length, `экзамен#${i}: нет вопросов`);

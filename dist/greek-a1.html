@@ -3942,7 +3942,8 @@ const SPEAKING_Q = [
 
 // Диалоги-сценарии: who "p" — собеседник (звучит), "u" — твоя реплика
 const SPEAKING_DIALOGS = [
-  { id: "cafe", icon: "☕", title: "В кафе", ru: "Закажи кофе", lines: [
+  { id: "cafe", icon: "☕", title: "В кафе", ru: "Закажи кофе",
+    q: { ask: "Сколько стоит кофе?", options: ["Три евро", "Пять евро", "Два евро"], answer: "Три евро" }, lines: [
     { who: "p", gr: "Καλημέρα! Τι θα θέλατε;", ru: "Доброе утро! Что желаете?" },
     { who: "u", gr: "Καλημέρα. Θα ήθελα έναν καφέ, παρακαλώ.", ru: "Доброе утро. Я бы хотел кофе, пожалуйста." },
     { who: "p", gr: "Σκέτο ή με γάλα;", ru: "Чёрный или с молоком?" },
@@ -3952,7 +3953,8 @@ const SPEAKING_DIALOGS = [
     { who: "p", gr: "Τρία ευρώ.", ru: "Три евро." },
     { who: "u", gr: "Ορίστε. Ευχαριστώ!", ru: "Вот, пожалуйста. Спасибо!" },
   ] },
-  { id: "shop", icon: "🛍️", title: "В магазине", ru: "Купи одежду", lines: [
+  { id: "shop", icon: "🛍️", title: "В магазине", ru: "Купи одежду",
+    q: { ask: "Что ищет покупатель?", options: ["Синие брюки", "Красную рубашку", "Чёрные туфли"], answer: "Синие брюки" }, lines: [
     { who: "p", gr: "Γεια σας! Μπορώ να βοηθήσω;", ru: "Здравствуйте! Могу помочь?" },
     { who: "u", gr: "Ναι, ψάχνω ένα μπλε παντελόνι.", ru: "Да, ищу синие брюки." },
     { who: "p", gr: "Τι νούμερο φοράτε;", ru: "Какой у вас размер?" },
@@ -3963,7 +3965,8 @@ const SPEAKING_DIALOGS = [
     { who: "u", gr: "Ναι, το αγοράζω. Πόσο κάνει;", ru: "Да, беру. Сколько стоит?" },
     { who: "p", gr: "Είκοσι ευρώ.", ru: "Двадцать евро." },
   ] },
-  { id: "meet", icon: "🤝", title: "Знакомство", ru: "Познакомься с человеком", lines: [
+  { id: "meet", icon: "🤝", title: "Знакомство", ru: "Познакомься с человеком",
+    q: { ask: "Откуда Анна?", options: ["С Кипра", "Из России", "Из Греции"], answer: "С Кипра" }, lines: [
     { who: "p", gr: "Γεια σου! Πώς σε λένε;", ru: "Привет! Как тебя зовут?" },
     { who: "u", gr: "Με λένε Μαξ. Εσένα;", ru: "Меня зовут Макс. А тебя?" },
     { who: "p", gr: "Με λένε Άννα. Από πού είσαι;", ru: "Меня зовут Анна. Откуда ты?" },
@@ -3972,7 +3975,8 @@ const SPEAKING_DIALOGS = [
     { who: "u", gr: "Δουλεύω σε μια εταιρεία. Χάρηκα πολύ!", ru: "Работаю в компании. Очень приятно!" },
     { who: "p", gr: "Κι εγώ χάρηκα!", ru: "И мне приятно!" },
   ] },
-  { id: "way", icon: "🧭", title: "Спросить дорогу", ru: "Узнай, где банк", lines: [
+  { id: "way", icon: "🧭", title: "Спросить дорогу", ru: "Узнай, где банк",
+    q: { ask: "Сколько идти до банка?", options: ["Пять минут пешком", "Полчаса", "Десять минут на автобусе"], answer: "Пять минут пешком" }, lines: [
     { who: "u", gr: "Συγγνώμη, πού είναι η τράπεζα;", ru: "Извините, где банк?" },
     { who: "p", gr: "Πήγαινε ευθεία και μετά δεξιά.", ru: "Иди прямо, потом направо." },
     { who: "u", gr: "Είναι μακριά;", ru: "Это далеко?" },
@@ -3980,7 +3984,8 @@ const SPEAKING_DIALOGS = [
     { who: "u", gr: "Ευχαριστώ πολύ!", ru: "Большое спасибо!" },
     { who: "p", gr: "Παρακαλώ! Καλή σας μέρα.", ru: "Пожалуйста! Хорошего дня." },
   ] },
-  { id: "doctor", icon: "🩺", title: "У врача", ru: "Опиши, что болит", lines: [
+  { id: "doctor", icon: "🩺", title: "У врача", ru: "Опиши, что болит",
+    q: { ask: "Что беспокоит пациента?", options: ["Температура и кашель", "Болит нога", "Болит зуб"], answer: "Температура и кашель" }, lines: [
     { who: "p", gr: "Καλημέρα. Τι πρόβλημα έχετε;", ru: "Доброе утро. Что вас беспокоит?" },
     { who: "u", gr: "Δεν νιώθω καλά. Έχω πυρετό.", ru: "Мне нехорошо. У меня температура." },
     { who: "p", gr: "Έχετε βήχα;", ru: "Кашель есть?" },
@@ -3988,7 +3993,8 @@ const SPEAKING_DIALOGS = [
     { who: "p", gr: "Πάρτε αυτό το φάρμακο τρεις φορές την ημέρα.", ru: "Принимайте это лекарство три раза в день." },
     { who: "u", gr: "Ευχαριστώ, γιατρέ.", ru: "Спасибо, доктор." },
   ] },
-  { id: "phone", icon: "📞", title: "Звонок другу", ru: "Позови на кофе", lines: [
+  { id: "phone", icon: "📞", title: "Звонок другу", ru: "Позови на кофе",
+    q: { ask: "Во сколько встреча?", options: ["В пять вечера", "В три дня", "Утром"], answer: "В пять вечера" }, lines: [
     { who: "p", gr: "Παρακαλώ;", ru: "Алло?" },
     { who: "u", gr: "Γεια σου, Άννα! Τι κάνεις;", ru: "Привет, Анна! Как дела?" },
     { who: "p", gr: "Καλά, εσύ;", ru: "Хорошо, а ты?" },
@@ -5787,15 +5793,18 @@ const Speech = {
     return true;
   },
 
-  // Озвучить несколько фраз подряд (для чтения «озвучить всё»)
-  sayAll(texts, rate = 0.9) {
+  // Озвучить несколько фраз подряд. Элемент может быть строкой или
+  // { text, pitch } — чтобы различать голоса в диалоге (А выше, Б ниже).
+  sayAll(items, rate = 0.9) {
     if (!this.supported) return false;
     window.speechSynthesis.cancel();
-    texts.forEach((text) => {
+    items.forEach((it) => {
+      const text = typeof it === "string" ? it : it.text;
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "el-GR";
       if (this.voice) u.voice = this.voice;
       u.rate = rate;
+      u.pitch = (typeof it === "object" && it.pitch != null) ? it.pitch : 1;
       window.speechSynthesis.speak(u);
     });
     return true;
@@ -7304,7 +7313,7 @@ const App = {
 
   /* ---------- СОБЫТИЯ ---------- */
   onClick(e) {
-    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-readopt],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog],[data-track-day],[data-track-check]");
+    const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-readopt],[data-listenopt],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog],[data-track-day],[data-track-check]");
     if (!t) return;
 
     if (t.dataset.trackDay !== undefined) return this.go("track", { day: t.dataset.trackDay });
@@ -7326,6 +7335,7 @@ const App = {
     if (t.dataset.rtr !== undefined) return this.rTrans(t.dataset.rtr);
     if (t.dataset.read !== undefined) return this.go("read", { id: t.dataset.read });
     if (t.dataset.readopt !== undefined) return this.readQuizAnswer(t.dataset.readopt, t);
+    if (t.dataset.listenopt !== undefined) return this.listenAnswer(t.dataset.listenopt, t);
 
     if (t.dataset.go) return this.go(t.dataset.go);
 
@@ -7395,6 +7405,8 @@ const App = {
       case "dlg-reveal": this.session.reveal = true; return this.render();
       case "dlg-mic": return this.speakDialogMic();
       case "dlg-restart": this.session.idx = 0; this.session.reveal = false; return this.render();
+      case "listen-replay": { const d = this.session.pool[this.session.idx]; return this.playDialogAudio(d); }
+      case "listen-again": this.session = null; return this.render();
       case "worder-check": return this.worderCheck();
       case "compose-check": return this.composeCheck();
       case "compose-new": this.session = null; return this.render();
@@ -7995,6 +8007,7 @@ Object.assign(App, {
         ${noMic ? `<div class="banner">🎤 В этом браузере нет распознавания речи (iPhone/Firefox). Тренировка работает в режиме «слушай образец и говори вслух»; для авто-проверки открой в <b>Chrome</b>.</div>` : ""}
         <p class="muted">Тренируй речь: повторяй фразы, отвечай на вопросы или проходи диалоги-сценарии.</p>
         <div class="deck-list">
+          ${tile("listen", "🎧", "Аудирование", "слушай диалог (текст скрыт) → вопрос на понимание")}
           ${tile("phrases", "🔊", "Фразы вслух", noMic ? "слушай образец и повторяй вслух" : "читаешь фразу — приложение сверяет")}
           ${tile("qa", "💬", "Вопрос-ответ", "отвечаешь своими словами, потом образец")}
           ${tile("dialog", "🎭", "Диалоги", `${SPEAKING_DIALOGS.length} сценариев: кафе, магазин, врач…`)}
@@ -8002,6 +8015,7 @@ Object.assign(App, {
     }
     if (mode === "qa") return this.renderSpeakQA();
     if (mode === "dialog") return this.renderSpeakDialog();
+    if (mode === "listen") return this.renderListen();
     if (!this.session) {
       this.session = { pool: this.shuffle(this.buildSpeaking()), idx: 0, correct: 0, done: 0, scored: false };
     }
@@ -8132,6 +8146,61 @@ Object.assign(App, {
       </div>
       <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
     fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; this.render(); });
+    this.afterAnswer();
+  },
+
+  /* ---------- АУДИРОВАНИЕ: слушай диалог → вопрос на понимание ---------- */
+  renderListen() {
+    const pool = SPEAKING_DIALOGS.filter((d) => d.q);
+    if (!this.session || this.session.mode !== "listen") {
+      this.session = { mode: "listen", pool: this.shuffle(pool), idx: 0, correct: 0, answered: false };
+    }
+    const s = this.session;
+    if (s.idx >= s.pool.length) {
+      return `<div class="result"><h2>Готово! 🎧</h2><p class="big-score">${s.correct} / ${s.pool.length}</p>
+        <p class="muted">диалогов понято</p>
+        <button class="big-btn primary" data-action="listen-again">Ещё раз</button>
+        <button class="big-btn ghost" data-go="speaking">К говорению</button></div>`;
+    }
+    const d = s.pool[s.idx];
+    if (!Speech.supported) {
+      return `<header class="page-head"><h2>🎧 Аудирование</h2></header>
+        <button class="back" data-go="speaking">← Говорение</button>
+        <div class="banner">🔇 Этот браузер не озвучивает текст — аудирование недоступно. Открой в Chrome/Edge. А пока можно пройти «Диалоги» с текстом.</div>`;
+    }
+    const opts = d.q.options.map((o) => `<button class="opt" data-listenopt="${this.esc(o)}">${o}</button>`).join("");
+    // автозапуск проигрывания диалога двумя «голосами»
+    this.afterRender = () => this.playDialogAudio(d);
+    return `
+      <header class="page-head"><h2>🎧 Аудирование</h2><div class="counter">${s.idx + 1}/${s.pool.length}</div></header>
+      <button class="back" data-go="speaking">← Говорение</button>
+      <p class="muted small">Прослушай диалог (текст скрыт) и ответь на вопрос. Можно переслушать.</p>
+      <div class="quiz-prompt"><div class="deck-ic" style="font-size:2.2rem">${d.icon}</div>
+        <button class="big-btn primary slim" data-action="listen-replay">🔊 Прослушать ещё раз</button></div>
+      <div class="exam-q">${d.q.ask}</div>
+      <div class="opts">${opts}</div>
+      <div id="fb" class="feedback"></div>`;
+  },
+  playDialogAudio(d) {
+    // два «голоса»: собеседник (p) выше, ты (u) ниже
+    Speech.sayAll(d.lines.map((l) => ({ text: l.gr, pitch: l.who === "p" ? 1.15 : 0.85 })));
+  },
+  listenAnswer(opt, el) {
+    const s = this.session;
+    const d = s.pool[s.idx];
+    if (s.answered) return;
+    s.answered = true;
+    const ok = opt === d.q.answer;
+    if (ok) s.correct++;
+    document.querySelectorAll(".opt").forEach((b) => {
+      if (b.dataset.listenopt === d.q.answer) b.classList.add("ok");
+      else if (b === el) b.classList.add("bad");
+      b.disabled = true;
+    });
+    const fb = document.getElementById("fb");
+    fb.innerHTML = `<div class="${ok ? "ok-msg" : "bad-msg"}">${ok ? "✓ Верно!" : "✗ Правильно: <b>" + d.q.answer + "</b>"}</div>
+      <button class="big-btn primary" id="nextBtn">${s.idx + 1 >= s.pool.length ? "Итог →" : "Дальше →"}</button>`;
+    fb.querySelector("#nextBtn").addEventListener("click", () => { s.idx++; s.answered = false; this.render(); });
     this.afterAnswer();
   },
 

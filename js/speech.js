@@ -42,15 +42,18 @@ const Speech = {
     return true;
   },
 
-  // Озвучить несколько фраз подряд (для чтения «озвучить всё»)
-  sayAll(texts, rate = 0.9) {
+  // Озвучить несколько фраз подряд. Элемент может быть строкой или
+  // { text, pitch } — чтобы различать голоса в диалоге (А выше, Б ниже).
+  sayAll(items, rate = 0.9) {
     if (!this.supported) return false;
     window.speechSynthesis.cancel();
-    texts.forEach((text) => {
+    items.forEach((it) => {
+      const text = typeof it === "string" ? it : it.text;
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "el-GR";
       if (this.voice) u.voice = this.voice;
       u.rate = rate;
+      u.pitch = (typeof it === "object" && it.pitch != null) ? it.pitch : 1;
       window.speechSynthesis.speak(u);
     });
     return true;
