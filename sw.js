@@ -4,9 +4,26 @@
    (с обязательной ревалидацией), офлайн — отдаём из кэша.
    Обновляется сам: skipWaiting + clients.claim.
    ============================================================ */
-const CACHE = "greek-a1-cache-v3";
+const CACHE = "greek-a1-cache-v4";
 
-self.addEventListener("install", () => self.skipWaiting());
+// Ядро для офлайна с первого визита (на случай, если ресурс не успели открыть).
+// Сетевые/онлайновые (Firebase CDN) сюда не входят.
+const PRECACHE = [
+  "./", "index.html", "css/styles.css",
+  "js/data-alphabet.js", "js/data-decks-core.js", "js/data-decks-extra.js",
+  "js/data.js", "js/grammar.js", "js/official_a1.js", "js/rare.js",
+  "js/exercises.js", "js/writing.js", "js/reading.js", "js/exams.js",
+  "js/srs.js", "js/speech.js", "js/app.js",
+  "js/feat-track.js", "js/feat-speaking.js", "js/feat-exams.js",
+  "js/feat-writing.js", "js/feat-reading.js",
+];
+
+self.addEventListener("install", (e) => {
+  e.waitUntil((async () => {
+    try { const c = await caches.open(CACHE); await c.addAll(PRECACHE); } catch (err) { /* офлайн при установке — ок */ }
+    self.skipWaiting();
+  })());
+});
 
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
