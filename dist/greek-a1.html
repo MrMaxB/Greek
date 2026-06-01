@@ -6650,11 +6650,11 @@ const App = {
   /* ---------- ГРАММАТИКА: список тем → полная страница урока ---------- */
   renderGrammar() {
     const rows = GRAMMAR_LESSONS.map((g) => {
-      const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
+      const has = GrammarEx.has(g.id) && GrammarEx.gen(g.id).length;
       return `<button class="lesson-row" data-lesson="${g.id}">
         <span class="lesson-ic">${GrammarEx.icon(g.id)}</span>
         <span class="lesson-ttl">${g.title}</span>
-        ${n ? `<span class="lesson-n">${n} упр.</span>` : ""}
+        ${has ? `<span class="lesson-n">тренировка</span>` : ""}
         <span class="lesson-arr">›</span>
       </button>`;
     }).join("");
@@ -6675,7 +6675,7 @@ const App = {
     const i = GRAMMAR_LESSONS.findIndex((g) => g.id === this.params.id);
     const g = GRAMMAR_LESSONS[i];
     if (!g) return this.renderGrammar();
-    const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
+    const hasEx = GrammarEx.has(g.id) && GrammarEx.gen(g.id).length;
     const next = GRAMMAR_LESSONS[i + 1];
     // На уроках склонений/спряжений предлагаем «микс вразнобой»
     const mix = ["cases", "decl-m", "decl-f", "decl-n"].includes(g.id)
@@ -6687,7 +6687,7 @@ const App = {
       ${g.why ? `<div class="td-why">💡 <b>Зачем это:</b> ${g.why}</div>` : ""}
       <article class="lesson">${this.wrapGreek(g.body)}</article>
       <div class="lesson-actions">
-        ${n ? `<button class="big-btn primary" data-gex="${g.id}">▶ Упражнения (${n})</button>` : ""}
+        ${hasEx ? `<button class="big-btn primary" data-gex="${g.id}">▶ Тренировка (раунд по 12)</button>` : ""}
         ${mix}
         ${next ? `<button class="big-btn ghost" data-lesson="${next.id}">Дальше: ${next.title.replace(/^\d+\.\s*/, "")} →</button>` : `<button class="big-btn ghost" data-go="grammar">К списку тем</button>`}
       </div>
@@ -6806,7 +6806,8 @@ const App = {
       all.forEach((x) => { const l = x.lvl || 1; (byLvl[l] = byLvl[l] || []).push(x); });
       let ordered = [];
       Object.keys(byLvl).sort().forEach((l) => ordered = ordered.concat(this.shuffle(byLvl[l])));
-      this.session = { id, qs: ordered.slice(0, 24), idx: 0, correct: 0 };
+      // Порция-«раунд» из 12 заданий (а не все 160) — посильно за один заход.
+      this.session = { id, qs: ordered.slice(0, 12), idx: 0, correct: 0 };
     }
     const s = this.session;
     const title = (lesson ? lesson.title.replace(/^\d+\.\s*/, "") : "Упражнения");
@@ -7513,8 +7514,17 @@ Object.assign(App, {
         const l = lessonOrder[lessonPtr++]; newLesson = true; lessonsTaughtBy++; sinceLesson = 0;
         lessonTitle = stripN(l.title); lessonWhy = l.why || "";
         tasks.push({ t: "lesson", ref: l.id, label: "Грамматика: " + lessonTitle });
+        // Сразу закрепить правило короткой тренировкой (раунд из 12)
+        if (GrammarEx.has(l.id) && GrammarEx.gen(l.id).length) {
+          tasks.push({ t: "gex", ref: l.id, label: "Тренировка: " + lessonTitle });
+        }
       }
-      if (d1) { tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title }); blockDecks.push(d1.id); }
+      if (d1) {
+        tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title });
+        // Диктант на слух по теме дня (прошёл слова — записал их под диктовку)
+        tasks.push({ t: "dict", ref: d1.id, label: "🎧 Диктант по теме: " + d1.title });
+        blockDecks.push(d1.id);
+      }
       // текст(ы) ПО ТЕМЕ дня
       const genres = d1 ? genresFor(d1) : [];
       const rt = pickText(genres, maxLv);
@@ -7605,7 +7615,9 @@ Object.assign(App, {
     const examAttr = `data-exam="${task.ref}"` + (task.scope && task.scope.length ? ` data-exam-scope="${this.esc(task.scope.join(","))}"` : "");
     const map = {
       review: ['data-go="review"', "🧠"], lesson: [`data-lesson="${task.ref}"`, "📖"],
+      gex: [`data-gex="${task.ref}"`, "✍️"],
       deck: [`data-deck="${task.ref}"`, "📚"], read: [`data-read="${task.ref}"`, "📕"],
+      dict: [`data-deck="${task.ref}" data-mode="dictation"`, "🎧"],
       exam: [examAttr, "📝"], train: [`data-train="${task.ref}"`, "🎲"],
       go: [`data-go="${task.ref}"`, task.ref === "speaking" ? "🗣️" : task.ref === "writing" ? "✍️" : "▶"],
     };
@@ -8355,7 +8367,8 @@ Object.assign(App, {
         <header class="page-head"><h2>✍️ Письмо</h2></header>
         <p class="muted">Письменные упражнения A1 — проверяются автоматически.</p>
         <div class="deck-list">
-          ${tile("worder", "🧩", "Собери предложение", "порядок слов из блоков")}
+          ${tile("dict", "🎧", "Диктант на слух", "слушай и записывай — по любой теме")}
+          ${tile("worder", "🧩", "Собери предложение", "порядок слов · по темам")}
           ${tile("gap", "✏️", "Вставь слово", "пропущенное слово · грамматика")}
           ${tile("compose", "📝", "Текст из слов", "составь предложения из изученных слов")}
           ${tile("self", "🪪", "О себе", "ответь по-гречески, сверься с образцом")}
@@ -8363,12 +8376,29 @@ Object.assign(App, {
           ${tile("form", "📑", "Заполни анкету", "формат экзамена: впиши данные в графы")}
         </div>`;
     }
+    if (mode === "dict") return this.renderWDict();
     if (mode === "worder") return this.renderWOrder();
     if (mode === "gap") return this.renderWGap();
     if (mode === "compose") return this.renderWCompose();
     if (mode === "self" || mode === "open") return this.renderWSelf();
     if (mode === "form") return this.renderWForm();
     return this.renderWriting();
+  },
+
+  // Диктант на слух по теме: выбери тему → пиши её слова под диктовку.
+  // Реюзит режим колоды "dictation" (слышишь греческое — печатаешь).
+  renderWDict() {
+    const tiles = DECKS.map((d) => {
+      const done = SRS.summary(d.words).learned;
+      return `<button class="deck-tile" data-deck="${d.id}" data-mode="dictation">
+        <div class="deck-ic">${d.icon}</div>
+        <div class="deck-body"><div class="deck-title">${d.title}</div>
+        <div class="deck-meta">${d.words.length} слов${done ? ` · изучается ${done}` : ""}</div></div></button>`;
+    }).join("");
+    return `
+      <header class="page-head"><h2>🎧 Диктант на слух</h2><button class="back" data-go="writing">← Письмо</button></header>
+      <p class="muted">Выбери тему — будешь слышать греческое слово и записывать его. Лучший способ закрепить написание (как daily dictation).</p>
+      <div class="deck-list">${tiles}</div>`;
   },
 
   wHead(title, s) {

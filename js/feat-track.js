@@ -170,8 +170,17 @@ Object.assign(App, {
         const l = lessonOrder[lessonPtr++]; newLesson = true; lessonsTaughtBy++; sinceLesson = 0;
         lessonTitle = stripN(l.title); lessonWhy = l.why || "";
         tasks.push({ t: "lesson", ref: l.id, label: "Грамматика: " + lessonTitle });
+        // Сразу закрепить правило короткой тренировкой (раунд из 12)
+        if (GrammarEx.has(l.id) && GrammarEx.gen(l.id).length) {
+          tasks.push({ t: "gex", ref: l.id, label: "Тренировка: " + lessonTitle });
+        }
       }
-      if (d1) { tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title }); blockDecks.push(d1.id); }
+      if (d1) {
+        tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title });
+        // Диктант на слух по теме дня (прошёл слова — записал их под диктовку)
+        tasks.push({ t: "dict", ref: d1.id, label: "🎧 Диктант по теме: " + d1.title });
+        blockDecks.push(d1.id);
+      }
       // текст(ы) ПО ТЕМЕ дня
       const genres = d1 ? genresFor(d1) : [];
       const rt = pickText(genres, maxLv);
@@ -262,7 +271,9 @@ Object.assign(App, {
     const examAttr = `data-exam="${task.ref}"` + (task.scope && task.scope.length ? ` data-exam-scope="${this.esc(task.scope.join(","))}"` : "");
     const map = {
       review: ['data-go="review"', "🧠"], lesson: [`data-lesson="${task.ref}"`, "📖"],
+      gex: [`data-gex="${task.ref}"`, "✍️"],
       deck: [`data-deck="${task.ref}"`, "📚"], read: [`data-read="${task.ref}"`, "📕"],
+      dict: [`data-deck="${task.ref}" data-mode="dictation"`, "🎧"],
       exam: [examAttr, "📝"], train: [`data-train="${task.ref}"`, "🎲"],
       go: [`data-go="${task.ref}"`, task.ref === "speaking" ? "🗣️" : task.ref === "writing" ? "✍️" : "▶"],
     };

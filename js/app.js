@@ -726,11 +726,11 @@ const App = {
   /* ---------- ГРАММАТИКА: список тем → полная страница урока ---------- */
   renderGrammar() {
     const rows = GRAMMAR_LESSONS.map((g) => {
-      const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
+      const has = GrammarEx.has(g.id) && GrammarEx.gen(g.id).length;
       return `<button class="lesson-row" data-lesson="${g.id}">
         <span class="lesson-ic">${GrammarEx.icon(g.id)}</span>
         <span class="lesson-ttl">${g.title}</span>
-        ${n ? `<span class="lesson-n">${n} упр.</span>` : ""}
+        ${has ? `<span class="lesson-n">тренировка</span>` : ""}
         <span class="lesson-arr">›</span>
       </button>`;
     }).join("");
@@ -751,7 +751,7 @@ const App = {
     const i = GRAMMAR_LESSONS.findIndex((g) => g.id === this.params.id);
     const g = GRAMMAR_LESSONS[i];
     if (!g) return this.renderGrammar();
-    const n = GrammarEx.has(g.id) ? GrammarEx.gen(g.id).length : 0;
+    const hasEx = GrammarEx.has(g.id) && GrammarEx.gen(g.id).length;
     const next = GRAMMAR_LESSONS[i + 1];
     // На уроках склонений/спряжений предлагаем «микс вразнобой»
     const mix = ["cases", "decl-m", "decl-f", "decl-n"].includes(g.id)
@@ -763,7 +763,7 @@ const App = {
       ${g.why ? `<div class="td-why">💡 <b>Зачем это:</b> ${g.why}</div>` : ""}
       <article class="lesson">${this.wrapGreek(g.body)}</article>
       <div class="lesson-actions">
-        ${n ? `<button class="big-btn primary" data-gex="${g.id}">▶ Упражнения (${n})</button>` : ""}
+        ${hasEx ? `<button class="big-btn primary" data-gex="${g.id}">▶ Тренировка (раунд по 12)</button>` : ""}
         ${mix}
         ${next ? `<button class="big-btn ghost" data-lesson="${next.id}">Дальше: ${next.title.replace(/^\d+\.\s*/, "")} →</button>` : `<button class="big-btn ghost" data-go="grammar">К списку тем</button>`}
       </div>
@@ -882,7 +882,8 @@ const App = {
       all.forEach((x) => { const l = x.lvl || 1; (byLvl[l] = byLvl[l] || []).push(x); });
       let ordered = [];
       Object.keys(byLvl).sort().forEach((l) => ordered = ordered.concat(this.shuffle(byLvl[l])));
-      this.session = { id, qs: ordered.slice(0, 24), idx: 0, correct: 0 };
+      // Порция-«раунд» из 12 заданий (а не все 160) — посильно за один заход.
+      this.session = { id, qs: ordered.slice(0, 12), idx: 0, correct: 0 };
     }
     const s = this.session;
     const title = (lesson ? lesson.title.replace(/^\d+\.\s*/, "") : "Упражнения");

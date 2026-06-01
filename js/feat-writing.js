@@ -13,7 +13,8 @@ Object.assign(App, {
         <header class="page-head"><h2>✍️ Письмо</h2></header>
         <p class="muted">Письменные упражнения A1 — проверяются автоматически.</p>
         <div class="deck-list">
-          ${tile("worder", "🧩", "Собери предложение", "порядок слов из блоков")}
+          ${tile("dict", "🎧", "Диктант на слух", "слушай и записывай — по любой теме")}
+          ${tile("worder", "🧩", "Собери предложение", "порядок слов · по темам")}
           ${tile("gap", "✏️", "Вставь слово", "пропущенное слово · грамматика")}
           ${tile("compose", "📝", "Текст из слов", "составь предложения из изученных слов")}
           ${tile("self", "🪪", "О себе", "ответь по-гречески, сверься с образцом")}
@@ -21,12 +22,29 @@ Object.assign(App, {
           ${tile("form", "📑", "Заполни анкету", "формат экзамена: впиши данные в графы")}
         </div>`;
     }
+    if (mode === "dict") return this.renderWDict();
     if (mode === "worder") return this.renderWOrder();
     if (mode === "gap") return this.renderWGap();
     if (mode === "compose") return this.renderWCompose();
     if (mode === "self" || mode === "open") return this.renderWSelf();
     if (mode === "form") return this.renderWForm();
     return this.renderWriting();
+  },
+
+  // Диктант на слух по теме: выбери тему → пиши её слова под диктовку.
+  // Реюзит режим колоды "dictation" (слышишь греческое — печатаешь).
+  renderWDict() {
+    const tiles = DECKS.map((d) => {
+      const done = SRS.summary(d.words).learned;
+      return `<button class="deck-tile" data-deck="${d.id}" data-mode="dictation">
+        <div class="deck-ic">${d.icon}</div>
+        <div class="deck-body"><div class="deck-title">${d.title}</div>
+        <div class="deck-meta">${d.words.length} слов${done ? ` · изучается ${done}` : ""}</div></div></button>`;
+    }).join("");
+    return `
+      <header class="page-head"><h2>🎧 Диктант на слух</h2><button class="back" data-go="writing">← Письмо</button></header>
+      <p class="muted">Выбери тему — будешь слышать греческое слово и записывать его. Лучший способ закрепить написание (как daily dictation).</p>
+      <div class="deck-list">${tiles}</div>`;
   },
 
   wHead(title, s) {

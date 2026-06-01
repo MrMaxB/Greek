@@ -70,6 +70,7 @@ test("трек: ссылки на темы/тексты/уроки/экзаме�
     if (t.t === "deck") assert.ok(decks.has(t.ref), `день ${i}: нет темы ${t.ref}`);
     if (t.t === "lesson") assert.ok(lessons.has(t.ref), `день ${i}: нет урока ${t.ref}`);
     if (t.t === "read") assert.ok(texts.has(t.ref), `день ${i}: нет текста ${t.ref}`);
+    if (t.t === "dict") assert.ok(decks.has(t.ref), `день ${i}: нет темы для диктанта ${t.ref}`);
     if (t.t === "exam") assert.ok(t.ref >= 0 && t.ref < X.EXAM_READINGS.length, `день ${i}: экзамен ${t.ref} вне диапазона`);
   }));
 });
