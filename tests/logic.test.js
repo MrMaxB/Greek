@@ -57,16 +57,25 @@ test("трек: грамматика-фундамент идёт рано (пр�
   Object.entries(counts).forEach(([id, c]) => assert.equal(c, 1, `урок ${id} выдан ${c} раз`));
 });
 
-test("трек: родственные темы кластеризованы (не разбросаны)", () => {
+test("трек: темы чередуются, базовая колода семьи раньше «сиквелов»", () => {
   const days = App.buildTrack();
   const fam = (id) => id.replace(/[0-9]+$/, "").replace(/_freq$|_life$/, "");
   const dayOf = {};
   days.forEach((d, i) => d.tasks.forEach((t) => { if (t.t === "deck" && dayOf[t.ref] == null) dayOf[t.ref] = i; }));
+  // 1) базовая колода семьи (food) идёт раньше сиквелов (food2…)
+  const baseByFam = {};
+  X.DECKS.forEach((d) => { const f = fam(d.id); if (baseByFam[f] == null) baseByFam[f] = d.id; });
+  X.DECKS.forEach((d) => {
+    const base = baseByFam[fam(d.id)];
+    if (d.id !== base && dayOf[d.id] != null && dayOf[base] != null) {
+      assert.ok(dayOf[base] < dayOf[d.id], `сиквел ${d.id} раньше базовой ${base}`);
+    }
+  });
+  // 2) интерливинг: большие семьи НЕ идут сплошным блоком (разнесены)
   const byFam = {};
   Object.entries(dayOf).forEach(([id, day]) => { (byFam[fam(id)] = byFam[fam(id)] || []).push(day); });
-  let worst = 0;
-  Object.values(byFam).forEach((ds) => { if (ds.length > 1) worst = Math.max(worst, Math.max(...ds) - Math.min(...ds)); });
-  assert.ok(worst <= 20, `тема разбросана на ${worst} дней (ожидалось ≤20)`);
+  const big = Object.values(byFam).filter((ds) => ds.length >= 4);
+  big.forEach((ds) => { const span = Math.max(...ds) - Math.min(...ds); assert.ok(span >= ds.length, `большая тема идёт блоком (span ${span} при ${ds.length} колодах)`); });
 });
 
 test("трек: есть дни закрепления и экзамены-чекпоинты", () => {

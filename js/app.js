@@ -703,6 +703,7 @@ const App = {
       ? `<button class="big-btn" data-train="conj">🔀 Микс спряжений (вразнобой)</button>` : "";
     return `
       <header class="page-head"><h2>${GrammarEx.icon(g.id)} ${g.title}</h2><button class="back" data-go="grammar">← Темы</button></header>
+      ${g.why ? `<div class="td-why">💡 <b>Зачем это:</b> ${g.why}</div>` : ""}
       <article class="lesson">${this.wrapGreek(g.body)}</article>
       <div class="lesson-actions">
         ${n ? `<button class="big-btn primary" data-gex="${g.id}">▶ Упражнения (${n})</button>` : ""}

@@ -34,6 +34,12 @@ test("грамматика: уникальные id, есть title/body", () =>
   }
 });
 
+test("грамматика: у каждого урока есть «зачем» (why)", () => {
+  for (const g of X.GRAMMAR_LESSONS) {
+    assert.ok(g.why && g.why.length > 30, `урок ${g.id}: нет содержательного why`);
+  }
+});
+
 test("грамматика: нумерация уроков без пропусков", () => {
   const nums = X.GRAMMAR_LESSONS.map((g) => (g.title.match(/^(\d+)\./) || [])[1]).filter(Boolean).map(Number);
   for (let i = 1; i < nums.length; i++) {

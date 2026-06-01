@@ -52,13 +52,17 @@ Object.assign(App, {
     // Темы кластеризуем по «семьям» (food/food2/food3 рядом), сохраняя
     // порядок первого появления семьи — фундамент остаётся в начале, но
     // родственные темы не разбросаны по всему треку (был эффект «рандома»).
+    // ЧЕРЕДОВАНИЕ тем, а не блоки: базовая колода каждой семьи (food, verbs…)
+    // идёт рано, а «сиквелы» (food2/food3, verbs2…) разносятся по треку.
+    // Интерливинг > блокировки для удержания (и не выгораешь от 7 дней еды).
     const fam = (id) => id.replace(/[0-9]+$/, "").replace(/_freq$|_life$/, "");
-    const famOrder = [];
-    DECKS.forEach((d) => { const f = fam(d.id); if (!famOrder.includes(f)) famOrder.push(f); });
+    // «тир» = насколько это «продолжение» темы (0 — базовая колода семьи)
+    const tier = {};
+    const famCount = {};
+    DECKS.forEach((d) => { const f = fam(d.id); famCount[f] = (famCount[f] || 0); tier[d.id] = famCount[f]++; });
     const decks = [...DECKS].sort((a, b) => {
-      const fa = famOrder.indexOf(fam(a.id)), fb = famOrder.indexOf(fam(b.id));
-      if (fa !== fb) return fa - fb;
-      return DECKS.indexOf(a) - DECKS.indexOf(b); // стабильно внутри семьи
+      if (tier[a.id] !== tier[b.id]) return tier[a.id] - tier[b.id]; // сперва все базовые
+      return DECKS.indexOf(a) - DECKS.indexOf(b);                    // внутри тира — естественный порядок
     });
     const days = [];
     const D = (title, focus, tasks, extra) => days.push(Object.assign({ title, focus, tasks }, extra || {}));
@@ -91,36 +95,26 @@ Object.assign(App, {
       t0 ? { t: "read", ref: t0.id, label: "Первый текст (A0): " + t0.titleRu } : { t: "go", ref: "reading", label: "Открой чтение" },
     ]);
 
-    // ── Грамматика привязана к теме, которая её мотивирует ──
-    // Урок раскрывается, когда учится «опорная» колода (грамматика следует
-    // за смыслом, а не за равномерным интервалом). lesson → deck-триггер.
-    // Триггеры выбраны так, чтобы фундамент шёл рано (опорные колоды есть в
-    // начале трека), а специальное — позже. Колоды-триггеры проверены: все
-    // в первой половине пути.
-    const lessonAfterDeck = {
-      "read": "greetings", "gender": "personal", "be-have": "family",
-      "cases": "family", "decl-m": "family", "decl-f": "family", "decl-n": "food",
-      "numbers": "numbers", "time": "time", "verb-a": "verbs", "verb-b": "verbs",
-      "adjectives": "adjectives", "pronouns": "questions", "neg-q": "questions",
-      "possessive": "personal", "prepositions": "city", "likes": "likes",
-      "imperative": "verbs", "past": "verbs2", "future": "verbs2",
-      "na": "verbs2", "conj": "adv2",
-    };
-    // соберём: на какой колоде какие уроки выдавать (в порядке списка уроков)
-    const lessonsByDeck = {};
-    lessons.forEach((l) => {
-      const dk = lessonAfterDeck[l.id];
-      (lessonsByDeck[dk] = lessonsByDeck[dk] || []).push(l);
-    });
-    // Очередь уроков: когда появляется опорная колода, её уроки встают в
-    // очередь; каждый день выдаём один с её фронта (по 1 уроку в день).
-    // Если триггер не сработал — досдаём остаток ближе к концу грамм-этапа.
-    const lessonQ = [];
-    const queued = new Set();
-    const enqueue = (ls) => ls.forEach((l) => { if (!queued.has(l.id)) { queued.add(l.id); lessonQ.push(l); } });
+    // ── Грамматика: методический порядок «выживание → ядро → нюансы» ──
+    // НЕ по списку уроков и НЕ равномерно «как попало»: сначала то, что даёт
+    // говорить с первого дня (быть/иметь, читать, род), потом ядро (падежи,
+    // глаголы, числа), затем нюансы. Распределяем по ВСЕМУ треку, чтобы во
+    // второй половине не было «грамматической пустыни».
+    const GRAMMAR_SEQUENCE = [
+      "read", "be-have", "gender", "numbers", "verb-a", "cases",
+      "possessive", "questions" /*нет урока — пропустится*/, "neg-q", "decl-m",
+      "verb-b", "likes", "decl-f", "time", "adjectives", "decl-n",
+      "pronouns", "prepositions", "imperative", "past", "future", "na", "conj",
+    ].filter((id) => lessons.some((l) => l.id === id));
+    const byId = {}; lessons.forEach((l) => { byId[l.id] = l; });
+    const lessonOrder = GRAMMAR_SEQUENCE.map((id) => byId[id]).filter(Boolean);
+    lessons.forEach((l) => { if (!lessonOrder.includes(l)) lessonOrder.push(l); }); // добор
+    let lessonPtr = 0;
 
     const CONTENT = decks.length;
-    let exi = 0, blockDecks = [], contentSince = 0, lessonsTaughtBy = 0;
+    // равномерно по всему треку: один урок примерно каждые N тем-дней
+    const GRAMMAR_EVERY = Math.max(1, Math.floor(CONTENT / (lessonOrder.length + 2)));
+    let exi = 0, blockDecks = [], contentSince = 0, lessonsTaughtBy = 0, sinceLesson = 99;
     const prod = (i) => i % 3 === 0 ? { t: "go", ref: "writing", label: "Письмо: собери предложение" }
       : i % 3 === 1 ? { t: "go", ref: "speaking", label: "Говорение: фразы или диалог" }
         : { t: "go", ref: "writing", label: "Письмо: вставь слово / о себе" };
@@ -130,14 +124,15 @@ Object.assign(App, {
       const maxLv = p < 0.28 ? 1 : 2;              // ранний этап — до A0+, дальше — A1
       const tasks = [{ t: "review", label: "SRS-повторение изученных слов" }];
       const d1 = decks[i];
-      // поставить в очередь уроки, привязанные к этой колоде
-      if (d1 && lessonsByDeck[d1.id]) enqueue(lessonsByDeck[d1.id]);
-      // подстраховка: к концу грамм-этапа досдаём всё непоставленное
-      if (p > 0.7) enqueue(lessons.filter((l) => !queued.has(l.id)));
-      let newLesson = false, lessonTitle = "";
-      if (lessonQ.length) {
-        const l = lessonQ.shift(); newLesson = true; lessonsTaughtBy++;
-        lessonTitle = stripN(l.title);
+      sinceLesson++;
+      // Выдаём очередной урок по методическому порядку, держа равномерный ритм.
+      // Первые два урока — пораньше (survival), дальше — раз в GRAMMAR_EVERY дней.
+      let newLesson = false, lessonTitle = "", lessonWhy = "";
+      const wantLesson = lessonPtr < lessonOrder.length &&
+        (lessonPtr < 2 ? sinceLesson >= 1 : sinceLesson >= GRAMMAR_EVERY);
+      if (wantLesson) {
+        const l = lessonOrder[lessonPtr++]; newLesson = true; lessonsTaughtBy++; sinceLesson = 0;
+        lessonTitle = stripN(l.title); lessonWhy = l.why || "";
         tasks.push({ t: "lesson", ref: l.id, label: "Грамматика: " + lessonTitle });
       }
       if (d1) { tasks.push({ t: "deck", ref: d1.id, label: "Тема: " + d1.title }); blockDecks.push(d1.id); }
@@ -149,7 +144,8 @@ Object.assign(App, {
       if (p >= 0.4 && i % 2 === 0) { const rt2 = pickText(genres, maxLv); if (rt2) tasks.push({ t: "read", ref: rt2.id, label: "Ещё текст: " + rt2.titleRu }); }
       tasks.push(prod(i));
       D(newLesson ? lessonTitle : (d1 ? d1.title : "Практика"),
-        newLesson ? "Грамматика · тема · чтение" : "Тема · чтение · практика", tasks);
+        newLesson ? "Грамматика · тема · чтение" : "Тема · чтение · практика", tasks,
+        newLesson && lessonWhy ? { why: lessonWhy } : null);
       contentSince++;
 
       // День закрепления каждые 5 содержательных дней (возврат к материалу)
@@ -280,6 +276,7 @@ Object.assign(App, {
           </div>
           <button class="td-nav" data-track-day="${view + 1}" ${view >= total ? "disabled" : ""}>›</button>
         </div>
+        ${day.why ? `<div class="td-why">💡 <b>Зачем этот урок:</b> ${day.why}</div>` : ""}
         <div class="tk-list">${day.tasks.map((t, i) => this.trackTaskBtn(t, i, done)).join("")}</div>
         ${view === ts.day
         ? `<button class="big-btn primary" data-action="track-done">${allDone ? "✓ Готово — следующий день →" : "Отметить день пройденным →"}</button>`
