@@ -1,0 +1,12 @@
+{
+  "name": "greek-a1-trainer",
+  "version": "1.0.0",
+  "description": "Интерактивный тренажёр греческого с нуля до A1 (для экзамена A2, Кипр).",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "coverage": "python3 tools/coverage.py",
+    "build": "python3 build.py"
+  },
+  "license": "MIT"
+}

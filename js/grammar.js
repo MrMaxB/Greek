@@ -325,7 +325,7 @@ const GRAMMAR_LESSONS = [
   },
   {
     id: "conj",
-    title: "23. Союзы и связки",
+    title: "22. Союзы и связки",
     body: `
       <table class="gtab">
         <tr><td>και</td><td>и</td><td><i>ψωμί <b>και</b> τυρί</i></td></tr>
