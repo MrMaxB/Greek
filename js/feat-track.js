@@ -310,11 +310,13 @@ Object.assign(App, {
   toggleTrackTask(idx) {
     const ts = this.trackState();
     const day = this.trackViewDay();
+    const wasDone = this.trackDayDone(day);
     const arr = ts.done[day] || [];
     const k = parseInt(idx, 10);
     ts.done[day] = arr.includes(k) ? arr.filter((x) => x !== k) : [...arr, k];
     this.syncTrackDay();
     this.saveTrackState();
+    if (!wasDone && this.trackDayDone(day)) this._dayJustDone = day; // последняя галочка закрыла день
     this.render(); // без scrollTo — галочка не должна дёргать страницу
   },
   // «Отметить день пройденным» = отметить ВСЕ задания дня, перейти к след. невыполненному
@@ -363,6 +365,7 @@ Object.assign(App, {
     const day = track[view - 1];
     const done = ts.done[view] || [];
     const allDone = this.trackDayDone(view);
+    const justDone = this._dayJustDone === view; this._dayJustDone = null; // одноразовое празднование
     const pct = Math.round(100 * doneCount / total);
     const weeks = Math.ceil(total / 5);
 
@@ -400,7 +403,7 @@ Object.assign(App, {
         ${day.why ? `<div class="td-why">💡 <b>Зачем этот урок:</b> ${day.why}</div>` : ""}
         <div class="tk-list">${day.tasks.map((t, i) => this.trackTaskBtn(t, i, done)).join("")}</div>
         ${allDone
-        ? `<div class="ok-msg">✓ День пройден — все задания сделаны</div>${view < total ? `<button class="big-btn primary" data-track-day="${view + 1}">Следующий день →</button>` : ""}${cur <= total && cur !== view ? `<button class="big-btn ghost" data-track-day="${cur}">К текущему дню (${cur}) →</button>` : ""}`
+        ? `${justDone ? `<div class="day-cheer">🎉 День ${view} пройден! Отличная работа.</div>` : `<div class="ok-msg">✓ День пройден — все задания сделаны</div>`}${view < total ? `<button class="big-btn primary" data-track-day="${view + 1}">Следующий день →</button>` : `<div class="muted small center">Это был последний день! 🎓</div>`}${cur <= total && cur !== view && cur !== view + 1 ? `<button class="big-btn ghost" data-track-day="${cur}">К текущему дню (${cur}) →</button>` : ""}`
         : `<button class="big-btn primary" data-action="track-done">Отметить день пройденным →</button>${cur !== view ? `<button class="big-btn ghost" data-track-day="${cur}">К текущему дню (${cur}) →</button>` : ""}`}
       </div>
 

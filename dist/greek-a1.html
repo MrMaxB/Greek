@@ -95,6 +95,7 @@ a { color: var(--blue-2); cursor: pointer; text-decoration: underline; }
 /* ---------- HERO / HOME ---------- */
 .why-box { background: #fff7e6; border: 1px solid #ffe2a8; border-radius: 12px; padding: 10px 12px; margin: 8px 0; font-size: .95rem; line-height: 1.5; text-align: left; color: #6b4e00; }
 .dict-skel { margin-top: 8px; font-size: 1.3rem; letter-spacing: 2px; color: var(--sky); font-weight: 700; }
+.day-cheer { background: linear-gradient(135deg,#e8f7ec,#d4f1dd); border: 1px solid #8fd6a6; color: #1c6b39; font-weight: 700; border-radius: 12px; padding: 12px 14px; margin: 8px 0; text-align: center; font-size: 1.05rem; }
 .pic-scene { font-size: 3.4rem; text-align: center; padding: 18px; background: #f4f7fb; border-radius: 14px; margin: 10px 0; letter-spacing: 6px; }
 .badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 10px 0 2px; }
 .badge { font-size: .78rem; background: #eef4ff; color: #2a4d7a; border: 1px solid #d4e2f5; border-radius: 999px; padding: 3px 10px; font-weight: 600; }
@@ -7150,7 +7151,11 @@ const App = {
       case "review-again": this.session = null; return this.render();
       case "back-to-track": {
         const r = this.trackReturn; this.trackReturn = null;
-        if (r && r.idx != null) this.markTrackTaskDone(r.day, r.idx); // авто-отметка выполненного задания
+        if (r && r.idx != null) {
+          const wasDone = this.trackDayDone(r.day);
+          this.markTrackTaskDone(r.day, r.idx); // авто-отметка выполненного задания
+          if (!wasDone && this.trackDayDone(r.day)) this._dayJustDone = r.day; // день только что закрыт
+        }
         return this.goTrackDay(r ? r.day : null);
       }
       case "alpha-again": this.session = null; return this.render();
@@ -7713,11 +7718,13 @@ Object.assign(App, {
   toggleTrackTask(idx) {
     const ts = this.trackState();
     const day = this.trackViewDay();
+    const wasDone = this.trackDayDone(day);
     const arr = ts.done[day] || [];
     const k = parseInt(idx, 10);
     ts.done[day] = arr.includes(k) ? arr.filter((x) => x !== k) : [...arr, k];
     this.syncTrackDay();
     this.saveTrackState();
+    if (!wasDone && this.trackDayDone(day)) this._dayJustDone = day; // последняя галочка закрыла день
     this.render(); // без scrollTo — галочка не должна дёргать страницу
   },
   // «Отметить день пройденным» = отметить ВСЕ задания дня, перейти к след. невыполненному
@@ -7766,6 +7773,7 @@ Object.assign(App, {
     const day = track[view - 1];
     const done = ts.done[view] || [];
     const allDone = this.trackDayDone(view);
+    const justDone = this._dayJustDone === view; this._dayJustDone = null; // одноразовое празднование
     const pct = Math.round(100 * doneCount / total);
     const weeks = Math.ceil(total / 5);
 
@@ -7803,7 +7811,7 @@ Object.assign(App, {
         ${day.why ? `<div class="td-why">💡 <b>Зачем этот урок:</b> ${day.why}</div>` : ""}
         <div class="tk-list">${day.tasks.map((t, i) => this.trackTaskBtn(t, i, done)).join("")}</div>
         ${allDone
-        ? `<div class="ok-msg">✓ День пройден — все задания сделаны</div>${view < total ? `<button class="big-btn primary" data-track-day="${view + 1}">Следующий день →</button>` : ""}${cur <= total && cur !== view ? `<button class="big-btn ghost" data-track-day="${cur}">К текущему дню (${cur}) →</button>` : ""}`
+        ? `${justDone ? `<div class="day-cheer">🎉 День ${view} пройден! Отличная работа.</div>` : `<div class="ok-msg">✓ День пройден — все задания сделаны</div>`}${view < total ? `<button class="big-btn primary" data-track-day="${view + 1}">Следующий день →</button>` : `<div class="muted small center">Это был последний день! 🎓</div>`}${cur <= total && cur !== view && cur !== view + 1 ? `<button class="big-btn ghost" data-track-day="${cur}">К текущему дню (${cur}) →</button>` : ""}`
         : `<button class="big-btn primary" data-action="track-done">Отметить день пройденным →</button>${cur !== view ? `<button class="big-btn ghost" data-track-day="${cur}">К текущему дню (${cur}) →</button>` : ""}`}
       </div>
 

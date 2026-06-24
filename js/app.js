@@ -1225,7 +1225,11 @@ const App = {
       case "review-again": this.session = null; return this.render();
       case "back-to-track": {
         const r = this.trackReturn; this.trackReturn = null;
-        if (r && r.idx != null) this.markTrackTaskDone(r.day, r.idx); // авто-отметка выполненного задания
+        if (r && r.idx != null) {
+          const wasDone = this.trackDayDone(r.day);
+          this.markTrackTaskDone(r.day, r.idx); // авто-отметка выполненного задания
+          if (!wasDone && this.trackDayDone(r.day)) this._dayJustDone = r.day; // день только что закрыт
+        }
         return this.goTrackDay(r ? r.day : null);
       }
       case "alpha-again": this.session = null; return this.render();
