@@ -6439,13 +6439,21 @@ const App = {
 
     if (!cur) {
       const sum = SRS.summary(ALL_WORDS);
+      // Есть ли ЕЩЁ что повторять/учить прямо сейчас? (иначе «Продолжить» — пустышка)
+      const more = SRS.buildQueue(ALL_WORDS).length > 0;
+      const nothingYet = s.done === 0 && !more;
       return `
         <div class="result">
-          <h2>Сессия завершена 👏</h2>
-          <p class="muted">Повторено карточек: <b>${s.done}</b></p>
-          <p class="muted">Стрик: <b>${sum.streak} 🔥</b> · Всего изучается: <b>${sum.learned}/${sum.total}</b></p>
-          <button class="big-btn primary" data-action="review-again">Продолжить</button>
+          <h2>${nothingYet ? "На сейчас всё ✅" : "Сессия завершена 👏"}</h2>
+          ${nothingYet
+            ? `<p class="muted">Карточек к повторению нет, а дневной лимит новых слов (${sum.newPerDay}) на сегодня исчерпан. Возвращайся позже — слова придут на повторение по расписанию.</p>`
+            : `<p class="muted">Повторено карточек: <b>${s.done}</b></p>
+               <p class="muted">Стрик: <b>${sum.streak} 🔥</b> · Всего изучается: <b>${sum.learned}/${sum.total}</b></p>`}
+          ${more
+            ? `<button class="big-btn primary" data-action="review-again">Продолжить</button>`
+            : `<button class="big-btn primary" data-go="track">🗺️ К «Пути»</button>`}
           <button class="big-btn ghost" data-go="decks">Тренировать темы</button>
+          <button class="big-btn ghost" data-go="home">На главную</button>
         </div>`;
     }
     const isNew = SRS.isNew(cur.id);
