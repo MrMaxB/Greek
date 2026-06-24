@@ -75,7 +75,8 @@ Object.assign(App, {
       <p class="muted small">Тапни слово — перевод и звук. Тапни 🇷🇺 у строки — перевод предложения.</p>
       <div class="reader">${sents}</div>
       ${canCheck ? `<button class="big-btn" data-action="read-quiz" data-id="${t.id}">🧩 Проверить понимание</button>` : ""}
-      ${readBtn}`;
+      ${readBtn}
+      ${this.trackReturnBtn()}`;
   },
 
   // Проверка понимания текста: «что значит фраза?» из самого текста.

@@ -72,7 +72,7 @@ const App = {
   // Делается ПЕРВОЙ/основной, чтобы можно было продолжить план, а не уходить в раздел.
   trackReturnBtn() {
     if (this.trackReturn == null) return "";
-    return `<button class="big-btn primary" data-action="back-to-track">← К плану дня ${this.trackReturn}</button>`;
+    return `<button class="big-btn primary" data-action="back-to-track">✓ Готово — к плану дня ${this.trackReturn.day}</button>`;
   },
 
   go(view, params = {}) {
@@ -794,6 +794,7 @@ const App = {
       ${g.why ? `<div class="td-why">💡 <b>Зачем это:</b> ${g.why}</div>` : ""}
       <article class="lesson">${this.wrapGreek(g.body)}</article>
       <div class="lesson-actions">
+        ${this.trackReturnBtn()}
         ${hasEx ? `<button class="big-btn primary" data-gex="${g.id}">▶ Тренировка (раунд по 12)</button>` : ""}
         ${mix}
         ${next ? `<button class="big-btn ghost" data-lesson="${next.id}">Дальше: ${next.title.replace(/^\d+\.\s*/, "")} →</button>` : `<button class="big-btn ghost" data-go="grammar">К списку тем</button>`}
@@ -1145,7 +1146,8 @@ const App = {
         && (t.dataset.go || t.dataset.lesson !== undefined || t.dataset.deck !== undefined
             || t.dataset.gex !== undefined || t.dataset.read !== undefined || t.dataset.wcat !== undefined
             || t.dataset.exam !== undefined || t.dataset.train !== undefined)) {
-      this.trackReturn = this.trackViewDay();
+      const idx = t.dataset.tkidx !== undefined ? parseInt(t.dataset.tkidx, 10) : null;
+      this.trackReturn = { day: this.trackViewDay(), idx };
     }
 
     if (t.dataset.trackDay !== undefined) return this.goTrackDay(parseInt(t.dataset.trackDay, 10));
@@ -1221,7 +1223,11 @@ const App = {
     switch (name) {
       case "flip": this.session.flipped = true; return this.render();
       case "review-again": this.session = null; return this.render();
-      case "back-to-track": { const d = this.trackReturn; this.trackReturn = null; return this.goTrackDay(d || null); }
+      case "back-to-track": {
+        const r = this.trackReturn; this.trackReturn = null;
+        if (r && r.idx != null) this.markTrackTaskDone(r.day, r.idx); // авто-отметка выполненного задания
+        return this.goTrackDay(r ? r.day : null);
+      }
       case "alpha-again": this.session = null; return this.render();
       case "mode-again": this.session = null; return this.render();
       case "trainer-again": this.session = null; return this.render();

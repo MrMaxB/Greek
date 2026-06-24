@@ -301,6 +301,12 @@ Object.assign(App, {
   },
   // Синхронизировать кэш ts.day (для облака) с фактическим текущим днём
   syncTrackDay() { const ts = this.trackState(); ts.day = this.trackCurrentDay(); },
+  // Отметить конкретное задание дня выполненным (авто-отметка при возврате из него)
+  markTrackTaskDone(day, idx) {
+    const ts = this.trackState();
+    const arr = ts.done[day] || [];
+    if (!arr.includes(idx)) { ts.done[day] = [...arr, idx]; this.syncTrackDay(); this.saveTrackState(); }
+  },
   toggleTrackTask(idx) {
     const ts = this.trackState();
     const day = this.trackViewDay();
@@ -337,7 +343,7 @@ Object.assign(App, {
     const checked = done.includes(idx);
     return `<div class="tk ${checked ? "tk-done" : ""}">
       <button class="tk-check" data-track-check="${idx}" aria-label="Отметить">${checked ? "✅" : "⬜"}</button>
-      <button class="tk-go" ${attr}><span class="tk-ic">${ic}</span><span>${task.label}</span></button>
+      <button class="tk-go" data-tkidx="${idx}" ${attr}><span class="tk-ic">${ic}</span><span>${task.label}</span></button>
     </div>`;
   },
   renderTrack() {
