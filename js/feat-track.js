@@ -249,34 +249,78 @@ Object.assign(App, {
     try { this._ts = JSON.parse(localStorage.getItem("greekA1_track")) || null; } catch { this._ts = null; }
     if (!this._ts || typeof this._ts.day !== "number" || this._ts.day < 1) this._ts = { day: 1, done: (this._ts && this._ts.done) || {} };
     if (!this._ts.done) this._ts.done = {};
+    // Миграция: раньше «пройденность» хранилась в ts.day (ручная кнопка), а не в
+    // галочках. Чтобы не потерять прогресс — дни до ts.day считаем пройденными.
+    if (!this._ts._migrated && this._ts.day > 1) {
+      const track = this.buildTrack();
+      for (let n = 1; n < this._ts.day && n <= track.length; n++) {
+        const d = track[n - 1];
+        if (d && (!this._ts.done[n] || this._ts.done[n].length < d.tasks.length)) {
+          this._ts.done[n] = d.tasks.map((_, i) => i);
+        }
+      }
+      this._ts._migrated = true;
+    }
     return this._ts;
   },
   saveTrackState() {
     localStorage.setItem("greekA1_track", JSON.stringify(this.trackState()));
     if (window.Cloud && window.Cloud.push) window.Cloud.push();
   },
-  trackViewDay() {
-    const ts = this.trackState();
+  // День «пройден» = ВСЕ его задания отмечены (источник правды — галочки,
+  // а не отдельный ручной указатель). Прогресс и «текущий день» считаются отсюда.
+  trackDayDone(n) {
+    const d = this.buildTrack()[n - 1];
+    if (!d || !d.tasks.length) return false;
+    const done = this.trackState().done[n] || [];
+    return d.tasks.every((_, i) => done.includes(i));
+  },
+  trackCurrentDay() {
     const total = this.buildTrack().length;
-    let v = this.params.day ? parseInt(this.params.day, 10) : ts.day;
+    for (let n = 1; n <= total; n++) if (!this.trackDayDone(n)) return n;
+    return total + 1; // всё пройдено
+  },
+  trackDoneCount() {
+    const total = this.buildTrack().length; let c = 0;
+    for (let n = 1; n <= total; n++) if (this.trackDayDone(n)) c++;
+    return c;
+  },
+  trackViewDay() {
+    const total = this.buildTrack().length;
+    const cur = this.trackCurrentDay();
+    let v = this.params.day ? parseInt(this.params.day, 10) : cur;
     return Math.max(1, Math.min(total, v));
   },
+  // Перейти к дню трека БЕЗ прыжка наверх — скроллим к карточке дня, а не к интро.
+  goTrackDay(n) {
+    this.view = "track"; this.params = n ? { day: String(n) } : {}; this.session = null;
+    this.menuOpen = false; this.writeHash(); this.render();
+    const el = document.querySelector(".track-day");
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: "start", behavior: "smooth" });
+    else window.scrollTo(0, 0);
+  },
+  // Синхронизировать кэш ts.day (для облака) с фактическим текущим днём
+  syncTrackDay() { const ts = this.trackState(); ts.day = this.trackCurrentDay(); },
   toggleTrackTask(idx) {
     const ts = this.trackState();
     const day = this.trackViewDay();
     const arr = ts.done[day] || [];
     const k = parseInt(idx, 10);
     ts.done[day] = arr.includes(k) ? arr.filter((x) => x !== k) : [...arr, k];
+    this.syncTrackDay();
     this.saveTrackState();
-    this.render();
+    this.render(); // без scrollTo — галочка не должна дёргать страницу
   },
+  // «Отметить день пройденным» = отметить ВСЕ задания дня, перейти к след. невыполненному
   trackDone() {
-    const ts = this.trackState();
     const total = this.buildTrack().length;
-    const day = this.trackViewDay();
-    if (day === ts.day) ts.day = Math.min(total + 1, ts.day + 1);
+    const view = this.trackViewDay();
+    const ts = this.trackState();
+    ts.done[view] = this.buildTrack()[view - 1].tasks.map((_, i) => i); // все задания
+    this.syncTrackDay();
     this.saveTrackState();
-    this.go("track", ts.day > total ? {} : { day: String(ts.day) });
+    const next = this.trackCurrentDay();
+    this.goTrackDay(next > total ? null : next);
   },
   trackTaskBtn(task, idx, done) {
     const examAttr = `data-exam="${task.ref}"` + (task.scope && task.scope.length ? ` data-exam-scope="${this.esc(task.scope.join(","))}"` : "");
@@ -300,7 +344,9 @@ Object.assign(App, {
     const track = this.buildTrack();
     const ts = this.trackState();
     const total = track.length;
-    if (ts.day > total) {
+    const cur = this.trackCurrentDay();
+    const doneCount = this.trackDoneCount();
+    if (cur > total) {
       return `<header class="page-head"><h2>🗺️ Путь к A1</h2></header>
         <div class="result"><h2>Курс пройден! 🎓</h2>
         <p class="muted">Ты прошёл все ${total} дней. Дальше — закрепляй: экзамены, диалоги, чтение, и готовься к A2.</p></div>
@@ -310,19 +356,22 @@ Object.assign(App, {
     const view = this.trackViewDay();
     const day = track[view - 1];
     const done = ts.done[view] || [];
-    const allDone = day.tasks.every((_, i) => done.includes(i));
-    const pct = Math.round(100 * (ts.day - 1) / total);
+    const allDone = this.trackDayDone(view);
+    const pct = Math.round(100 * doneCount / total);
     const weeks = Math.ceil(total / 5);
 
     const byWeek = {};
     track.forEach((d, i) => { (byWeek[d.week] = byWeek[d.week] || []).push({ d, n: i + 1 }); });
     const overview = Object.keys(byWeek).map((w) => {
-      const cur = byWeek[w].some((x) => x.n === ts.day);
-      const rows = byWeek[w].map(({ d, n }) =>
-        `<button class="track-row ${n < ts.day ? "done" : n === ts.day ? "cur" : ""}" data-track-day="${n}">
-          <span class="tr-mark">${n < ts.day ? "✅" : n === ts.day ? "▶" : (d.checkpoint ? "🏁" : "•")}</span>
-          День ${n}: ${d.title}</button>`).join("");
-      return `<details class="track-week" ${cur ? "open" : ""}><summary>Неделя ${w}</summary>${rows}</details>`;
+      const open = byWeek[w].some((x) => x.n === cur);
+      const rows = byWeek[w].map(({ d, n }) => {
+        const isDone = this.trackDayDone(n);
+        const mark = isDone ? "✅" : n === cur ? "▶" : (d.checkpoint ? "🏁" : "•");
+        return `<button class="track-row ${isDone ? "done" : n === cur ? "cur" : ""}" data-track-day="${n}">
+          <span class="tr-mark">${mark}</span>
+          День ${n}: ${d.title}</button>`;
+      }).join("");
+      return `<details class="track-week" ${open ? "open" : ""}><summary>Неделя ${w}</summary>${rows}</details>`;
     }).join("");
 
     return `
@@ -330,7 +379,7 @@ Object.assign(App, {
       <p class="muted">Настоящий маршрут от простого к сложному: каждое новое опирается на пройденное. До ~15 новых слов в день (большие темы SRS растянет на пару дней — это нормально), грамматика идёт впереди материала, чтение и практика — <b>по теме дня</b>, каждые 5 дней — день закрепления (возврат, без новых слов), экзамены проверяют темы блока. Сессия — 25–40 мин.</p>
       <p class="muted small">Весь путь — ${total} дней (~${weeks} недель). Реалистично: за <b>2 месяца</b> (≈43 занятия) прочно закрепляется <b>ядро ~600–700 слов</b> и базовая грамматика; полный словарь A1 (~1300) — это ~4 месяца при 5 занятиях в неделю. Темп держим посильным — это важнее скорости. Прогресс синхронизируется.</p>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-      <p class="muted center small">Пройдено ${ts.day - 1} из ${total} дней · ${pct}%</p>
+      <p class="muted center small">Пройдено ${doneCount} из ${total} дней · ${pct}% · текущий день ${cur}</p>
 
       <div class="track-day ${day.checkpoint ? "cp" : ""}">
         <div class="td-head">
@@ -344,11 +393,9 @@ Object.assign(App, {
         </div>
         ${day.why ? `<div class="td-why">💡 <b>Зачем этот урок:</b> ${day.why}</div>` : ""}
         <div class="tk-list">${day.tasks.map((t, i) => this.trackTaskBtn(t, i, done)).join("")}</div>
-        ${view === ts.day
-        ? `<button class="big-btn primary" data-action="track-done">${allDone ? "✓ Готово — следующий день →" : "Отметить день пройденным →"}</button>`
-        : view < ts.day
-          ? `<div class="ok-msg">✓ Этот день уже пройден</div><button class="big-btn ghost" data-track-day="${ts.day}">К текущему дню (${ts.day}) →</button>`
-          : `<div class="muted small center">Сначала пройди день ${ts.day}.</div><button class="big-btn ghost" data-track-day="${ts.day}">К текущему дню →</button>`}
+        ${allDone
+        ? `<div class="ok-msg">✓ День пройден — все задания сделаны</div>${view < total ? `<button class="big-btn primary" data-track-day="${view + 1}">Следующий день →</button>` : ""}${cur <= total && cur !== view ? `<button class="big-btn ghost" data-track-day="${cur}">К текущему дню (${cur}) →</button>` : ""}`
+        : `<button class="big-btn primary" data-action="track-done">Отметить день пройденным →</button>${cur !== view ? `<button class="big-btn ghost" data-track-day="${cur}">К текущему дню (${cur}) →</button>` : ""}`}
       </div>
 
       <h3 class="section-title">Все недели</h3>

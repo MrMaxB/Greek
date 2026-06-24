@@ -1148,7 +1148,7 @@ const App = {
       this.trackReturn = this.trackViewDay();
     }
 
-    if (t.dataset.trackDay !== undefined) return this.go("track", { day: t.dataset.trackDay });
+    if (t.dataset.trackDay !== undefined) return this.goTrackDay(parseInt(t.dataset.trackDay, 10));
     if (t.dataset.trackCheck !== undefined) return this.toggleTrackTask(t.dataset.trackCheck);
     if (t.dataset.lesson !== undefined) return this.go("lesson", { id: t.dataset.lesson });
     if (t.dataset.gex !== undefined) { e.preventDefault(); return this.go("gex", { topic: t.dataset.gex }); }
@@ -1221,7 +1221,7 @@ const App = {
     switch (name) {
       case "flip": this.session.flipped = true; return this.render();
       case "review-again": this.session = null; return this.render();
-      case "back-to-track": { const d = this.trackReturn; this.trackReturn = null; return this.go("track", d ? { day: String(d) } : {}); }
+      case "back-to-track": { const d = this.trackReturn; this.trackReturn = null; return this.goTrackDay(d || null); }
       case "alpha-again": this.session = null; return this.render();
       case "mode-again": this.session = null; return this.render();
       case "trainer-again": this.session = null; return this.render();
