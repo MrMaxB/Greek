@@ -7,7 +7,9 @@
 const CACHE = "greek-a1-cache-v4";
 
 // Ядро для офлайна с первого визита (на случай, если ресурс не успели открыть).
-// Сетевые/онлайновые (Firebase CDN) сюда не входят.
+// js/firebase-config.js и js/cloud.js намеренно НЕ в precache: cloud.js — ES-модуль,
+// тянущий Firebase с CDN, офлайн он всё равно не работает; докешируется fetch-хендлером
+// при первом онлайн-визите. Всё остальное (ядро обучения) — ниже.
 const PRECACHE = [
   "./", "index.html", "css/styles.css",
   "js/data-alphabet.js", "js/data-decks-core.js", "js/data-decks-extra.js",

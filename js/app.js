@@ -68,6 +68,13 @@ const App = {
   applySettings() { if (document.body) document.body.classList.toggle("no-tr", !this.settings.tr); },
   toggleSetting(k) { this.settings[k] = !this.settings[k]; this.saveSettings(); this.applySettings(); this.render(); },
 
+  // Кнопка возврата в «Путь» на экранах завершения (если задание шло из трека).
+  // Делается ПЕРВОЙ/основной, чтобы можно было продолжить план, а не уходить в раздел.
+  trackReturnBtn() {
+    if (this.trackReturn == null) return "";
+    return `<button class="big-btn primary" data-action="back-to-track">← К плану дня ${this.trackReturn}</button>`;
+  },
+
   go(view, params = {}) {
     this.view = view;
     this.params = params;
@@ -200,8 +207,14 @@ const App = {
       coverage: () => this.renderCoverage(),
       mistakes: () => this.renderMistakes(),
     };
+    let main = (map[this.view] || map.home)();
+    // Если задание шло из «Пути» — на любом экране завершения (.result) добавляем
+    // первой кнопкой возврат в план дня, чтобы продолжить трек, а не уйти в раздел.
+    if (this.trackReturn != null && main.includes('<div class="result">')) {
+      main = main.replace('<div class="result">', `<div class="result">${this.trackReturnBtn()}`);
+    }
     this.root.innerHTML =
-      this.renderNav() + `<main class="screen">${(map[this.view] || map.home)()}</main>` + this.wordbarHtml();
+      this.renderNav() + `<main class="screen">${main}</main>` + this.wordbarHtml();
     if (this.afterRender) { const f = this.afterRender; this.afterRender = null; f(); }
   },
 
@@ -1122,6 +1135,19 @@ const App = {
     const t = e.target.closest("[data-go],[data-say],[data-say-slow],[data-action],[data-alpha-opt],[data-grade],[data-deck],[data-mode],[data-choice],[data-deck-next],[data-key],[data-train],[data-form],[data-wmode],[data-wcat],[data-pdict],[data-wtoken],[data-wgap],[data-exam],[data-exopt],[data-read],[data-readopt],[data-listenopt],[data-matchopt],[data-rw],[data-rtr],[data-gex],[data-gexopt],[data-lesson],[data-mistakeopt],[data-spkmode],[data-dialog],[data-track-day],[data-track-check]");
     if (!t) return;
 
+    // Уход через меню/верхнюю навигацию сбрасывает «возврат в Путь» (он устарел).
+    if (e.target.closest(".menu") || t.dataset.go === "home") this.trackReturn = null;
+
+    // Запоминаем, что задание запущено ИЗ «Пути» — чтобы по завершении вернуть
+    // в план дня, а не выкинуть в раздел. Навигация по самому треку — не задание.
+    if (this.view === "track" && !e.target.closest(".menu")
+        && t.dataset.trackDay === undefined && t.dataset.trackCheck === undefined
+        && (t.dataset.go || t.dataset.lesson !== undefined || t.dataset.deck !== undefined
+            || t.dataset.gex !== undefined || t.dataset.read !== undefined || t.dataset.wcat !== undefined
+            || t.dataset.exam !== undefined || t.dataset.train !== undefined)) {
+      this.trackReturn = this.trackViewDay();
+    }
+
     if (t.dataset.trackDay !== undefined) return this.go("track", { day: t.dataset.trackDay });
     if (t.dataset.trackCheck !== undefined) return this.toggleTrackTask(t.dataset.trackCheck);
     if (t.dataset.lesson !== undefined) return this.go("lesson", { id: t.dataset.lesson });
@@ -1176,8 +1202,9 @@ const App = {
   },
 
   onInput(e) {
+    if (!this.session) return;
     if (e.target.id === "typeInput") this.session.input = e.target.value;
-    if (e.target.id === "composeText" || e.target.id === "selfText") this.session.text = e.target.value;
+    if (e.target.id === "composeText" || e.target.id === "selfText" || e.target.id === "pdInput") this.session.text = e.target.value;
   },
 
   onKey(e) {
@@ -1194,6 +1221,7 @@ const App = {
     switch (name) {
       case "flip": this.session.flipped = true; return this.render();
       case "review-again": this.session = null; return this.render();
+      case "back-to-track": { const d = this.trackReturn; this.trackReturn = null; return this.go("track", d ? { day: String(d) } : {}); }
       case "alpha-again": this.session = null; return this.render();
       case "mode-again": this.session = null; return this.render();
       case "trainer-again": this.session = null; return this.render();
